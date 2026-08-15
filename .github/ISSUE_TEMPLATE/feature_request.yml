@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest a focused improvement to ParkAlong
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Parking problem
+      description: What driver problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed experience
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Reusable data source
+      description: If the feature depends on new data, link its authoritative source and reuse terms.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

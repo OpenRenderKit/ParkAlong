@@ -1,0 +1,46 @@
+name: Bug report
+description: Report reproducible incorrect behaviour in ParkAlong
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve ParkAlong. Do not include private location data.
+  - type: input
+    id: version
+    attributes:
+      label: Revision or version
+      placeholder: Commit SHA or app build
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Device and iOS version
+      placeholder: iPhone 17 Pro, iOS 26.4
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      placeholder: Tell us exactly what you did and which stay duration was selected.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or logs
+      description: Remove precise private locations and personal information first.

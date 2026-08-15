@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    name: iOS build and tests
+    runs-on: macos-15
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Run Swift unit and UI tests
+        run: |
+          xcodebuild test \
+            -project ParkingAvailability.xcodeproj \
+            -scheme ParkingAvailability \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Run generator tests
+        run: python3 -m unittest discover -s Scripts/tests -v

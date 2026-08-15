@@ -28,6 +28,7 @@
 		790B5F4E3CD404C8695D23F5 /* AvailabilityEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FF7811008DC08D988090DE8 /* AvailabilityEngine.swift */; };
 		83E27581E884F9FB272875FF /* restrictions.json in Resources */ = {isa = PBXBuildFile; fileRef = B5D694E89CF7D049833D1FB5 /* restrictions.json */; };
 		A2A230B346DD66AA500C7765 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78AA1EC5B08B3DAC11AF5B0A /* AppEnvironment.swift */; };
+		A447A6B805C7AF1A20151EF0 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = C8DB655C2E75CE389067F648 /* README.md */; };
 		AF492BED8BB653C57488A763 /* AppleMapsNavigator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E804E61FDEFB4AFF07CE76C8 /* AppleMapsNavigator.swift */; };
 		B1869DB4CC2E49BBE4554D52 /* RestrictionEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EC923ADCBF50926855BAE88 /* RestrictionEngineTests.swift */; };
 		C34E5DC25EF0575F8877CA58 /* PredictionRankingCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0C4800DF6A2B45EFD1C663 /* PredictionRankingCacheTests.swift */; };
@@ -88,6 +89,7 @@
 		C3994E733C4CF576E362FE9D /* ParkingAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkingAPIClientTests.swift; sourceTree = "<group>"; };
 		C4FA46744807E544B0F94EE5 /* ParkingMapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkingMapViewModel.swift; sourceTree = "<group>"; };
 		C6D50D825383DFD43ED78436 /* MapControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapControls.swift; sourceTree = "<group>"; };
+		C8DB655C2E75CE389067F648 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		DA996D4FCC93C3C915B5B7F7 /* ParkingAvailabilityUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ParkingAvailabilityUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DAB02E9B9148357870555FF7 /* RankingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingEngine.swift; sourceTree = "<group>"; };
 		E23C392C42892301BD760BEB /* zone_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = zone_metadata.json; sourceTree = "<group>"; };
@@ -137,6 +139,7 @@
 			isa = PBXGroup;
 			children = (
 				66A0FA80F3C9B7EEBB757A14 /* historical_availability.json */,
+				C8DB655C2E75CE389067F648 /* README.md */,
 				B5D694E89CF7D049833D1FB5 /* restrictions.json */,
 				E23C392C42892301BD760BEB /* zone_metadata.json */,
 			);
@@ -351,6 +354,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A447A6B805C7AF1A20151EF0 /* README.md in Resources */,
 				1F2A4FC10BE99675F452E5DD /* historical_availability.json in Resources */,
 				83E27581E884F9FB272875FF /* restrictions.json in Resources */,
 				5B79626993A971C605D693FE /* zone_metadata.json in Resources */,
