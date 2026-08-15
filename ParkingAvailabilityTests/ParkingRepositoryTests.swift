@@ -83,7 +83,9 @@ final class ParkingRepositoryTests: XCTestCase {
 
         XCTAssertEqual(result.mode, .live)
         XCTAssertTrue(result.zones.isEmpty)
-        XCTAssertTrue(result.notice.contains("3 hours"))
+        XCTAssertTrue(result.notice.contains(StayDuration.threePlusHours.selectionDescription))
+        XCTAssertTrue(result.notice.contains("off-street"))
+        XCTAssertFalse(result.notice.localizedCaseInsensitiveContains("connection"))
     }
 
     private var metadata: [ZoneMetadata] {
