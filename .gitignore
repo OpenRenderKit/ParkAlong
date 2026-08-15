@@ -1,0 +1,10 @@
+.DS_Store
+DerivedData*/
+build/
+*.xcresult
+Scripts/data/
+*.zip
+*.csv
+screenshots/*.png
+__pycache__/
+*.pyc

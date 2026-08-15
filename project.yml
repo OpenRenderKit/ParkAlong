@@ -1,0 +1,62 @@
+name: ParkingAvailability
+options:
+  bundleIdPrefix: com.sidkrishnan
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+targets:
+  ParkingAvailability:
+    type: application
+    platform: iOS
+    sources:
+      - path: ParkingAvailability
+        excludes:
+          - Resources
+      - path: ParkingAvailability/Resources
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sidkrishnan.ParkingAvailability
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: ParkAlong
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: Your location helps find parking near you. You can keep using destination search without it.
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+        SUPPORTS_MACCATALYST: NO
+    scheme:
+      testTargets:
+        - ParkingAvailabilityTests
+        - ParkingAvailabilityUITests
+  ParkingAvailabilityTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: ParkingAvailabilityTests
+    dependencies:
+      - target: ParkingAvailability
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sidkrishnan.ParkingAvailabilityTests
+        GENERATE_INFOPLIST_FILE: YES
+  ParkingAvailabilityUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: ParkingAvailabilityUITests
+    dependencies:
+      - target: ParkingAvailability
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sidkrishnan.ParkingAvailabilityUITests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: ParkingAvailability
