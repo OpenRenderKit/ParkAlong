@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -24,12 +24,21 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
+      - name: Create iOS simulator
+        run: |
+          RUNTIME_ID=$(xcrun simctl list runtimes available -j | python3 -c 'import json,sys; values=[item["identifier"] for item in json.load(sys.stdin)["runtimes"] if item.get("isAvailable") and item.get("platform") == "iOS"]; print(values[-1])')
+          DEVICE_TYPE_ID=$(xcrun simctl list devicetypes -j | python3 -c 'import json,sys; values=[item for item in json.load(sys.stdin)["devicetypes"] if item["name"].startswith("iPhone")]; preferred=next((item for item in values if item["name"] == "iPhone 16 Pro"), values[-1]); print(preferred["identifier"])')
+          SIMULATOR_UDID=$(xcrun simctl create ParkAlong-CI "$DEVICE_TYPE_ID" "$RUNTIME_ID")
+          xcrun simctl boot "$SIMULATOR_UDID"
+          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+          echo "SIMULATOR_UDID=$SIMULATOR_UDID" >> "$GITHUB_ENV"
+
       - name: Run Swift unit and UI tests
         run: |
           xcodebuild test \
             -project ParkingAvailability.xcodeproj \
             -scheme ParkingAvailability \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
             CODE_SIGNING_ALLOWED=NO
 
       - name: Run generator tests
