@@ -81,7 +81,7 @@ def build_metadata(sensors: list[dict], streets: list[dict]) -> list[dict]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-directory", type=Path, default=Path("ParkingAvailability/Resources/Generated"))
+    parser.add_argument("--output-directory", type=Path, default=Path("ParkAlong/Resources/Generated"))
     args = parser.parse_args()
 
     sensors = fetch_all(SENSORS, "zone_number,kerbsideid,location")

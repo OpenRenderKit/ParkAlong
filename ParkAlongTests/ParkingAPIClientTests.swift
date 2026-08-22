@@ -1,5 +1,5 @@
 import XCTest
-@testable import ParkingAvailability
+@testable import ParkAlong
 
 final class ParkingAPIClientTests: XCTestCase {
     func testDecodesRealSensorFields() throws {
@@ -56,4 +56,3 @@ actor RecordingTransport: HTTPTransport {
         return (data, response)
     }
 }
-

@@ -134,15 +134,15 @@ git clone https://github.com/OpenRenderKit/ParkAlong.git
 cd ParkAlong
 brew install xcodegen
 xcodegen generate
-open ParkingAvailability.xcodeproj
+open ParkAlong.xcodeproj
 ```
 
 Or build entirely from the terminal:
 
 ```bash
 xcodebuild build \
-  -project ParkingAvailability.xcodeproj \
-  -scheme ParkingAvailability \
+  -project ParkAlong.xcodeproj \
+  -scheme ParkAlong \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
   CODE_SIGNING_ALLOWED=NO
 ```
@@ -161,8 +161,8 @@ Run the deterministic app test suite:
 
 ```bash
 xcodebuild test \
-  -project ParkingAvailability.xcodeproj \
-  -scheme ParkingAvailability \
+  -project ParkAlong.xcodeproj \
+  -scheme ParkAlong \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
   CODE_SIGNING_ALLOWED=NO
 ```
@@ -199,8 +199,8 @@ curl -fL \
 
 python3 Scripts/generate_prediction.py \
   Scripts/data/2019-parking-events.zip \
-  ParkingAvailability/Resources/Generated/historical_availability.json \
-  --metadata ParkingAvailability/Resources/Generated/zone_metadata.json
+  ParkAlong/Resources/Generated/historical_availability.json \
+  --metadata ParkAlong/Resources/Generated/zone_metadata.json
 ```
 
 The raw archive is ignored by Git. Only the compact generated artifact is committed.

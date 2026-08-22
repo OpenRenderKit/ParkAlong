@@ -1,4 +1,4 @@
-name: ParkingAvailability
+name: ParkAlong
 options:
   bundleIdPrefix: com.sidkrishnan
   deploymentTarget:
@@ -13,18 +13,18 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
 targets:
-  ParkingAvailability:
+  ParkAlong:
     type: application
     platform: iOS
     sources:
-      - path: ParkingAvailability
+      - path: ParkAlong
         excludes:
           - Resources
-      - path: ParkingAvailability/Resources
+      - path: ParkAlong/Resources
         buildPhase: resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.sidkrishnan.ParkingAvailability
+        PRODUCT_BUNDLE_IDENTIFIER: com.sidkrishnan.ParkAlong
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: ParkAlong
@@ -35,28 +35,28 @@ targets:
         SUPPORTS_MACCATALYST: NO
     scheme:
       testTargets:
-        - ParkingAvailabilityTests
-        - ParkingAvailabilityUITests
-  ParkingAvailabilityTests:
+        - ParkAlongTests
+        - ParkAlongUITests
+  ParkAlongTests:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - path: ParkingAvailabilityTests
+      - path: ParkAlongTests
     dependencies:
-      - target: ParkingAvailability
+      - target: ParkAlong
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.sidkrishnan.ParkingAvailabilityTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.sidkrishnan.ParkAlongTests
         GENERATE_INFOPLIST_FILE: YES
-  ParkingAvailabilityUITests:
+  ParkAlongUITests:
     type: bundle.ui-testing
     platform: iOS
     sources:
-      - path: ParkingAvailabilityUITests
+      - path: ParkAlongUITests
     dependencies:
-      - target: ParkingAvailability
+      - target: ParkAlong
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.sidkrishnan.ParkingAvailabilityUITests
+        PRODUCT_BUNDLE_IDENTIFIER: com.sidkrishnan.ParkAlongUITests
         GENERATE_INFOPLIST_FILE: YES
-        TEST_TARGET_NAME: ParkingAvailability
+        TEST_TARGET_NAME: ParkAlong

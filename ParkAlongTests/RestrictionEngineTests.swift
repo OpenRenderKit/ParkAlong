@@ -1,5 +1,5 @@
 import XCTest
-@testable import ParkingAvailability
+@testable import ParkAlong
 
 final class RestrictionEngineTests: XCTestCase {
     private let engine = RestrictionEngine(timeZone: TimeZone(identifier: "Australia/Melbourne")!)

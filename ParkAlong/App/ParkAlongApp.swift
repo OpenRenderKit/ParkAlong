@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct ParkingAvailabilityApp: App {
+struct ParkAlongApp: App {
     @State private var viewModel = AppEnvironment.makeViewModel()
 
     var body: some Scene {

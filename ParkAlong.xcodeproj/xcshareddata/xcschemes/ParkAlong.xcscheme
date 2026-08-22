@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "8C8A32CC876133603051ED78"
-               BuildableName = "ParkingAvailability.app"
-               BlueprintName = "ParkingAvailability"
-               ReferencedContainer = "container:ParkingAvailability.xcodeproj">
+               BlueprintIdentifier = "38A9F7BD0F8AF685B71A1E5A"
+               BuildableName = "ParkAlong.app"
+               BlueprintName = "ParkAlong"
+               ReferencedContainer = "container:ParkAlong.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "8C8A32CC876133603051ED78"
-            BuildableName = "ParkingAvailability.app"
-            BlueprintName = "ParkingAvailability"
-            ReferencedContainer = "container:ParkingAvailability.xcodeproj">
+            BlueprintIdentifier = "38A9F7BD0F8AF685B71A1E5A"
+            BuildableName = "ParkAlong.app"
+            BlueprintName = "ParkAlong"
+            ReferencedContainer = "container:ParkAlong.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -44,10 +44,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "D16550A1CD72D983E0D1C891"
-               BuildableName = "ParkingAvailabilityTests.xctest"
-               BlueprintName = "ParkingAvailabilityTests"
-               ReferencedContainer = "container:ParkingAvailability.xcodeproj">
+               BlueprintIdentifier = "7F48B661AB3DDEDD6FA68875"
+               BuildableName = "ParkAlongTests.xctest"
+               BlueprintName = "ParkAlongTests"
+               ReferencedContainer = "container:ParkAlong.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -55,10 +55,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "A8960F2C528CBCCBE8E68989"
-               BuildableName = "ParkingAvailabilityUITests.xctest"
-               BlueprintName = "ParkingAvailabilityUITests"
-               ReferencedContainer = "container:ParkingAvailability.xcodeproj">
+               BlueprintIdentifier = "4D514867199DA847E4F0A913"
+               BuildableName = "ParkAlongUITests.xctest"
+               BlueprintName = "ParkAlongUITests"
+               ReferencedContainer = "container:ParkAlong.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -79,10 +79,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "8C8A32CC876133603051ED78"
-            BuildableName = "ParkingAvailability.app"
-            BlueprintName = "ParkingAvailability"
-            ReferencedContainer = "container:ParkingAvailability.xcodeproj">
+            BlueprintIdentifier = "38A9F7BD0F8AF685B71A1E5A"
+            BuildableName = "ParkAlong.app"
+            BlueprintName = "ParkAlong"
+            ReferencedContainer = "container:ParkAlong.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -98,10 +98,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "8C8A32CC876133603051ED78"
-            BuildableName = "ParkingAvailability.app"
-            BlueprintName = "ParkingAvailability"
-            ReferencedContainer = "container:ParkingAvailability.xcodeproj">
+            BlueprintIdentifier = "38A9F7BD0F8AF685B71A1E5A"
+            BuildableName = "ParkAlong.app"
+            BlueprintName = "ParkAlong"
+            ReferencedContainer = "container:ParkAlong.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>

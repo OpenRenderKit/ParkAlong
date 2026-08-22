@@ -1,5 +1,5 @@
 import XCTest
-@testable import ParkingAvailability
+@testable import ParkAlong
 
 final class AvailabilityEngineTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
@@ -37,4 +37,3 @@ final class AvailabilityEngineTests: XCTestCase {
         XCTAssertEqual(AvailabilityEngine.group(readings: [row], now: now)[7001]?.available, 1)
     }
 }
-

@@ -1,7 +1,7 @@
 import XCTest
 
 @MainActor
-final class ParkingAvailabilityUITests: XCTestCase {
+final class ParkAlongUITests: XCTestCase {
     private func launch(_ arguments: [String] = ["-fixture-live"]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing", "-intercept-navigation"] + arguments

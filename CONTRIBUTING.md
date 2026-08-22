@@ -14,7 +14,7 @@ Thanks for helping make Melbourne parking information easier to use.
 ```bash
 brew install xcodegen
 xcodegen generate
-open ParkingAvailability.xcodeproj
+open ParkAlong.xcodeproj
 ```
 
 ParkAlong targets iOS 17 and later. Simulator work does not need a paid signing account.
@@ -25,8 +25,8 @@ Run these before submitting a pull request:
 
 ```bash
 xcodebuild test \
-  -project ParkingAvailability.xcodeproj \
-  -scheme ParkingAvailability \
+  -project ParkAlong.xcodeproj \
+  -scheme ParkAlong \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
   CODE_SIGNING_ALLOWED=NO
 

@@ -1,5 +1,5 @@
 import XCTest
-@testable import ParkingAvailability
+@testable import ParkAlong
 
 final class ParkingRepositoryTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_776_297_600) // Thursday 10am in Melbourne

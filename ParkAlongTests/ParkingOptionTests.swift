@@ -1,5 +1,5 @@
 import XCTest
-@testable import ParkingAvailability
+@testable import ParkAlong
 
 final class ParkingOptionTests: XCTestCase {
     func testFreeRestrictionProducesAuthoritativeFreePrice() {

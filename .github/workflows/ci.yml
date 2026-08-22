@@ -36,8 +36,8 @@ jobs:
       - name: Run Swift unit and UI tests
         run: |
           xcodebuild test \
-            -project ParkingAvailability.xcodeproj \
-            -scheme ParkingAvailability \
+            -project ParkAlong.xcodeproj \
+            -scheme ParkAlong \
             -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
             CODE_SIGNING_ALLOWED=NO
 
