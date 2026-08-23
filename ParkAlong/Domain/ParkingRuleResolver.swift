@@ -8,6 +8,33 @@ struct ResolvedParkingRule: Equatable, Sendable {
     let classification: ParkingDataClassification
 }
 
+struct ParkingTimeFormatter: Sendable {
+    let timeZone: TimeZone
+
+    func string(minutes: Int) -> String {
+        let normalized = minutes == 24 * 60 ? 0 : minutes
+        var components = DateComponents()
+        components.calendar = Calendar(identifier: .gregorian)
+        components.timeZone = timeZone
+        components.year = 2001
+        components.month = 1
+        components.day = 1
+        components.hour = normalized / 60
+        components.minute = normalized % 60
+
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_AU")
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "h:mm a"
+
+        return formatter.string(from: components.date ?? .distantPast)
+            .replacingOccurrences(of: "\u{202F}", with: " ")
+            .replacingOccurrences(of: "\u{00A0}", with: " ")
+            .lowercased()
+    }
+}
+
 struct ParkingRuleResolver: Sendable {
     let timeZone: TimeZone
 
@@ -147,20 +174,7 @@ struct ParkingRuleResolver: Sendable {
     }
 
     private func formattedTime(minutes: Int) -> String {
-        let normalized = minutes == 24 * 60 ? 0 : minutes
-        var components = DateComponents()
-        components.calendar = Calendar(identifier: .gregorian)
-        components.timeZone = timeZone
-        components.year = 2001
-        components.month = 1
-        components.day = 1
-        components.hour = normalized / 60
-        components.minute = normalized % 60
-        let date = components.date ?? .distantPast
-        return date.formatted(.dateTime.hour().minute().locale(Locale(identifier: "en_AU")))
-            .replacingOccurrences(of: "\u{202F}", with: " ")
-            .replacingOccurrences(of: "\u{00A0}", with: " ")
-            .lowercased()
+        ParkingTimeFormatter(timeZone: timeZone).string(minutes: minutes)
     }
 
     private static func limitLabel(_ minutes: Int) -> String {

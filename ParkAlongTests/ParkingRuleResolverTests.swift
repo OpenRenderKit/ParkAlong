@@ -27,6 +27,12 @@ final class ParkingRuleResolverTests: XCTestCase {
         XCTAssertEqual(resolved?.classification, .staticOnly)
     }
 
+    func testParkingTimeFormatterUsesItsConfiguredTimeZoneInsteadOfTheHostTimeZone() {
+        let formatter = ParkingTimeFormatter(timeZone: TimeZone(identifier: "Pacific/Honolulu")!)
+
+        XCTAssertEqual(formatter.string(minutes: 17 * 60 + 30), "5:30 pm")
+    }
+
     func testOutsideOfficialWindowResolvesUnrestrictedAndFree() {
         let location = fixtureLocation(
             schedules: [
