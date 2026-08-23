@@ -144,9 +144,9 @@ Expected: compilation failure because `AdaptiveChromePolicy` does not exist.
 
 The modifier must select `.opaque` before checking OS availability. iOS 26 uses `.glassEffect(.regular.interactive(), in: RoundedRectangle(...))`; older systems use `.regularMaterial`. The prominent action uses `.glassProminent` on iOS 26+ and `.borderedProminent` before iOS 26.
 
-Xcode 27-only references must be nested in `#if compiler(>=6.3)` and `if #available(iOS 27, *)`. Provide identity fallbacks in the `#else` path so Xcode 26 still compiles the file.
+Xcode 27-only references must be nested in `#if compiler(>=6.4)` and `if #available(iOS 27, *)`. Provide identity fallbacks in the `#else` path so Xcode 26 still compiles the file.
 
-- [ ] **Step 4: Verify GREEN under Xcode 26 and Xcode 27**
+- [x] **Step 4: Verify GREEN under Xcode 26 and Xcode 27**
 
 Run `AdaptiveChromeTests` with Xcode 26, then repeat using `DEVELOPER_DIR` pointing to the installed Xcode 27 beta. Expected: three tests pass in both toolchains.
 

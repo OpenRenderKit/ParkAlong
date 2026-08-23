@@ -1,0 +1,186 @@
+import SwiftUI
+
+enum AdaptiveSurfaceKind: Equatable, Sendable {
+    case liquidGlass
+    case opaque
+    case material
+}
+
+enum AdaptiveChromePolicy {
+    static func surfaceKind(
+        supportsLiquidGlass: Bool,
+        reduceTransparency: Bool
+    ) -> AdaptiveSurfaceKind {
+        if reduceTransparency {
+            return .opaque
+        }
+        if supportsLiquidGlass {
+            return .liquidGlass
+        }
+        return .material
+    }
+}
+
+struct AdaptiveGlassContainer<Content: View>: View {
+    var spacing: CGFloat?
+    @ViewBuilder var content: Content
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    init(spacing: CGFloat? = nil, @ViewBuilder content: () -> Content) {
+        self.spacing = spacing
+        self.content = content()
+    }
+
+    var body: some View {
+        if reduceTransparency {
+            content
+        } else if #available(iOS 26, *) {
+            GlassEffectContainer(spacing: spacing) {
+                content
+            }
+        } else {
+            content
+        }
+    }
+}
+
+struct AdaptiveGlassSurfaceModifier: ViewModifier {
+    var cornerRadius: CGFloat
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    }
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if reduceTransparency {
+            content.background(.background, in: shape)
+        } else if #available(iOS 26, *) {
+            content.glassEffect(.regular.interactive(), in: shape)
+        } else {
+            content.background(.regularMaterial, in: shape)
+        }
+    }
+}
+
+struct AdaptiveProminentActionModifier: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.buttonStyle(.glassProminent)
+        } else {
+            content.buttonStyle(.borderedProminent)
+        }
+    }
+}
+
+struct AdaptiveHighVisibilityToolbarContent<Content: ToolbarContent>: ToolbarContent {
+    var content: Content
+
+    var body: some ToolbarContent {
+        #if compiler(>=6.4)
+        if #available(iOS 27, *) {
+            content.visibilityPriority(.high)
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
+    }
+}
+
+struct AdaptiveToolbarOverflowMenu<Content: View>: ToolbarContent {
+    @ViewBuilder var content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some ToolbarContent {
+        #if compiler(>=6.4)
+        if #available(iOS 27, *) {
+            ToolbarOverflowMenu {
+                content
+            }
+        } else {
+            ToolbarItem(placement: .topBarTrailing) {
+                content
+            }
+        }
+        #else
+        ToolbarItem(placement: .topBarTrailing) {
+            content
+        }
+        #endif
+    }
+}
+
+private struct AdaptiveToolbarMinimizationModifier: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        #if compiler(>=6.4)
+        if #available(iOS 27, *) {
+            content.toolbarMinimizationBehavior(.onScrollDown, for: .navigationBar)
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
+    }
+}
+
+private struct AdaptiveStatusBarColorSchemeModifier: ViewModifier {
+    var colorScheme: ColorScheme?
+    @Environment(\.colorScheme) private var environmentColorScheme
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        #if compiler(>=6.4)
+        if #available(iOS 27, *) {
+            content.toolbarColorScheme(colorScheme ?? environmentColorScheme, for: .statusBar)
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
+    }
+}
+
+extension View {
+    func adaptiveGlassSurface(cornerRadius: CGFloat) -> some View {
+        modifier(AdaptiveGlassSurfaceModifier(cornerRadius: cornerRadius))
+    }
+
+    func adaptiveProminentAction() -> some View {
+        modifier(AdaptiveProminentActionModifier())
+    }
+
+    func adaptiveToolbarMinimizationBehavior() -> some View {
+        modifier(AdaptiveToolbarMinimizationModifier())
+    }
+
+    func adaptiveStatusBarColorScheme(_ colorScheme: ColorScheme? = nil) -> some View {
+        modifier(AdaptiveStatusBarColorSchemeModifier(colorScheme: colorScheme))
+    }
+}
+
+extension ToolbarContent {
+    func adaptiveHighVisibilityPriority() -> some ToolbarContent {
+        AdaptiveHighVisibilityToolbarContent(content: self)
+    }
+}
+
+extension ToolbarItemPlacement {
+    static var adaptiveTopBarPinnedTrailing: ToolbarItemPlacement {
+        #if compiler(>=6.4)
+        if #available(iOS 27, *) {
+            return .topBarPinnedTrailing
+        }
+        #endif
+        return .topBarTrailing
+    }
+}

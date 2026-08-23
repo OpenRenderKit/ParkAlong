@@ -32,6 +32,7 @@
 		89B2020A7EE8E17A79AB89D4 /* AvailabilityEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F45422F42AD40407B83008 /* AvailabilityEngine.swift */; };
 		8A09B17F5D5E6E949CBBA31C /* ParkingAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F1A693FCE60AD13B71A085A /* ParkingAPIClient.swift */; };
 		931270936035531BF4503C57 /* DestinationSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAEFCC4099D4E7442BDD7330 /* DestinationSearchView.swift */; };
+		958BAD5C8A67BA4E96166339 /* AdaptiveChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8C1152F6E69EBA200086512 /* AdaptiveChrome.swift */; };
 		9707BF4169722A2D66A1FC73 /* victoria_static_parking.json in Resources */ = {isa = PBXBuildFile; fileRef = F9DCE4DDFD1BC73F153C592D /* victoria_static_parking.json */; };
 		9733AB89A15DE9C297366863 /* DestinationSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22B784BB00A338E4068B9DB /* DestinationSearchService.swift */; };
 		97F154CDF26681B345925314 /* ParkingAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16A45176AD665B3782116DA9 /* ParkingAPIClientTests.swift */; };
@@ -39,6 +40,7 @@
 		998B1E43A5547AD027248B75 /* ParkingSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 339D31F7813944F21D0255A2 /* ParkingSource.swift */; };
 		9BCC369289366A376FBC85F0 /* RestrictionEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4394FAA3B127B8A8ADB01D25 /* RestrictionEngineTests.swift */; };
 		A7DDA851CCC77E50825818CB /* ParkAlongUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B7D0E92A86AAFE17AD247D /* ParkAlongUITests.swift */; };
+		ADDA3D140C3CC0070BB58563 /* AdaptiveChromeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F96AFE556B140229A496A221 /* AdaptiveChromeTests.swift */; };
 		B0A073681E86EF11EDAA2E4D /* ParkingOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B4CD237284CEE57B25D537B /* ParkingOption.swift */; };
 		B132F3D38D21B719CF25B387 /* RankingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314BC67F93762607C5A7BFDE /* RankingEngine.swift */; };
 		DC3C3F8D35AF238910771637 /* restrictions.json in Resources */ = {isa = PBXBuildFile; fileRef = 301A559806C71BAC78A917B7 /* restrictions.json */; };
@@ -105,10 +107,12 @@
 		CAAE045CF41482B2703EF3D4 /* PredictionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionEngine.swift; sourceTree = "<group>"; };
 		D1B2AEE7AFE550AD52287476 /* ParkAlongTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ParkAlongTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1BB434559CE4EBEDC6CF4C9 /* ParkAlongApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkAlongApp.swift; sourceTree = "<group>"; };
+		D8C1152F6E69EBA200086512 /* AdaptiveChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveChrome.swift; sourceTree = "<group>"; };
 		E85CF37E1A1A13F206410E72 /* OffStreetParkingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffStreetParkingService.swift; sourceTree = "<group>"; };
 		EAEFCC4099D4E7442BDD7330 /* DestinationSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DestinationSearchView.swift; sourceTree = "<group>"; };
 		F2A10D135C415999FEC60D28 /* AppleMapsNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleMapsNavigator.swift; sourceTree = "<group>"; };
 		F72CEB631D4233646A08BE3B /* MapControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapControls.swift; sourceTree = "<group>"; };
+		F96AFE556B140229A496A221 /* AdaptiveChromeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveChromeTests.swift; sourceTree = "<group>"; };
 		F9DCE4DDFD1BC73F153C592D /* victoria_static_parking.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = victoria_static_parking.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -162,9 +166,18 @@
 			path = ParkAlongUITests;
 			sourceTree = "<group>";
 		};
+		36239A38FAB7A79EE9713F85 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				D8C1152F6E69EBA200086512 /* AdaptiveChrome.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
 		37EA86217404C43DE39DC0D5 /* ParkAlongTests */ = {
 			isa = PBXGroup;
 			children = (
+				F96AFE556B140229A496A221 /* AdaptiveChromeTests.swift */,
 				294A199F4552998C76C67604 /* AvailabilityEngineTests.swift */,
 				16A45176AD665B3782116DA9 /* ParkingAPIClientTests.swift */,
 				C3B6C431C3B32FBA27C8D3B8 /* ParkingMapViewModelTests.swift */,
@@ -248,6 +261,7 @@
 			children = (
 				ECD840D76BDACA4A9BD1AD10 /* App */,
 				D7A4B92EE53FDE18C459C99E /* Data */,
+				36239A38FAB7A79EE9713F85 /* DesignSystem */,
 				58658C560CB10752972DD678 /* Domain */,
 				1604F2577A63DA4DC2E33FC9 /* Features */,
 				FEF3CEB439FF843BC9493016 /* Resources */,
@@ -394,6 +408,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ADDA3D140C3CC0070BB58563 /* AdaptiveChromeTests.swift in Sources */,
 				504347F2C2A0E63844D09B21 /* AvailabilityEngineTests.swift in Sources */,
 				97F154CDF26681B345925314 /* ParkingAPIClientTests.swift in Sources */,
 				3D670DC418F7B59DA15BB54C /* ParkingMapViewModelTests.swift in Sources */,
@@ -410,6 +425,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				958BAD5C8A67BA4E96166339 /* AdaptiveChrome.swift in Sources */,
 				EF1109A6A97EA2F445A0C6ED /* AppEnvironment.swift in Sources */,
 				558A44AF7CE99059AAEDB9D8 /* AppleMapsNavigator.swift in Sources */,
 				89B2020A7EE8E17A79AB89D4 /* AvailabilityEngine.swift in Sources */,
