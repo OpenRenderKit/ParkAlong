@@ -135,6 +135,7 @@ def _schedule(
     *,
     public_holidays: bool = False,
     outside_unrestricted: bool = False,
+    unparsed_condition: str | None = None,
 ) -> dict[str, Any]:
     return {
         "days": list(days),
@@ -144,6 +145,7 @@ def _schedule(
         "restrictionText": text,
         "appliesOnPublicHolidays": public_holidays,
         "outsideWindowMeansUnrestricted": outside_unrestricted,
+        "unparsedCondition": unparsed_condition,
     }
 
 
@@ -158,6 +160,7 @@ def _tariff(
     daily_cap_cents: int | None = None,
     tiers: list[tuple[int, int]] | None = None,
     effective_to: str | None = None,
+    unparsed_condition: str | None = None,
 ) -> dict[str, Any]:
     return {
         "effectiveFrom": effective_from,
@@ -169,6 +172,7 @@ def _tariff(
         "freeMinutes": free_minutes,
         "dailyCapCents": daily_cap_cents,
         "tiers": [{"upToMinutes": minutes, "priceCents": cents} for minutes, cents in (tiers or [])],
+        "unparsedCondition": unparsed_condition,
     }
 
 
@@ -651,7 +655,13 @@ def _osm_schedules(tags: dict[str, Any]) -> list[dict[str, Any]]:
             window[0], window[1], window[2], unconditional,
             f"OSM maxstay {tags.get('maxstay')}", outside_unrestricted=bool(opening_raw),
         ))
-    conditional = _parse_osm_conditional(str(tags.get("maxstay:conditional") or ""))
+    elif unconditional and opening_raw:
+        schedules.append(_schedule(
+            range(1, 8), 0, 24 * 60, None, f"Unparsed OSM opening_hours: {opening_raw}",
+            unparsed_condition=opening_raw,
+        ))
+    conditional_raw = str(tags.get("maxstay:conditional") or "").strip()
+    conditional = _parse_osm_conditional(conditional_raw)
     if conditional:
         duration = _parse_duration_minutes(conditional[0])
         if duration:
@@ -660,6 +670,11 @@ def _osm_schedules(tags: dict[str, Any]) -> list[dict[str, Any]]:
                 condition_window[0], condition_window[1], condition_window[2], duration,
                 f"OSM conditional maxstay {conditional[0]}", outside_unrestricted=True,
             ))
+    elif conditional_raw:
+        schedules.append(_schedule(
+            range(1, 8), 0, 24 * 60, None, f"Unparsed OSM maxstay condition: {conditional_raw}",
+            unparsed_condition=conditional_raw,
+        ))
     return schedules
 
 
@@ -667,16 +682,30 @@ def _osm_tariffs(tags: dict[str, Any]) -> list[dict[str, Any]]:
     fee = str(tags.get("fee") or "").strip().lower()
     if fee in {"no", "free"}:
         return [_tariff("2000-01-01T00:00:00Z", range(1, 8), 0, 24 * 60, hourly_cents=0)]
-    conditional = _parse_osm_conditional(str(tags.get("charge:conditional") or ""))
+    conditional_raw = str(tags.get("charge:conditional") or "").strip()
+    conditional = _parse_osm_conditional(conditional_raw)
     if conditional:
         value, window = conditional
         tariff = _osm_tariff(value, window[0], window[1], window[2])
         if tariff:
             return [tariff]
+    if conditional_raw:
+        return [_tariff(
+            "2000-01-01T00:00:00Z", range(1, 8), 0, 24 * 60,
+            unparsed_condition=conditional_raw,
+        )]
     opening_raw = str(tags.get("opening_hours") or "").strip()
     window = _parse_osm_window(opening_raw) if opening_raw else (list(range(1, 8)), 0, 24 * 60)
-    tariff = _osm_tariff(str(tags.get("charge") or ""), window[0], window[1], window[2]) if window else None
-    return [tariff] if tariff else []
+    charge_raw = str(tags.get("charge") or "").strip()
+    tariff = _osm_tariff(charge_raw, window[0], window[1], window[2]) if window else None
+    if tariff:
+        return [tariff]
+    if charge_raw:
+        return [_tariff(
+            "2000-01-01T00:00:00Z", range(1, 8), 0, 24 * 60,
+            unparsed_condition=charge_raw,
+        )]
+    return []
 
 
 def build_osm_records(
@@ -740,6 +769,28 @@ def _distance_metres(lhs: dict[str, float], rhs: dict[str, float]) -> float:
 
 def curated_official_records(checked_at: str) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
+
+    bendigo = _source(
+        "bendigo-hargreaves-multistorey", "City of Greater Bendigo",
+        "https://www.bendigo.vic.gov.au/community-services/parking/where-park/hargreaves-street-multi-storey-car-park",
+        checked_at, license_name="Official council facility page",
+    )
+    records.append(_record(
+        "bendigo-hargreaves-multistorey", "Hargreaves Street Multi-Storey Car Park", "Greater Bendigo",
+        _coordinate(-36.7588004, 144.2812571), bendigo, archetype="cbd_retail", capacity=290,
+        accessible_spaces=6,
+        schedules=[
+            _schedule([2, 3, 4, 5], 7 * 60, 19 * 60 + 30, None, "Open 7:00 am–7:30 pm"),
+            _schedule([6], 7 * 60, 22 * 60, None, "Open 7:00 am–10:00 pm"),
+            _schedule([7], 7 * 60, 22 * 60, None, "Open 7:00 am–10:00 pm · free parking"),
+            _schedule([1], 7 * 60, 18 * 60, None, "Open 7:00 am–6:00 pm · free parking"),
+        ],
+        tariffs=[
+            _tariff("2026-07-01T00:00:00+10:00", [2, 3, 4, 5, 6], 7 * 60, 22 * 60,
+                    hourly_cents=240, daily_cap_cents=1000),
+            _tariff("2026-07-01T00:00:00+10:00", [1, 7], 7 * 60, 22 * 60, hourly_cents=0),
+        ],
+    ))
 
     stonnington = _source(
         "stonnington-carparks", "City of Stonnington",
@@ -824,6 +875,57 @@ def curated_official_records(checked_at: str) -> list[dict[str, Any]]:
         schedules=[_schedule([2, 3, 4], 6 * 60, 24 * 60, None, "Open until midnight"),
                    _schedule([6, 7], 6 * 60, 24 * 60 + 60, None, "Open until 1:00 am"),
                    _schedule([1], 8 * 60, 24 * 60, None, "Open until midnight")],
+    ))
+
+    geelong = _source(
+        "geelong-central-2p", "City of Greater Geelong",
+        "https://yoursay.geelongaustralia.com.au/digital-parking/central-geelong-moving-100-cent-digital-parking",
+        checked_at, license_name="Official council parking notice",
+        dataset_updated_at="2026-02-25T00:00:00+11:00",
+    )
+    records.append(_record(
+        "geelong-central-2p", "Central Geelong signed 2P parking area", "Greater Geelong",
+        _coordinate(-38.14717, 144.36043), geelong, kind="on_street", archetype="cbd_retail",
+        schedules=[_schedule(range(1, 8), 0, 24 * 60, 120, "2P signed spaces", public_holidays=True)],
+        tariffs=[_tariff("2026-03-09T00:00:00+11:00", range(1, 8), 0, 24 * 60, hourly_cents=0)],
+    ))
+
+    wangaratta = _source(
+        "wangaratta-cbd-paid", "Rural City of Wangaratta",
+        "https://www.wangaratta.vic.gov.au/Services/Parking/Parking-FAQs",
+        checked_at, license_name="Official council parking FAQ",
+    )
+    records.append(_record(
+        "wangaratta-cbd-paid", "Wangaratta CBD standard paid parking", "Wangaratta",
+        _coordinate(-36.35518, 146.32547), wangaratta, kind="on_street", archetype="cbd_retail",
+        schedules=[_schedule([2, 3, 4, 5, 6], 9 * 60, 17 * 60, None,
+                             "Paid bays · check posted time limit", outside_unrestricted=True)],
+        tariffs=[_tariff("2025-05-27T00:00:00+10:00", [2, 3, 4, 5, 6], 9 * 60, 17 * 60, hourly_cents=120)],
+    ))
+
+    horsham = _source(
+        "horsham-cbd-free-2p", "Horsham Rural City Council",
+        "https://www.hrcc.vic.gov.au/Our-Council/News-and-Media/Latest-News/council-removing-parking-maters",
+        checked_at, license_name="Official council parking decision",
+        dataset_updated_at="2025-06-25T00:00:00+10:00",
+    )
+    records.append(_record(
+        "horsham-cbd-free-2p", "Horsham CBD signed free 2P parking", "Horsham",
+        _coordinate(-36.71491, 142.19978), horsham, kind="on_street", archetype="cbd_retail",
+        schedules=[_schedule(range(1, 8), 0, 24 * 60, 120, "Free 2P signed area", public_holidays=True)],
+        tariffs=[_tariff("2025-06-25T00:00:00+10:00", range(1, 8), 0, 24 * 60, hourly_cents=0)],
+    ))
+
+    swan_hill = _source(
+        "swan-hill-curlewis-ticketed", "Swan Hill Rural City Council",
+        "https://www.swanhill.vic.gov.au/Our-Council/News-and-publications/News-and-public-notices/Council-Leases-Curlewis-Street-Carpark-to-Boost-CBD-Parking-Options",
+        checked_at, license_name="Official council parking notice",
+    )
+    records.append(_record(
+        "swan-hill-curlewis-ticketed", "Curlewis Street ticketed parking area", "Swan Hill",
+        _coordinate(-35.33950, 143.56150), swan_hill, kind="on_street", archetype="cbd_retail",
+        schedules=[_schedule([2, 3, 4, 5, 6], 9 * 60, 17 * 60 + 30, 120, "2P ticketed area", outside_unrestricted=True)],
+        tariffs=[_tariff("2026-02-02T00:00:00+11:00", [2, 3, 4, 5, 6], 9 * 60, 17 * 60 + 30, hourly_cents=140)],
     ))
     return records
 
@@ -931,7 +1033,17 @@ def build_catalog(timeout: int = 45, *, include_osm: bool = True) -> tuple[list[
             osm_elements, checked_at=checked_at, dataset_updated_at=osm_updated_at
         )
     records = deduplicate_records([record for values in groups.values() for record in values])
-    return records, {name: len(values) for name, values in groups.items()}
+    retained_ids = {record["id"] for record in records}
+    claimed_ids: set[str] = set()
+    counts: dict[str, int] = {}
+    for name, values in groups.items():
+        group_ids = {
+            record.get("id") for record in values
+            if record.get("id") in retained_ids and record.get("id") not in claimed_ids
+        }
+        counts[name] = len(group_ids)
+        claimed_ids.update(group_ids)
+    return records, counts
 
 
 def main() -> None:

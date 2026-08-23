@@ -7,9 +7,11 @@ enum ParkingPinPalette: Equatable {
     case liveFull
     case predictedPlum
     case locationRed
+    case cluster
 
     static let predictedPlumColor = Color(red: 107 / 255, green: 58 / 255, blue: 110 / 255)
     static let warningAmber = Color(red: 0.93, green: 0.62, blue: 0.12)
+    static let clusterBlue = Color(red: 0.18, green: 0.39, blue: 0.72)
 
     static func live(for available: Int) -> ParkingPinPalette {
         switch available {
@@ -25,6 +27,7 @@ enum ParkingPinPalette: Equatable {
         case .liveLimited: .orange
         case .liveFull, .locationRed: .red
         case .predictedPlum: Self.predictedPlumColor
+        case .cluster: Self.clusterBlue
         }
     }
 }
@@ -33,11 +36,22 @@ struct ParkingPinPresentation: Equatable {
     let label: String
     let palette: ParkingPinPalette
     let showsWarning: Bool
+    let isCluster: Bool
     let accessibilityLabel: String
 
     init(option: ParkingOption) {
+        if let clusterCount = option.clusterCount {
+            label = String(clusterCount)
+            palette = .cluster
+            showsWarning = false
+            isCluster = true
+            accessibilityLabel = "\(clusterCount) parking locations in this area"
+            return
+        }
+
         label = option.pinLabel
         showsWarning = option.hasNonLiveWarning
+        isCluster = false
         palette = Self.palette(for: option)
         accessibilityLabel = Self.accessibilityLabel(for: option)
     }
@@ -99,24 +113,18 @@ struct AvailabilityPin: View {
         let fill = presentation.palette.color
 
         ZStack(alignment: .topTrailing) {
-            VStack(spacing: 0) {
-                Text(presentation.label)
-                    .font(labelFont)
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .padding(.horizontal, presentation.label.count > 2 ? 6 : 8)
-                    .frame(minWidth: 30, minHeight: badgeHeight)
-                    .background(fill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .strokeBorder(.white.opacity(isSelected ? 1 : 0.35), lineWidth: isSelected ? 2 : 0.6)
-                    }
-
-                Image(systemName: "arrowtriangle.down.fill")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(fill)
-                    .offset(y: -1)
+            ZStack {
+                if presentation.isCluster {
+                    pinBody(fill: fill, selected: false)
+                        .offset(x: 4, y: -5)
+                        .opacity(0.45)
+                        .scaleEffect(0.92)
+                    pinBody(fill: fill, selected: false)
+                        .offset(x: -3, y: -3)
+                        .opacity(0.7)
+                        .scaleEffect(0.96)
+                }
+                pinBody(fill: fill, selected: isSelected)
             }
             .padding(.top, presentation.showsWarning ? 5 : 0)
             .padding(.trailing, presentation.showsWarning ? 5 : 0)
@@ -142,10 +150,37 @@ struct AvailabilityPin: View {
         .accessibilityHidden(true)
     }
 
+    private func pinBody(fill: Color, selected: Bool) -> some View {
+        VStack(spacing: 0) {
+            Text(presentation.label)
+                .font(labelFont)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .padding(.horizontal, presentation.label.count > 2 ? 6 : 8)
+                .frame(minWidth: presentation.isCluster ? 34 : 30, minHeight: badgeHeight)
+                .background(fill, in: RoundedRectangle(cornerRadius: presentation.isCluster ? 12 : 8, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: presentation.isCluster ? 12 : 8, style: .continuous)
+                        .strokeBorder(.white.opacity(selected ? 1 : 0.35), lineWidth: selected ? 2 : 0.6)
+                }
+
+            Image(systemName: "arrowtriangle.down.fill")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(fill)
+                .offset(y: -1)
+        }
+    }
+
     private var labelFont: Font {
-        presentation.palette == .locationRed
-            ? .caption.weight(.heavy)
-            : .caption.weight(.bold).monospacedDigit()
+        switch presentation.palette {
+        case .locationRed:
+            .caption.weight(.heavy)
+        case .cluster:
+            .caption.weight(.heavy).monospacedDigit()
+        default:
+            .caption.weight(.bold).monospacedDigit()
+        }
     }
 }
 
@@ -156,6 +191,10 @@ struct ParkingPinButton: View {
     var hint = "Shows parking details"
     var action: () -> Void
 
+    private var resolvedHint: String {
+        option.clusterCount == nil ? hint : "Zooms into this area"
+    }
+
     var body: some View {
         Button(action: action) {
             AvailabilityPin(option: option, isSelected: isSelected)
@@ -164,7 +203,7 @@ struct ParkingPinButton: View {
         .frame(minWidth: 44, minHeight: 44, alignment: .bottom)
         .contentShape(Rectangle())
         .accessibilityLabel(ParkingPinPresentation(option: option).accessibilityLabel)
-        .accessibilityHint(hint)
+        .accessibilityHint(resolvedHint)
         .accessibilityIdentifier(identifier)
     }
 }

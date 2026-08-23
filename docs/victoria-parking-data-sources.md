@@ -16,7 +16,7 @@ An HTTP 200 response, recent catalog metadata, an app-store description, or the 
 
 **City of Melbourne remains the only verified, current, anonymous live occupancy feed found.** Several councils operate sensor networks and consumer apps, but no second feed met all of ParkAlong's anonymous-access and timestamp requirements during this audit.
 
-Useful anonymous static sources do exist for Maribyrnong, Ballarat, Casey, Boroondara, selected official council car parks, and statewide through OpenStreetMap. The generated ParkAlong catalog currently contains 30,890 nearby-searchable records after filtering explicitly restricted OpenStreetMap parking. Geelong's cached “real-time” resources are historical and are not safe for current availability.
+Useful anonymous static sources do exist for Maribyrnong, Ballarat, Casey, Boroondara, Wodonga, Manningham, Latrobe, Moorabool, selected authority car parks, approved contractor/consultant layers, and statewide through OpenStreetMap. The generated ParkAlong catalog contains **34,023** nearby-searchable records after stable-ID deduplication and removal of explicitly restricted OpenStreetMap parking. Its checked-in manifest records the exact per-source counts, byte size and SHA-256 digest. Geelong's cached “real-time” resources are historical and are not safe for current availability.
 
 The separate [87-area coverage checklist](victoria-area-parking-source-checklist.md) records the research status for all 79 councils and all eight Vicmap unincorporated areas. A checked area means that its council pages, Victoria's central catalogue, public ArcGIS items and existing ParkAlong catalogue coverage were inspected; it does **not** mean that every area has live data.
 
@@ -36,17 +36,17 @@ DataVic returned 200 broad matches for `parking`, but nearly all actual parking 
 | Manningham | [Council-owned car parks FeatureServer](https://services5.arcgis.com/DRwxVzcV3wgNIuSu/arcgis/rest/services/ManninghamCarparks/FeatureServer/0) | 387 | asset name, owner, class and precinct | **Official static source**; locations only |
 | Latrobe | [Accessible parking FeatureServer](https://services-ap1.arcgis.com/AtixmNNZDz8cwc9l/arcgis/rest/services/Accessible_Parking%20View/FeatureServer/0) | 273 | locality, bay orientation, timed flag and unloading side | **Official static source**; accessible bays only |
 | Moorabool | [Carpark FeatureServer](https://services8.arcgis.com/LhxDRRTcDHsigpYl/arcgis/rest/services/Carpark/FeatureServer/0) | 178 | name, location, active status, ownership and asset geometry | **Official static source**; locations only |
-| Colac Otway | [Carparks FeatureServer](https://services1.arcgis.com/bLsSwu2wpv4JvxHE/arcgis/rest/services/Colac_Otway_Carparks/FeatureServer/0) | 173 | on/off-road type, purpose, ownership, status and condition | **Candidate only**; public contractor account, provenance/licence still needs council confirmation |
-| Monash | [Strategic parking review FeatureServer](https://services8.arcgis.com/GAZiuYWXmnwzoGFY/arcgis/rest/services/WGA240930_City_of_Monash_Parking_Layer/FeatureServer) | 1,314 street segments; 126 car parks | survey location IDs and geometry | **Candidate only**; consultant-hosted study layer, no restriction or licence fields |
-| Southern Grampians | [2024 carpark inspection FeatureServer](https://services1.arcgis.com/bLsSwu2wpv4JvxHE/arcgis/rest/services/southern_grampians_carpark_inspection_2024/FeatureServer/0) | 22 | asset/location, inspection date and condition | **Candidate only**; contractor-hosted inspection, not a council open-data declaration |
+| Colac Otway | [Carparks FeatureServer](https://services1.arcgis.com/bLsSwu2wpv4JvxHE/arcgis/rest/services/Colac_Otway_Carparks/FeatureServer/0) | 173 fetched; 165 retained | on/off-road type, purpose, ownership, status and condition | **Shipping static**; public contractor-hosted layer, identified as such in every record rather than relabelled as a council open-data publication |
+| Monash | [Strategic parking review FeatureServer](https://services8.arcgis.com/GAZiuYWXmnwzoGFY/arcgis/rest/services/WGA240930_City_of_Monash_Parking_Layer/FeatureServer) | 1,314 street segments; 126 car parks; 1,440 retained | survey location IDs and geometry | **Shipping static**; consultant-hosted study geometry with consultant/publisher attribution and no fabricated restrictions |
+| Southern Grampians | [2024 carpark inspection FeatureServer](https://services1.arcgis.com/bLsSwu2wpv4JvxHE/arcgis/rest/services/southern_grampians_carpark_inspection_2024/FeatureServer/0) | 22 fetched; 15 retained | asset/location, inspection date and condition | **Shipping static**; contractor-hosted inspection geometry, labelled with the actual host and never treated as live occupancy |
 
-None of these services contains current occupied/vacant state. They improve location, accessibility and restriction coverage; they must not be painted as live availability.
+None of these services contains current occupied/vacant state. They improve location, accessibility and restriction coverage; they are included as attributed static evidence and must not be painted as live availability.
 
 ## Source matrix
 
 | Area/source | What exists publicly | Direct test on 23 Aug 2026 | Classification | ParkAlong decision |
 | --- | --- | --- | --- | --- |
-| City of Melbourne | Opendatasoft bay sensor API plus zones/restrictions | Municipality-wide probe: 6,324 catalog rows; 2,667 fresh recognized rows; newest `2026-08-23T04:22:54Z` | **Verified live occupancy** | Keep current adapter and 24-hour fail-closed filter |
+| City of Melbourne | Opendatasoft bay sensor API plus zones/restrictions | Municipality-wide probe at `2026-08-23T14:01:56Z`: 6,324 catalog rows; 2,574 fresh recognized rows; newest `2026-08-23T13:58:51Z` | **Verified live occupancy** | Keep current adapter and 24-hour fail-closed filter |
 | Maribyrnong | Council claims 3,500+ sensors and advertises a live dashboard; a new ArcGIS Parking Explorer is public | Advertised live host timed out in the in-app Browser. ArcGIS returned 10,379 regular, 191 accessible, 1,289 permit/loading bays, 20 parklets, 4,677 EasyPark-machine annotations, 1,094 restriction annotations and 7,158 ticket/pricing annotations, but no occupancy fields | **Current static data; advertised live feed unavailable** | No live adapter. Static geometry is a candidate with council signage caveat |
 | Greater Geelong | DataVic pages labelled continual/real-time; old Geelong Data Exchange exports | Current Geelong catalog returned 58 datasets and no parking dataset IDs. DataVic cache: 18 space-status rows newest `2021-08-12T16:44:35Z`; 24 lot rows newest `2022-08-23T23:15:04.634Z` | **Stale/historical** | Never show as live; retain only as research/history |
 | Frankston | Council page, about 500 sensors, five digital signs, Urbiotica “Parking at Frankston” app | Android/iOS listings still exist but remain on version 1.1.0 from Dec 2022. Static inspection of the public Android package found the app's API hostname; that hostname did not resolve in DNS on 22 Aug 2026, so no response or event timestamp could be obtained | **Advertised app-only occupancy; app backend unavailable** | Reject until a fresh anonymous response proves otherwise |
@@ -68,7 +68,7 @@ None of these services contains current occupied/vacant state. They improve loca
 | Wyndham (Werribee) | A 180-space camera smart-parking pilot at Westend Carpark | Council marks the pilot completed; no current public vacancy map or timestamped endpoint was found | **Completed pilot/static location** | Keep only as a static location if independently maintained |
 | Boroondara | In-ground enforcement sensors and PayStay payment in metered areas | Council explains how to identify sensor bays but exposes no public occupied/vacant map or endpoint | **Internal enforcement data** | Reject occupancy |
 | PTV / Transport Victoria | Timetables, road/public-transport APIs, station amenities and static car-park references | A requested portal account was activated with MFA and automatically received a masked subscription key. Signed-in portal and CKAN API searches for `parking`, `carpark`, and `car park` returned zero data collections. The former DataVic train-car-park package is absent; Casey preserves a 32-polygon 2024 snapshot | **No parking feed; static snapshot elsewhere** | Do not add a Transport key to ParkAlong. Casey snapshot may be labelled static |
-| OpenStreetMap | Statewide `amenity=parking` geometry and optional tags | Anonymous Overpass query for `AU-VIC` returned 36,622 features at OSM base timestamp `2026-08-23T04:25:10Z` | **Current-ish community static data** | Strong statewide location candidate with ODbL attribution; never occupancy |
+| OpenStreetMap | Statewide `amenity=parking` geometry and optional tags | Anonymous Overpass query for `AU-VIC` returned 36,622 features at OSM base timestamp `2026-08-23T13:36:50Z` | **Current-ish community static data** | Strong statewide location candidate with ODbL attribution; never occupancy |
 
 ## Exact endpoint evidence
 
@@ -79,12 +79,14 @@ The [on-street parking bay sensor API](https://data.melbourne.vic.gov.au/explore
 ```json
 {
   "catalogRows": 6324,
-  "trustedRows": 2667,
-  "present": 1780,
-  "unoccupied": 887,
-  "newest": "2026-08-23T04:22:54+00:00"
+  "trustedRows": 2574,
+  "present": 903,
+  "unoccupied": 1671,
+  "newest": "2026-08-23T13:58:51+00:00"
 }
 ```
+
+This is a live snapshot, so fresh/present/unoccupied counts naturally move between probes. The release rule depends on recognized state, municipal location and event freshness—not on a fixed row count.
 
 The other 3,657 catalog rows were not treated as current usable occupancy. That conservative under-count is intentional.
 
@@ -182,11 +184,11 @@ These are deliberately **not integration leads** under ParkAlong's anonymous-onl
 ## Implemented integration
 
 1. City of Melbourne remains the only live sensor adapter.
-2. The bundled catalog contains 477 clustered Maribyrnong results, 746 Ballarat zones, 668 Casey results, 155 Boroondara car parks, 19 curated official council facilities, and 28,825 OpenStreetMap parking features. The raw query returned 36,622 OSM features; 7,797 explicitly marked private, customer, resident, permit, employee, destination-only, or no-access features are intentionally excluded from suggestions.
+2. The bundled catalog contains 477 clustered Maribyrnong results, 746 Ballarat zones, 668 Casey results, 155 Boroondara car parks, 24 curated official facilities/areas, 672 Wodonga records, 385 Manningham records, 273 Latrobe records, 178 Moorabool records, 165 Colac Otway records, 1,440 Monash records, 15 Southern Grampians records, and 28,825 OpenStreetMap parking features. The raw query returned 36,622 OSM features; 7,797 explicitly marked private, customer, resident, permit, employee, destination-only, or no-access features are intentionally excluded from suggestions.
 3. Runtime search loads that catalog lazily, keeps only the nearest 24 eligible results, prefers council records, and suppresses an OpenStreetMap result within 75 metres of an accepted official result.
 4. `sourceTimestamp`, `sourceDatasetAt`, `sourceCheckedAt`, and `classification` remain separate. Download time is never substituted for a sensor event.
 5. New live regions still require a fresh anonymous probe. Stale, future-dated, missing, or semantically unclear occupancy fails closed.
-6. The prediction path exists but only runs for a location with known capacity, at least 100 relevant observations, and held-out calibration error no greater than 10%. None of the newly bundled static sources currently carries qualifying evidence, so those locations remain honest red `P` results rather than fabricated estimates.
+6. Numeric prediction requires known capacity, at least 500 evaluation observations, normalized MAE and Brier score no greater than 0.20, held-out interval coverage of at least 80%, a useful conformal interval radius no wider than 35% of capacity, and observations no older than two years. None of the newly bundled static sources currently carries qualifying occupancy evidence, so those locations remain honest location/rule/price results rather than fabricated vacancy estimates.
 
 ## Simple UI compromise
 

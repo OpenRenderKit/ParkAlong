@@ -19,6 +19,7 @@ from generate_victoria_static_catalog import (  # noqa: E402
     build_osm_records,
     build_southern_grampians_records,
     build_wodonga_records,
+    curated_official_records,
     deduplicate_records,
     geometry_centroid,
 )
@@ -193,6 +194,43 @@ class VictoriaStaticCatalogTests(unittest.TestCase):
         self.assertEqual(record["schedules"][0]["endMinutes"], 1050)
         self.assertEqual(record["schedules"][0]["maxStayMinutes"], 120)
         self.assertEqual(record["tariffs"][0]["hourlyCents"], 240)
+
+    def test_osm_retains_unsupported_conditions_instead_of_silently_dropping_them(self):
+        elements = [{
+            "type": "node", "id": 100, "lat": -37.7, "lon": 145.0,
+            "tags": {
+                "amenity": "parking", "maxstay:conditional": "2 hours @ (event days)",
+                "charge:conditional": "$4/hour @ (event days)",
+            },
+        }]
+
+        record = build_osm_records(elements, checked_at="2026-08-23T00:00:00Z", dataset_updated_at=None)[0]
+
+        self.assertEqual(record["schedules"][0]["unparsedCondition"], "2 hours @ (event days)")
+        self.assertEqual(record["tariffs"][0]["unparsedCondition"], "$4/hour @ (event days)")
+
+    def test_bendigo_hargreaves_uses_exact_current_facility_capacity_hours_and_tariff(self):
+        records = curated_official_records("2026-08-23T00:00:00Z")
+
+        record = next(item for item in records if item["id"] == "bendigo-hargreaves-multistorey")
+
+        self.assertEqual(record["municipality"], "Greater Bendigo")
+        self.assertEqual(record["coordinate"], {"latitude": -36.7588004, "longitude": 144.2812571})
+        self.assertEqual(record["capacity"], 290)
+        self.assertEqual(record["accessibleSpaces"], 6)
+        self.assertEqual([schedule["endMinutes"] for schedule in record["schedules"]], [1170, 1320, 1320, 1080])
+        self.assertEqual(record["tariffs"][0]["hourlyCents"], 240)
+        self.assertEqual(record["tariffs"][0]["dailyCapCents"], 1000)
+        self.assertEqual(record["tariffs"][1]["hourlyCents"], 0)
+
+    def test_curated_regional_overviews_preserve_current_area_specific_tariffs(self):
+        records = {record["id"]: record for record in curated_official_records("2026-08-23T00:00:00Z")}
+
+        self.assertEqual(records["geelong-central-2p"]["tariffs"][0]["hourlyCents"], 0)
+        self.assertEqual(records["geelong-central-2p"]["schedules"][0]["maxStayMinutes"], 120)
+        self.assertEqual(records["wangaratta-cbd-paid"]["tariffs"][0]["hourlyCents"], 120)
+        self.assertEqual(records["horsham-cbd-free-2p"]["tariffs"][0]["hourlyCents"], 0)
+        self.assertEqual(records["swan-hill-curlewis-ticketed"]["tariffs"][0]["hourlyCents"], 140)
 
 
 if __name__ == "__main__":

@@ -35,19 +35,119 @@ struct RestrictionEngine: Sendable {
         records.first(where: { isActive($0, at: date) }).flatMap { rule(from: $0.display) }
     }
 
-    func isEligible(_ rule: ParkingRule, for duration: StayDuration) -> Bool {
-        rule.maxStayMinutes >= duration.rawValue
+    func isEligible(_ rule: ParkingRule, controlledSeconds: TimeInterval) -> Bool {
+        controlledSeconds <= TimeInterval(rule.maxStayMinutes * 60)
     }
 
-    func resolve(_ records: [RestrictionRecord], at date: Date, for duration: StayDuration) -> RestrictionResolution {
+    func resolve(_ records: [RestrictionRecord], plan: ParkingPlan) -> RestrictionResolution {
         guard !records.isEmpty else { return .unsuitable }
-        let active = records.filter { isActiveTime($0, at: date) }
+        let overlapping = records.compactMap { record -> (RestrictionRecord, TimeInterval)? in
+            let overlap = controlledSeconds(record, plan: plan)
+            return overlap > 0 ? (record, overlap) : nil
+        }
+        let parsed = overlapping.compactMap { record, seconds -> (ParkingRule, TimeInterval)? in
+            rule(from: record.display).map { ($0, seconds) }
+        }
+        guard parsed.count == overlapping.count,
+              parsed.allSatisfy({ isEligible($0.0, controlledSeconds: $0.1) }) else { return .unsuitable }
+
+        let active = records.filter { isActiveTime($0, at: plan.arrival) }
         guard !active.isEmpty else { return .unrestricted }
         let rules = active.compactMap { rule(from: $0.display) }
-        guard rules.count == active.count, rules.allSatisfy({ isEligible($0, for: duration) }) else { return .unsuitable }
+        guard rules.count == active.count else { return .unsuitable }
         let tightest = rules.min(by: { $0.maxStayMinutes < $1.maxStayMinutes })!
         let payment: ParkingPaymentStatus = rules.contains(where: { $0.payment == .paid }) ? .paid : (rules.allSatisfy { $0.payment == .free } ? .free : .unknown)
         return .permitted(ParkingRule(code: tightest.code, maxStayMinutes: tightest.maxStayMinutes, payment: payment))
+    }
+
+    func weeklySchedule(_ records: [RestrictionRecord], plan: ParkingPlan) -> [ParkingScheduleDay] {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let firstDay = calendar.startOfDay(for: plan.arrival)
+
+        return (0..<7).compactMap { dayOffset in
+            guard let day = calendar.date(byAdding: .day, value: dayOffset, to: firstDay) else { return nil }
+            let weekday = calendar.component(.weekday, from: day)
+            let previousWeekday = weekday == 1 ? 7 : weekday - 1
+            var intervals: [(start: Int, end: Int, record: RestrictionRecord)] = []
+
+            for record in records {
+                guard let start = seconds(record.start), let finish = seconds(record.finish) else {
+                    intervals.append((0, 24 * 60, record))
+                    continue
+                }
+                let startMinutes = start / 60
+                let finishMinutes = finish / 60
+                if finish > start {
+                    if dayMatches(record.days, weekday: weekday) {
+                        intervals.append((startMinutes, finishMinutes, record))
+                    }
+                } else {
+                    if dayMatches(record.days, weekday: weekday) {
+                        intervals.append((startMinutes, 24 * 60, record))
+                    }
+                    if finishMinutes > 0, dayMatches(record.days, weekday: previousWeekday) {
+                        intervals.append((0, finishMinutes, record))
+                    }
+                }
+            }
+
+            let boundaries = Set([0, 24 * 60] + intervals.flatMap { [$0.start, $0.end] }).sorted()
+            let blocks = zip(boundaries, boundaries.dropFirst()).enumerated().compactMap { index, bounds -> ParkingScheduleBlock? in
+                guard bounds.0 < bounds.1 else { return nil }
+                let midpoint = bounds.0 + (bounds.1 - bounds.0) / 2
+                let activeRecords = intervals.filter { $0.start <= midpoint && midpoint < $0.end }.map(\.record)
+                guard !activeRecords.isEmpty else {
+                    return ParkingScheduleBlock(
+                        id: "\(weekday)-\(index)-unrestricted", startMinutes: bounds.0, endMinutes: bounds.1,
+                        kind: .unrestricted, title: "Unrestricted", detail: "Outside mapped control hours",
+                        maxStayMinutes: nil, isPaid: false
+                    )
+                }
+
+                let rules = activeRecords.compactMap { rule(from: $0.display) }
+                guard rules.count == activeRecords.count,
+                      let tightest = rules.min(by: { $0.maxStayMinutes < $1.maxStayMinutes }) else {
+                    return ParkingScheduleBlock(
+                        id: "\(weekday)-\(index)-unknown", startMinutes: bounds.0, endMinutes: bounds.1,
+                        kind: .unknown, title: "Check posted signs",
+                        detail: activeRecords.map(\.display).joined(separator: " · "), maxStayMinutes: nil, isPaid: nil
+                    )
+                }
+                let payment: Bool? = rules.contains(where: { $0.payment == .paid })
+                    ? true
+                    : (rules.allSatisfy { $0.payment == .free } ? false : nil)
+                return ParkingScheduleBlock(
+                    id: "\(weekday)-\(index)-restricted", startMinutes: bounds.0, endMinutes: bounds.1,
+                    kind: .restricted, title: tightest.plainEnglish, detail: tightest.code,
+                    maxStayMinutes: tightest.maxStayMinutes, isPaid: payment
+                )
+            }
+            return ParkingScheduleDay(date: day, weekday: weekday, blocks: blocks)
+        }
+    }
+
+    private func controlledSeconds(_ record: RestrictionRecord, plan: ParkingPlan) -> TimeInterval {
+        guard let startSeconds = seconds(record.start), let finishSeconds = seconds(record.finish) else { return plan.departure.timeIntervalSince(plan.arrival) }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        var day = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: plan.arrival))!
+        let finalDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: plan.departure))!
+        var total: TimeInterval = 0
+        while day <= finalDay {
+            let weekday = calendar.component(.weekday, from: day)
+            if dayMatches(record.days, weekday: weekday) {
+                let intervalStart = day.addingTimeInterval(TimeInterval(startSeconds))
+                let crossesMidnight = finishSeconds <= startSeconds
+                let endDay = crossesMidnight ? calendar.date(byAdding: .day, value: 1, to: day)! : day
+                let intervalEnd = endDay.addingTimeInterval(TimeInterval(finishSeconds))
+                let overlapStart = max(intervalStart, plan.arrival)
+                let overlapEnd = min(intervalEnd, plan.departure)
+                total += max(0, overlapEnd.timeIntervalSince(overlapStart))
+            }
+            day = calendar.date(byAdding: .day, value: 1, to: day)!
+        }
+        return total
     }
 
     private func isActive(_ record: RestrictionRecord, at date: Date) -> Bool {

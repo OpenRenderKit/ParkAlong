@@ -27,6 +27,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.sidkrishnan.ParkAlong
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
+        PARKALONG_REMOTE_BASE_URL: ""
+        INFOPLIST_KEY_ParkAlongRemoteBaseURL: "$(PARKALONG_REMOTE_BASE_URL)"
         INFOPLIST_KEY_CFBundleDisplayName: ParkAlong
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: Your location helps find parking near you. You can keep using destination search without it.
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES

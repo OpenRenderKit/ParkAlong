@@ -6,7 +6,7 @@ This is the exhaustive area ledger for ParkAlong's Victorian scope. It uses the 
 
 Every row below has been checked against:
 
-1. the existing 30,890-record ParkAlong catalogue;
+1. the generated 34,023-record ParkAlong catalogue and its integrity manifest;
 2. council/authority parking pages, maps, studies and open-data portals;
 3. DataVic parking searches;
 4. public ArcGIS items and FeatureServer schemas;
@@ -45,7 +45,7 @@ The catalogue count is a spatial join of ParkAlong's current static records to t
 | [x] | Cardinia | 590 | DOC | General parking rules found; four Casey/PTV station features cross the spatial boundary and need provenance-safe deduplication |
 | [x] | Casey | 2,242 | STATIC | 4,341 restriction records plus council car parks and a 32-polygon PTV station-car-park snapshot |
 | [x] | Central Goldfields | 37 | OSM | No parking-specific authority dataset, map, current tariff table or utilisation study found |
-| [x] | Colac Otway | 137 | CANDIDATE, DOC | Public contractor ArcGIS layer has 173 carpark assets, but council provenance/licence needs confirmation before shipping |
+| [x] | Colac Otway | 137 baseline | STATIC, DOC | Public contractor ArcGIS layer is now included with 165 retained assets and its actual host/publisher attribution; it is location evidence, not live occupancy |
 | [x] | Corangamite | 111 | DOC | Accessible-parking maps and an active Port Campbell review; no structured general parking feed found |
 | [x] | Darebin | 618 | DOC | Permit/restriction pages and policy material; no public sensor state or structured restriction layer found |
 | [x] | East Gippsland | 476 | DOC | Bairnsdale rules identify two-hour and all-day facilities; no structured feed found |
@@ -79,7 +79,7 @@ The catalogue count is a spatial join of ParkAlong's current static records to t
 | [x] | Mildura | 554 | DOC, HIST | Published parking supply and free-parking context; no public live/transaction feed found |
 | [x] | Mitchell | 161 | DOC | General rules/project material only; no structured authority parking source found |
 | [x] | Moira | 74 | DOC, HIST | Cobram/Yarrawonga precinct plans provide static/survey evidence; no maintained feed found |
-| [x] | Monash | 817 | CANDIDATE, INTERNAL, DOC | Sensors across listed locations plus consultant ArcGIS study geometry; candidate layer lacks licence/rule fields |
+| [x] | Monash | 817 baseline | STATIC, INTERNAL, DOC | Sensors remain internal; the consultant ArcGIS study geometry now contributes 1,440 attributed static records without inventing restriction fields |
 | [x] | Moonee Valley | 469 | DOC, APP | Permit/event and school Park-and-Walk maps plus EasyPark coverage; no verified occupancy feed |
 | [x] | Moorabool | 154 | STATIC, DOC, HIST | Official public ArcGIS service contains 178 active car-park assets; studies add utilisation context |
 | [x] | Mornington Peninsula | 1,075 | INTERNAL, HIST, DOC | Rye/Mornington trials and parking plans; no current anonymous driver feed verified |
@@ -92,7 +92,7 @@ The catalogue count is a spatial join of ParkAlong's current static records to t
 | [x] | Pyrenees | 44 | OSM | No parking-specific authority dataset, map, tariff table or utilisation study found |
 | [x] | Queenscliffe | 34 | DOC | Council states parking is free with posted time limits; no live or structured rule feed |
 | [x] | South Gippsland | 166 | DOC, HIST | Leongatha study/map provides supply and utilisation evidence; no current structured feed |
-| [x] | Southern Grampians | 71 | CANDIDATE, DOC | Current Hamilton tariff material plus a 22-asset contractor inspection layer requiring provenance confirmation |
+| [x] | Southern Grampians | 71 baseline | STATIC, DOC | Current Hamilton tariff evidence plus 15 retained contractor-hosted inspection assets, with the contractor source preserved and no live claim |
 | [x] | Stonnington | 194 | INTERNAL, APP, STATIC | Sensor/PayStay and public-sign evidence plus curated facilities; no anonymous live endpoint |
 | [x] | Strathbogie | 43 | DOC sparse | Individual project evidence found; no municipality-wide structured source or study found |
 | [x] | Surf Coast | 270 | INTERNAL, DOC | 399 sensors across major coastal towns; no public timestamped vacancy response verified |
@@ -129,14 +129,14 @@ The catalogue count is a spatial join of ParkAlong's current static records to t
 - **79/79 councils have at least an OSM location baseline** in the current catalogue.
 - **86/87 polygons have at least one catalogue record**; Gabo Island is intentionally the exception because normal road parking is not applicable.
 - **One area has verified fresh anonymous occupancy**: City of Melbourne.
-- Static official and high-value candidate services are broader than the current app integration, especially in Wodonga, Manningham, Latrobe, Moorabool, Colac Otway, Monash and Southern Grampians.
+- Static council and approved contractor/consultant services for Wodonga, Manningham, Latrobe, Moorabool, Colac Otway, Monash and Southern Grampians are now integrated with source-specific attribution.
 - A source may help one part of the product without answering the others: a carpark polygon can improve search, a sign layer can resolve time limits, transactions can train demand models, and only a fresh recognized sensor event may claim “available now.”
 
 ## Next verification queue
 
 The next passes should be ordered by likely user value and data density, not alphabetically:
 
-1. validate licence/provenance and field semantics for the seven newly discovered ArcGIS services;
+1. monitor schema, host and publisher changes for the seven newly integrated ArcGIS services and fail closed when required fields disappear;
 2. inspect every public web map's item dependency chain for hidden FeatureServers, not just its visible UI;
 3. request documented feeds or data-sharing terms from EasyPark, PayStay, Orikan/Urbiotica and the councils with large sensor fleets;
 4. acquire complete Melbourne 2011–2020 history and non-COVID Geelong history as model benchmarks, while keeping geography-specific calibration separate;

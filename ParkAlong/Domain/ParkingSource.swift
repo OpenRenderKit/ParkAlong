@@ -31,6 +31,29 @@ struct PredictionEvidence: Codable, Equatable, Sendable {
     let baselineOccupiedRatio: Double
     let sourceDescription: String
     let observedThrough: Date?
+    let brierScore: Double?
+    let intervalCoverage: Double?
+    let modelVersion: String?
+
+    init(
+        sampleCount: Int,
+        calibrationError: Double,
+        baselineOccupiedRatio: Double,
+        sourceDescription: String,
+        observedThrough: Date?,
+        brierScore: Double? = nil,
+        intervalCoverage: Double? = nil,
+        modelVersion: String? = nil
+    ) {
+        self.sampleCount = sampleCount
+        self.calibrationError = calibrationError
+        self.baselineOccupiedRatio = baselineOccupiedRatio
+        self.sourceDescription = sourceDescription
+        self.observedThrough = observedThrough
+        self.brierScore = brierScore
+        self.intervalCoverage = intervalCoverage
+        self.modelVersion = modelVersion
+    }
 }
 
 struct ParkingSourceAttribution: Codable, Equatable, Sendable {
@@ -52,6 +75,7 @@ struct ParkingSchedule: Codable, Equatable, Sendable {
     let restrictionText: String
     let appliesOnPublicHolidays: Bool
     let outsideWindowMeansUnrestricted: Bool
+    let unparsedCondition: String? = nil
 }
 
 struct TariffTier: Codable, Equatable, Sendable {
@@ -69,6 +93,7 @@ struct ParkingTariff: Codable, Equatable, Sendable {
     let freeMinutes: Int
     let dailyCapCents: Int?
     let tiers: [TariffTier]
+    let unparsedCondition: String? = nil
 }
 
 struct StaticParkingLocation: Codable, Equatable, Identifiable, Sendable {
@@ -86,4 +111,3 @@ struct StaticParkingLocation: Codable, Equatable, Identifiable, Sendable {
     let classification: ParkingDataClassification
     let predictionEvidence: PredictionEvidence?
 }
-

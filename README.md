@@ -1,7 +1,7 @@
 # ParkAlong
 
 <p align="center">
-  <strong>One map for Melbourne parking availability, time limits, prices, providers, and directions.</strong>
+  <strong>One map for Victorian parking availability, time limits, prices, providers, and directions.</strong>
 </p>
 
 <p align="center">
@@ -13,7 +13,7 @@
 
 ParkAlong is a native, map-first iPhone app that brings fragmented parking information into one consistent view. Search a destination across Victoria, choose how long you intend to stay, and compare nearby on-street zones and off-street facilities without jumping between council pages, payment apps, and provider websites.
 
-The normal app flow uses live City of Melbourne sensor data and Apple MapKit. It has no account system, backend, payments, reservations, ads, or runtime AI.
+The normal app flow combines Victoria-wide bundled public parking data, live City of Melbourne sensor data and Apple MapKit. It has no account system, payments, reservations, ads, or runtime AI. An optional HTTPS delta endpoint can update mapped static records when explicitly configured; the bundled catalog remains the offline baseline.
 
 ## Screenshots
 
@@ -34,18 +34,18 @@ Parking information is often split across several places:
 - commercial operators list separate off-street facilities;
 - navigation happens in another app.
 
-ParkAlong normalizes those pieces into a single `ParkingOption` model and a single result sheet. The four primary answers are always the same: **availability, location, time limit, and price/provider**. Arrival prediction is intentionally secondary.
+ParkAlong normalizes those pieces into a single `ParkingOption` model and a single result sheet. The four primary answers are always the same: **availability, location, time limit, and price/provider**. Arrival prediction is a first-class product state, but it is numeric only when held-out evidence passes the release gates; otherwise ParkAlong explicitly abstains.
 
 ## Features
 
 - Live on-street availability from City of Melbourne parking-bay sensors.
 - Green, amber, and red count pins: 3+ spaces, 1–2 spaces, or no currently vacant spaces.
-- Statewide parking discovery from 30,890 bundled public records, with explicitly restricted OpenStreetMap parking removed and council records preferred over nearby duplicates.
+- Statewide parking discovery from 34,023 integrity-manifested public records, with explicitly restricted OpenStreetMap parking removed and authority/approved contractor records preferred over nearby duplicates.
 - Deep-plum `~N` pins for validated predictions and red `P` pins for location-only results; every non-live pin carries a small amber warning.
 - Current restriction and price resolution from effective-dated schedules and tariffs when a public source supplies enough information.
-- Destination search powered by `MKLocalSearch`.
-- Stay-length filtering for 15 minutes, 1 hour, 2 hours, and 3 hours or longer.
-- Current time-limit resolution using Melbourne-local day and time.
+- Completion-first destination search plus relevant ParkAlong catalog results, ranked around the visible map rather than a Melbourne-only rectangle.
+- A single sliding stay track for 15 minutes, 1, 2, 3, 4 and 6 hours, plus an 8h+ arrival/stay planner supporting custom durations up to seven days.
+- Arrival-aware time-limit and price resolution across weekly windows, overnight boundaries and planned future days in Victoria local time.
 - Paid/free labelling where the active parking code makes it clear.
 - Provider links when a trustworthy reusable price is not available.
 - Nearby off-street facilities from MapKit, normalized alongside on-street zones.
@@ -53,7 +53,8 @@ ParkAlong normalizes those pieces into a single `ParkingOption` model and a sing
 - Individual vacant-bay markers fetched only after selecting a zone.
 - Apple Maps driving handoff—ParkAlong does not recreate turn-by-turn navigation.
 - Two-minute refresh, foreground refresh, manual refresh, and checked-at timestamps.
-- Bundled 2019 historical patterns as a clearly labelled fallback when live sensors cannot be trusted.
+- Versioned historical buckets and held-out validation metadata; the shipped 2019 model abstains from 2026 arrival forecasts because it exceeds the two-year recency gate.
+- Viewport-driven loading, low-zoom clustering, generation ordering and short bounded caches so zooming or panning recalculates the parking actually on screen.
 - Deterministic test fixtures that never leak into a normal launch.
 - Light mode, dark mode, Dynamic Type, VoiceOver labels, and reduced-motion support.
 
@@ -69,18 +70,19 @@ The duration control is a real result filter, not a display preference.
 | `3h` | Zones that allow at least three hours, plus currently unrestricted options |
 | `4h` | Zones that allow at least four hours, plus currently unrestricted options |
 | `6h` | Zones that allow at least six hours, plus currently unrestricted options |
-| `8h` | Zones that allow at least eight hours, plus currently unrestricted options |
+| `8h+` | Opens Arrival & Stay for an eight-hour, future-day or custom one-minute-to-seven-day plan |
 
-Changing duration clears the previous markers immediately and fetches a fresh, matching result set. If no nearby on-street zone fits, ParkAlong says so and keeps useful off-street options visible rather than presenting a network error.
+Changing the plan retains the previous markers while a generation-safe refresh fetches a matching result set for the current viewport. If no nearby on-street zone fits, ParkAlong says so and keeps useful off-street options visible rather than presenting a network error.
 
 ## How it works
 
 ```mermaid
 flowchart LR
-    Destination["Destination + stay length"] --> Repository["ParkingRepository"]
+    Destination["Visible map + arrival + stay"] --> Repository["ParkingRepository"]
     Sensors["City live sensors"] --> Repository
     Signs["Current zone restrictions"] --> Repository
-    History["Bundled 2019 patterns"] --> Repository
+    History["Historical buckets + held-out validation"] --> Repository
+    Catalog["34,023 statewide static records"] --> Normalizer
     MapKit["Apple MapKit facilities"] --> Normalizer["ParkingOption normalizer"]
     Repository --> Engines["Availability, restriction, prediction and ranking engines"]
     Engines --> Normalizer
@@ -91,7 +93,7 @@ flowchart LR
 
 ### Trust and freshness
 
-Sensor rows are accepted only when they have a recognized occupancy state, usable zone/location data, and a status timestamp within the previous 24 hours. Ambiguous or stale rows are excluded. Static records can answer “where,” “how long,” and sometimes “how much,” but never inherit a live availability colour. Predictions require a known capacity, at least 100 observations, and held-out calibration error no greater than 10%. Under-counting or withholding an estimate is preferred to advertising a questionable vacancy.
+Sensor rows are accepted only when they have a recognized occupancy state, usable zone/location data, and a status timestamp within the previous 24 hours. Ambiguous or stale rows are excluded. Static records can answer “where,” “how long,” and sometimes “how much,” but never inherit a live availability colour. Numeric forecasts require capacity, an exact matching time bucket, at least 500 held-out bay-interval outcomes, normalized MAE and per-bay binary Brier score no greater than 0.20, interval coverage of at least 0.80, interval radius no greater than 0.35, and observations no more than two years old. A failed gate produces an explicit reason—not a decorative low confidence percentage.
 
 ### Ranking
 
@@ -99,7 +101,9 @@ Results are ranked deterministically with availability dominating distance:
 
 - 70% predicted available-space count;
 - 20% walking distance;
-- 10% freshness and confidence.
+- 10% capacity-aware modelled chance of at least one space.
+
+Only options with a numeric observed/validated availability state participate in Best bet. A future plan with an abstained forecast never reuses the current live count for ranking.
 
 The map renders the top 24 ranked on-street options to remain responsive while zooming and panning.
 
@@ -114,16 +118,16 @@ The project keeps networking, domain rules, prediction, ranking, and UI orchestr
 | Component | Responsibility |
 | --- | --- |
 | `ParkingAPIClient` | Opendatasoft spatial queries, pagination, response validation, and decoding |
-| `ParkingRepository` | Refresh lifecycle, joins, brief cache, live/typical switching, and result construction |
+| `ParkingRepository` | Viewport/plan refresh lifecycle, joins, bounded cache, live/forecast switching, and result construction |
 | `AvailabilityEngine` | Sensor trust cutoff and zone-level Present/Unoccupied counts |
 | `RestrictionEngine` | Active time window, parking-code parsing, and stay eligibility |
-| `PredictionEngine` | Conservative live/history blending and clamping |
-| `ParkingRuleResolver` | Melbourne-time restrictions and effective-dated tariff calculation |
-| `StaticParkingRepository` | Lazy statewide catalog loading, nearby filtering, source precedence, and prediction gating |
+| `PredictionEngine` | Evidence tiers, held-out release gates, honest ranges/probabilities and abstention |
+| `ParkingRuleResolver` | Victoria-time weekly/overnight restrictions and effective-dated tariff calculation |
+| `StaticParkingRepository` | Lazy statewide catalog loading, viewport filtering/clustering, source precedence, remote-delta merge and prediction gating |
 | `RankingEngine` | Pure deterministic availability-first scoring |
 | `OffStreetParkingService` | Nearby MapKit facility discovery and provider normalization |
 | `LocationService` | When-In-Use authorization and location fallback |
-| `DestinationSearchService` | MapKit destination search |
+| `DestinationSearchService` | MapKit completion/resolution plus visible-region relevance ranking |
 | `ParkingMapViewModel` | Main-actor UI orchestration and refresh race protection |
 
 ## Requirements
@@ -161,7 +165,7 @@ Set a simulator location in central Melbourne:
 xcrun simctl location booted set -37.8136,144.9631
 ```
 
-Location permission is optional. If permission is denied, ParkAlong stays centred on Melbourne CBD and destination search remains fully usable.
+Location permission is optional. If permission is denied, ParkAlong uses Melbourne CBD only as its initial camera; statewide destination and parking-catalog search remain usable.
 
 ## Tests
 
@@ -205,7 +209,7 @@ Refresh current zone metadata and sign restrictions:
 python3 Scripts/generate_metadata.py
 ```
 
-The historical generator streams the 2019 archive directly from its ZIP and does not load 42.7 million rows into memory:
+The historical generator streams the 2019 archive directly from its ZIP and does not load 42.7 million rows into memory. January–October trains the baseline, November calibrates the 90% residual interval, and December remains an untouched evaluation window. The generated validation ledger records support, MAE, per-bay Brier score, interval coverage/radius, observation date, and model version for every supported segment:
 
 ```bash
 mkdir -p Scripts/data
@@ -216,7 +220,8 @@ curl -fL \
 python3 Scripts/generate_prediction.py \
   Scripts/data/2019-parking-events.zip \
   ParkAlong/Resources/Generated/historical_availability.json \
-  --metadata ParkAlong/Resources/Generated/zone_metadata.json
+  --metadata ParkAlong/Resources/Generated/zone_metadata.json \
+  --validation-output ParkAlong/Resources/Generated/historical_validation.json
 ```
 
 The raw archive is ignored by Git. Only the compact generated artifact is committed.
@@ -227,7 +232,9 @@ Rebuild the anonymous statewide static catalog and its manifest:
 python3 Scripts/generate_victoria_static_catalog.py
 ```
 
-The generator currently combines public council data from Maribyrnong, Ballarat, Casey and Boroondara; official council parking/rate pages for selected named facilities; and OpenStreetMap's statewide parking layer. It records the fetch time and per-source counts, clusters dense bay geometry, and does not convert payment transactions or old occupancy surveys into live availability.
+The generator combines public council data from Maribyrnong, Ballarat, Casey, Boroondara, Wodonga, Manningham, Latrobe and Moorabool; approved attributed layers for Colac Otway, Monash and Southern Grampians; official parking/rate pages for selected named facilities and regional parking areas; and OpenStreetMap's statewide layer. It records fetch time, per-source retained counts, byte size and SHA-256, clusters dense bay geometry, and never converts transactions or old surveys into live availability.
+
+Optional remote deltas use the same bounding-box/arrival/duration/zoom contract. Set the `PARKALONG_REMOTE_BASE_URL` Xcode build setting for a production build, or the environment variable with the same name for local development. It is empty and disabled by default; bundled records remain the offline fallback.
 
 ## Data sources and attribution
 
@@ -248,7 +255,7 @@ The bundled static catalog retains source-level attribution and source links in 
 - No first-party analytics or tracking.
 - No backend operated by ParkAlong.
 - Location is used on-device to centre searches and is not stored by the app.
-- Normal app network requests are limited to City of Melbourne data and Apple MapKit/Maps. The statewide static catalog is fetched by a developer-run generator and bundled with the app.
+- Default app network requests are limited to City of Melbourne data and Apple MapKit/Maps. The statewide static catalog is fetched by a developer-run generator and bundled with the app; an optional operator-configured HTTPS delta source is off by default.
 
 ## Source limitations
 
@@ -256,7 +263,7 @@ The bundled static catalog retains source-level attribution and source links in 
 - Sensors can be unreliable on public holidays, around construction, or when a bay is temporarily unavailable.
 - Exact on-street and facility prices are not consistently exposed through reusable public interfaces; ParkAlong shows a number only when an effective public tariff can be resolved for the selected stay.
 - Off-street facility results can provide provider links while current capacity remains unknown.
-- Historical fallback data describes 2019 patterns and is always labelled as typical, not live.
+- Historical data currently describes 2019 patterns. Its measured artifact is retained for reproducibility, but the runtime recency gate abstains rather than presenting it as a current 2026 forecast.
 - Statewide static locations are discovery aids. Posted signs and on-site prices remain authoritative.
 
 ## Contributing

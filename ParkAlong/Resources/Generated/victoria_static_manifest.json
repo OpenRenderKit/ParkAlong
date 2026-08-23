@@ -1,13 +1,21 @@
 {
-  "generatedAt": "2026-08-23T04:09:50Z",
-  "outputBytes": 20259846,
-  "recordCount": 30890,
+  "generatedAt": "2026-08-23T14:00:24Z",
+  "outputBytes": 22546415,
+  "outputSHA256": "c9bd09de1b332e12797f7ef847c15f441cb5224d18eaaa5ad04f88dab459bfd2",
+  "recordCount": 34023,
   "sourceCounts": {
     "ballarat": 746,
     "boroondara": 155,
     "casey": 668,
-    "curatedOfficial": 19,
+    "colacOtway": 165,
+    "curatedOfficial": 24,
+    "latrobe": 273,
+    "manningham": 385,
     "maribyrnong": 477,
-    "openStreetMap": 28825
+    "monash": 1440,
+    "moorabool": 178,
+    "openStreetMap": 28825,
+    "southernGrampians": 15,
+    "wodonga": 672
   }
 }

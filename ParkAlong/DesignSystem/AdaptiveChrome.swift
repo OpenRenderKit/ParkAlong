@@ -48,14 +48,10 @@ struct AdaptiveGlassContainer<Content: View>: View {
     }
 }
 
-struct AdaptiveGlassSurfaceModifier: ViewModifier {
-    var cornerRadius: CGFloat
+struct AdaptiveGlassSurfaceModifier<S: Shape>: ViewModifier {
+    var shape: S
     var isInteractive: Bool
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    private var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-    }
 
     @ViewBuilder
     func body(content: Content) -> some View {
@@ -239,7 +235,16 @@ private struct AdaptiveStatusBarColorSchemeModifier: ViewModifier {
 
 extension View {
     func adaptiveGlassSurface(cornerRadius: CGFloat, isInteractive: Bool = false) -> some View {
-        modifier(AdaptiveGlassSurfaceModifier(cornerRadius: cornerRadius, isInteractive: isInteractive))
+        modifier(
+            AdaptiveGlassSurfaceModifier(
+                shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous),
+                isInteractive: isInteractive
+            )
+        )
+    }
+
+    func adaptiveGlassSurface<S: Shape>(shape: S, isInteractive: Bool = false) -> some View {
+        modifier(AdaptiveGlassSurfaceModifier(shape: shape, isInteractive: isInteractive))
     }
 
     func adaptiveProminentAction() -> some View {

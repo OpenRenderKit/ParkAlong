@@ -6,7 +6,7 @@ ParkAlong currently falls back to “Check current price” for most locations. 
 
 ## Verified public tariff examples
 
-These are strong current examples found during the statewide pass. They are not yet integrated into the app.
+These are strong current examples found during the statewide pass. The checked-in catalog now implements the location-scoped Ballarat, Bendigo, Stonnington and Wyndham rules plus conservative OpenStreetMap `fee`/`charge` rules. The remaining council-wide findings stay in the verified-source queue until they can be attached to exact zones or facilities without overgeneralising.
 
 | Area | Current public evidence | Rule ParkAlong could represent |
 | --- | --- | --- |
@@ -23,6 +23,17 @@ These are strong current examples found during the statewide pass. They are not 
 | Lake Mountain and all six alpine resorts | [Alpine Resorts Victoria](https://www.alpineresorts.vic.gov.au/news/behind-the-fees-resort-entry) and [Lake Mountain shop](https://shop.lakemountainresort.com.au/shop/product/78) | $69 vehicle day-entry/parking permit in winter 2026; seasonal dates, entry hours, overnight rules and resort-specific access restrictions are essential parts of the quote |
 
 The Ballarat example proves why effective dates are mandatory: its open zone layer can carry an older $3 figure while the council's current page states $3.60 from 1 August 2026. The resolver must select the rule valid at the planned arrival time and show the source/effective date.
+
+## Implemented coverage snapshot
+
+The 23 August 2026 generated catalog contains:
+
+- **3,432** records with a machine-readable tariff;
+- **1,319** records with one or more schedule/rule windows;
+- **2,708** records with known capacity;
+- **970** records with an accessible-space count.
+
+Tariffs currently comprise 3,131 attributed OpenStreetMap records, 291 Ballarat zone records, four Stonnington facilities, Hargreaves Street Multi-Storey Car Park in Bendigo, Hunter Werribee Public Car Park, and current official area-specific records for central Geelong 2P parking, Wangaratta paid CBD bays, free signed Horsham CBD 2P parking and Swan Hill's Curlewis Street ticketed area. City of Melbourne live-zone details also calculate the published central-CBD $7/$4 time bands and the up-to-15-minute EasyPark waiver only inside the CBD geography. The rule resolver calculates the selected plan across day boundaries, weekly tariff windows, initial free time, stepped tiers and daily caps. Unsupported conditional text is retained for the UI to say “check posted signs” rather than guessed.
 
 ## Source ladder
 

@@ -6,20 +6,22 @@ The product goal is not to put a decorative percentage beside a parking pin. A u
 
 This document separates observed parking truth, inferred parking truth, demand context and uncertainty. Mixing those layers is how a confident-looking but inaccurate product is created.
 
-## Current implementation diagnosis
+## Baseline diagnosis and shipped correction
 
-The existing code does not calculate a statistically meaningful confidence percentage:
+The old implementation did not calculate a statistically meaningful confidence percentage. It converted sample count into a 20–100% score, so missing history repeatedly became 20% and a large but inaccurate sample could look certain. It also selected the nearest time bucket, reused current live counts too far into the future, and emitted occupied-event buckets without explicit vacant observation states.
 
-1. `PredictionEngine.estimate` calculates confidence as `sqrt(sampleCount / 500)`, clamped to 20–100%. It never checks whether past predictions were correct. Five hundred samples therefore produce 100% even if the model is badly calibrated.
-2. When a historical bucket is absent, the live path passes `sampleCount = 0`, which always becomes 20%. That is why 20% appears repeatedly.
-3. The live-versus-history weight is a hand-written ETA curve, not a learned decay based on how quickly each zone changes.
-4. `historicalProfile` chooses the nearest time bucket. It does not impose a maximum time gap or record that the requested bucket was missing.
-5. The bundled history uses only Melbourne 2019. The source archive is valuable, but one year cannot represent post-pandemic travel, changed prices, changed streets or regional Victoria.
-6. The history generator emits keys only when an arrival or occupied interval exists. In the current artifact there are **225,390 buckets across 338 street segments, but no bucket has `occupiedRatio == 0`**. Missing empty intervals can be replaced by the nearest occupied interval at runtime, systematically biasing estimates toward “busy.” There are also 11,760 exactly-100%-occupied buckets, so the saturation needs sensor-coverage and denominator audits.
-7. `sampleCount` is currently derived as inferred capacity multiplied by observed days. That is exposure, not independent evidence, and it should not be converted directly into probability confidence.
-8. The static estimator contains sensible product guards—known capacity, at least 100 samples and a calibration-error field no worse than 10%—but the occupancy adjustments are hand-set archetype rules. They are hypotheses to test, not learned Victorian effects.
+The shipped `melbourne-events-v3-2019-conformal` baseline removes that score entirely:
 
-The immediate product conclusion is simple: remove the fake universal “confidence %” concept. Replace it with a measured probability and interval only when rolling held-out tests support them; otherwise show a qualitative demand signal or “availability unknown.”
+1. January–October 2019 forms the training window, November calibrates a 90% residual interval, and December is an untouched evaluation window.
+2. The generator emits all 96 quarter-hour buckets for observed bay-days and labels each as `observed_occupied` or `inferred_vacant`; runtime lookup requires an exact weekday and quarter-hour match.
+3. Validation records carry held-out support, normalized MAE, per-bay binary Brier score, interval coverage, interval radius, observation date and model version.
+4. Numeric forecasts require at least 500 held-out bay-interval outcomes, MAE and Brier score no greater than 0.20, coverage of at least 0.80, interval radius no greater than 0.35, known capacity and observations no more than two years old.
+5. Live influence decays to zero by six hours. A later arrival never inherits today's live count indefinitely.
+6. A failed gate returns a specific abstention reason. Rules, price, place and walking distance remain useful while availability says unknown.
+
+The regenerated artifact contains **225,792 quarter-hour buckets across 338 segments** and **310 held-out segment validation records**. Of those validation records, 258 pass the statistical support/error/coverage/radius gates. Median held-out normalized MAE is 0.0262, median per-bay Brier score is 0.0171, median interval coverage is 0.8972 and median interval radius is 0.0543. The newest observation is 31 December 2019, so **zero records pass the separate two-year production freshness gate in 2026**. ParkAlong therefore ships the evaluated baseline and its evidence, but correctly abstains from current numeric historical forecasts until a recent training stream is available.
+
+The `probabilityAtLeastOne` value is a capacity-aware modelled chance derived from the expected per-bay vacancy rate under an independence assumption. Its component per-bay probability is held-out scored, but the any-space transformation is not yet directly calibrated against simultaneous segment snapshots. The UI must call it a modelled chance, disclose that assumption in model details, and never call it a measured probability or confidence.
 
 ## Data roles
 
@@ -147,12 +149,12 @@ Use mutually honest states instead of one purple estimate with an unexplained pe
 | State | What ParkAlong may say | Minimum evidence |
 | --- | --- | --- |
 | Live now | “8 of 10 available · updated 45 sec ago” | Fresh recognized bay states and trusted denominator |
-| Live-informed forecast | “Likely 3–6 spaces at 7:20 pm · 78% chance of at least one” | Live state plus a held-out calibrated ETA model |
+| Live-informed forecast | “Likely 3–6 spaces at 7:20 pm · modelled 78% chance of at least one” | Live state plus a held-out calibrated ETA model |
 | Historical forecast | “Usually 1–4 spaces around this time” | Sufficient comparable history and interval coverage, but no fresh state |
 | Demand outlook | “Usually busy after school pickup” | Corroborated survey/context evidence without validated vacancy labels |
 | Location/rules only | “Availability unknown · 2P until 6:30 pm · $2.40/hr” | Verified location and current rule/price data |
 
-The displayed probability is a model output with a measurement date and supported horizon. “Source quality: high/medium/low” is a separate explanation. Neither should be called a generic confidence percentage.
+The displayed chance is a model output with a measurement date, supported horizon and stated assumptions. “Source quality: high/medium/low” is a separate explanation. Neither should be called a generic confidence percentage.
 
 ## Sensible statewide strategy
 

@@ -18,7 +18,7 @@ final class ParkingRuleResolverTests: XCTestCase {
             ]
         )
 
-        let resolved = resolver.resolve(location: location, at: localDate("2026-08-20 10:15"), duration: .twoHours)
+        let resolved = resolver.resolve(location: location, plan: plan("2026-08-20 10:15", .twoHours))
 
         XCTAssertEqual(resolved?.timeLimitText, "2P until 5:30 pm")
         XCTAssertEqual(resolved?.restrictionWindow, "Active now · ends 5:30 pm")
@@ -43,7 +43,7 @@ final class ParkingRuleResolverTests: XCTestCase {
             tariffs: []
         )
 
-        let resolved = resolver.resolve(location: location, at: localDate("2026-08-20 19:00"), duration: .threeHours)
+        let resolved = resolver.resolve(location: location, plan: plan("2026-08-20 19:00", .threeHours))
 
         XCTAssertEqual(resolved?.timeLimitText, "No timed limit right now")
         XCTAssertEqual(resolved?.price.primaryText, "Free right now")
@@ -59,7 +59,7 @@ final class ParkingRuleResolverTests: XCTestCase {
             tariffs: []
         )
 
-        let resolved = resolver.resolve(location: location, at: localDate("2026-08-22 01:00"), duration: .oneHour)
+        let resolved = resolver.resolve(location: location, plan: plan("2026-08-22 01:00", .oneHour))
 
         XCTAssertEqual(resolved?.timeLimitText, "1P until 2:00 am")
     }
@@ -74,15 +74,11 @@ final class ParkingRuleResolverTests: XCTestCase {
             tariffs: []
         )
 
-        let resolved = resolver.resolve(
-            location: location,
-            at: localDate("2026-01-26 10:00"),
-            duration: .oneHour,
-            isPublicHoliday: true
-        )
+        let resolved = resolver.resolve(location: location, plan: plan("2026-01-26 10:00", .threeHours, isPublicHoliday: true))
 
         XCTAssertEqual(resolved?.timeLimitText, "No timed limit right now")
         XCTAssertEqual(resolved?.price.primaryText, "Free right now")
+        XCTAssertTrue(resolved?.isEligible == true)
     }
 
     func testSteppedFacilityTariffUsesRequestedDuration() {
@@ -100,7 +96,7 @@ final class ParkingRuleResolverTests: XCTestCase {
             ]
         )
 
-        let resolved = resolver.resolve(location: location, at: localDate("2026-08-23 12:00"), duration: .twoHours)
+        let resolved = resolver.resolve(location: location, plan: plan("2026-08-23 12:00", .twoHours))
 
         XCTAssertEqual(resolved?.price.primaryText, "$10.50 for 2 hours")
         XCTAssertEqual(resolved?.price.detail, "Up to $28.00 daily")
@@ -116,7 +112,7 @@ final class ParkingRuleResolverTests: XCTestCase {
             ]
         )
 
-        let resolved = resolver.resolve(location: location, at: localDate("2026-08-23 12:00"), duration: .oneHour)
+        let resolved = resolver.resolve(location: location, plan: plan("2026-08-23 12:00", .oneHour))
 
         XCTAssertEqual(resolved?.timeLimitText, "Check posted signs")
         XCTAssertEqual(resolved?.price.primaryText, "Price not verified")
@@ -137,7 +133,7 @@ final class ParkingRuleResolverTests: XCTestCase {
             ]
         )
 
-        let resolved = resolver.resolve(location: location, at: localDate("2026-08-23 12:00"), duration: .twoHours)
+        let resolved = resolver.resolve(location: location, plan: plan("2026-08-23 12:00", .twoHours))
 
         XCTAssertEqual(resolved?.price.primaryText, "Free right now")
         XCTAssertEqual(resolved?.price.detail, "Outside verified payment hours")
@@ -157,9 +153,81 @@ final class ParkingRuleResolverTests: XCTestCase {
             ]
         )
 
-        let oneHour = resolver.resolve(location: location, at: localDate("2026-08-23 12:00"), duration: .oneHour)
+        let oneHour = resolver.resolve(location: location, plan: plan("2026-08-23 12:00", .oneHour))
 
         XCTAssertEqual(oneHour?.price.primaryText, "Free for 1 hour")
+    }
+
+    func testCustomDurationAndFutureArrivalDriveTheResolvedPrice() {
+        let location = fixtureLocation(
+            schedules: [
+                .init(days: [2, 3, 4, 5, 6], startMinutes: 9 * 60, endMinutes: 17 * 60 + 30,
+                      maxStayMinutes: 120, restrictionText: "2P Meter", appliesOnPublicHolidays: false,
+                      outsideWindowMeansUnrestricted: true)
+            ],
+            tariffs: [
+                .init(effectiveFrom: localDate("2026-08-01 00:00"), effectiveTo: nil,
+                      days: [2, 3, 4, 5, 6], startMinutes: 9 * 60, endMinutes: 17 * 60 + 30,
+                      hourlyCents: 360, freeMinutes: 60, dailyCapCents: nil, tiers: [])
+            ]
+        )
+        let plan = ParkingPlan(arrival: localDate("2026-08-24 10:00"), durationMinutes: 95)
+
+        let resolved = resolver.resolve(location: location, plan: plan)
+
+        XCTAssertEqual(resolved?.price.primaryText, "$3.60 for 1 hr 35 min")
+        XCTAssertTrue(resolved?.isEligible == true)
+    }
+
+    func testStayCanContinueAfterARestrictionEndsWithoutUsingTheWholeStayAsControlledTime() {
+        let location = fixtureLocation(
+            schedules: [
+                .init(days: [2, 3, 4, 5, 6], startMinutes: 9 * 60, endMinutes: 17 * 60,
+                      maxStayMinutes: 60, restrictionText: "1P", appliesOnPublicHolidays: false,
+                      outsideWindowMeansUnrestricted: true)
+            ],
+            tariffs: []
+        )
+        let plan = ParkingPlan(arrival: localDate("2026-08-24 16:30"), durationMinutes: 120)
+
+        let resolved = resolver.resolve(location: location, plan: plan)
+
+        XCTAssertTrue(resolved?.isEligible == true)
+    }
+
+    func testRestrictionStartingLaterInTheStayStillMakesAnOverlongPlanIneligible() {
+        let location = fixtureLocation(
+            schedules: [
+                .init(days: [2, 3, 4, 5, 6], startMinutes: 9 * 60, endMinutes: 17 * 60,
+                      maxStayMinutes: 60, restrictionText: "1P", appliesOnPublicHolidays: false,
+                      outsideWindowMeansUnrestricted: true)
+            ],
+            tariffs: []
+        )
+        let plan = ParkingPlan(arrival: localDate("2026-08-24 08:30"), durationMinutes: 120)
+
+        let resolved = resolver.resolve(location: location, plan: plan)
+
+        XCTAssertTrue(resolved?.isEligible == false)
+    }
+
+    func testWeeklyScheduleBuildsRestrictedAndUnrestrictedBlocksForSevenDays() {
+        let location = fixtureLocation(
+            schedules: [
+                .init(days: [2, 3, 4, 5, 6], startMinutes: 9 * 60, endMinutes: 17 * 60,
+                      maxStayMinutes: 120, restrictionText: "2P", appliesOnPublicHolidays: false,
+                      outsideWindowMeansUnrestricted: true)
+            ],
+            tariffs: []
+        )
+        let plan = ParkingPlan(arrival: localDate("2026-08-24 10:00"), durationMinutes: 60)
+
+        let days = resolver.weeklySchedule(location: location, plan: plan)
+
+        XCTAssertEqual(days.count, 7)
+        XCTAssertEqual(days[0].blocks.map(\.kind), [.unrestricted, .restricted, .unrestricted])
+        XCTAssertEqual(days[0].blocks[1].maxStayMinutes, 120)
+        XCTAssertEqual(days[5].blocks.map(\.kind), [.unrestricted])
     }
 
     private func fixtureLocation(schedules: [ParkingSchedule], tariffs: [ParkingTariff]) -> StaticParkingLocation {
@@ -180,5 +248,9 @@ final class ParkingRuleResolverTests: XCTestCase {
         formatter.timeZone = TimeZone(identifier: "Australia/Melbourne")
         formatter.dateFormat = "yyyy-MM-dd HH:mm"
         return formatter.date(from: value)!
+    }
+
+    private func plan(_ value: String, _ duration: StayDuration, isPublicHoliday: Bool = false) -> ParkingPlan {
+        ParkingPlan(arrival: localDate(value), duration: duration, isPublicHoliday: isPublicHoliday)
     }
 }

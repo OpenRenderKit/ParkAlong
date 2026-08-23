@@ -76,16 +76,32 @@ def load_bay_mapping(metadata_path: Path | None) -> dict[str, str]:
     return mapping
 
 
-def aggregate_archive(
+def _aggregate_archive(
     archive_path: Path,
     metadata_path: Path | None = None,
     max_rows: int | None = None,
-) -> tuple[list[dict], dict]:
+    holdout_start: datetime = datetime(2019, 11, 1),
+    evaluation_start: datetime = datetime(2019, 12, 1),
+) -> tuple[list[dict], dict, list[dict]]:
+    if evaluation_start <= holdout_start:
+        raise ValueError("evaluation_start must be later than holdout_start")
+
+    def data_split(value: datetime) -> str:
+        if value < holdout_start:
+            return "train"
+        if value < evaluation_start:
+            return "calibration"
+        return "evaluation"
+
     bay_mapping = load_bay_mapping(metadata_path)
     occupied_minutes: dict[tuple[str, int, int], float] = defaultdict(float)
     arrivals: dict[tuple[str, int, int], int] = defaultdict(int)
     bays: dict[str, set[str]] = defaultdict(set)
     observed_dates: dict[tuple[str, int], set[str]] = defaultdict(set)
+    observed_bay_dates: dict[tuple[str, str, int], set[str]] = defaultdict(set)
+    split_occupied_minutes: dict[tuple[str, str, int, int], float] = defaultdict(float)
+    split_observed_bay_dates: dict[tuple[str, str, str, int], set[str]] = defaultdict(set)
+    split_observed_dates: dict[tuple[str, str], set[str]] = defaultdict(set)
     rows_read = 0
     mapped_bays = 0
 
@@ -112,8 +128,12 @@ def aggregate_archive(
                     continue
 
                 weekday = swift_weekday(arrival)
+                arrival_split = data_split(arrival)
                 bays[segment].add(bay_id)
                 observed_dates[(segment, weekday)].add(arrival.date().isoformat())
+                observed_bay_dates[(segment, bay_id, weekday)].add(arrival.date().isoformat())
+                split_observed_dates[(arrival_split, segment)].add(arrival.date().isoformat())
+                split_observed_bay_dates[(arrival_split, segment, bay_id, weekday)].add(arrival.date().isoformat())
                 if departure is None or departure <= arrival:
                     continue
                 if departure - arrival > timedelta(days=1):
@@ -128,20 +148,29 @@ def aggregate_archive(
                     overlap_end = min(bucket_end, departure)
                     key = (segment, swift_weekday(cursor), (cursor.hour * 60 + cursor.minute) // 15)
                     occupied_minutes[key] += max(0, (overlap_end - cursor).total_seconds() / 60)
+                    split = data_split(cursor)
+                    split_occupied_minutes[(split, *key)] += max(0, (overlap_end - cursor).total_seconds() / 60)
                     observed_dates[(segment, key[1])].add(cursor.date().isoformat())
+                    split_observed_dates[(split, segment)].add(cursor.date().isoformat())
+                    split_observed_bay_dates[(split, segment, bay_id, key[1])].add(cursor.date().isoformat())
                     cursor = overlap_end
 
-    keys = sorted(set(occupied_minutes) | set(arrivals))
+    keys = sorted(
+        (segment, weekday, interval)
+        for segment, weekday in observed_dates
+        for interval in range(96)
+    )
     records: list[dict] = []
+    state_counts: dict[str, int] = defaultdict(int)
     for segment, weekday, interval in keys:
-        capacity = len(bays[segment])
-        day_count = len(observed_dates[(segment, weekday)])
-        sample_count = capacity * day_count
+        sample_count = sum(len(observed_bay_dates[(segment, bay_id, weekday)]) for bay_id in bays[segment])
         if sample_count == 0:
             continue
         denominator_minutes = sample_count * 15
         ratio = min(1.0, max(0.0, occupied_minutes[(segment, weekday, interval)] / denominator_minutes))
         turnover = arrivals[(segment, weekday, interval)] / sample_count
+        state = "observed_occupied" if occupied_minutes[(segment, weekday, interval)] > 0 else "inferred_vacant"
+        state_counts[state] += 1
         records.append({
             "segmentKey": segment,
             "weekday": weekday,
@@ -149,6 +178,66 @@ def aggregate_archive(
             "occupiedRatio": round(ratio, 4),
             "turnover": round(turnover, 4),
             "sampleCount": sample_count,
+            "observationState": state,
+            "observedThrough": f"{max(observed_dates[(segment, weekday)])}T23:59:59Z",
+        })
+
+    validations: list[dict] = []
+    for segment in sorted(bays):
+        calibration_errors: list[float] = []
+        for weekday in range(1, 8):
+            train_count = sum(len(split_observed_bay_dates[("train", segment, bay_id, weekday)]) for bay_id in bays[segment])
+            calibration_count = sum(len(split_observed_bay_dates[("calibration", segment, bay_id, weekday)]) for bay_id in bays[segment])
+            if train_count == 0 or calibration_count == 0:
+                continue
+            for interval in range(96):
+                train_ratio = min(1.0, max(0.0, split_occupied_minutes[("train", segment, weekday, interval)] / (train_count * 15)))
+                calibration_ratio = min(1.0, max(0.0, split_occupied_minutes[("calibration", segment, weekday, interval)] / (calibration_count * 15)))
+                calibration_errors.append(abs(calibration_ratio - train_ratio))
+
+        if not calibration_errors:
+            continue
+        calibration_errors.sort()
+        conformal_index = min(
+            len(calibration_errors) - 1,
+            max(0, math.ceil((len(calibration_errors) + 1) * 0.9) - 1),
+        )
+        interval_radius = calibration_errors[conformal_index]
+
+        absolute_error_sum = 0.0
+        brier_sum = 0.0
+        covered_samples = 0
+        validation_samples = 0
+        for weekday in range(1, 8):
+            train_count = sum(len(split_observed_bay_dates[("train", segment, bay_id, weekday)]) for bay_id in bays[segment])
+            evaluation_count = sum(len(split_observed_bay_dates[("evaluation", segment, bay_id, weekday)]) for bay_id in bays[segment])
+            if train_count == 0 or evaluation_count == 0:
+                continue
+            for interval in range(96):
+                train_ratio = min(1.0, max(0.0, split_occupied_minutes[("train", segment, weekday, interval)] / (train_count * 15)))
+                evaluation_ratio = min(1.0, max(0.0, split_occupied_minutes[("evaluation", segment, weekday, interval)] / (evaluation_count * 15)))
+                absolute_error_sum += abs(evaluation_ratio - train_ratio) * evaluation_count
+                brier_sum += (
+                    train_ratio * train_ratio * (1 - evaluation_ratio)
+                    + (1 - train_ratio) * (1 - train_ratio) * evaluation_ratio
+                ) * evaluation_count
+                validation_samples += evaluation_count
+                lower = max(0.0, train_ratio - interval_radius)
+                upper = min(1.0, train_ratio + interval_radius)
+                if lower <= evaluation_ratio <= upper:
+                    covered_samples += evaluation_count
+        observed = split_observed_dates[("evaluation", segment)]
+        if validation_samples == 0 or not observed:
+            continue
+        validations.append({
+            "segmentKey": segment,
+            "sampleCount": validation_samples,
+            "normalizedMAE": round(absolute_error_sum / validation_samples, 4),
+            "brierScore": round(brier_sum / validation_samples, 4),
+            "intervalCoverage": round(covered_samples / validation_samples, 4),
+            "intervalRadius": round(interval_radius, 4),
+            "observedThrough": f"{max(observed)}T23:59:59Z",
+            "modelVersion": "melbourne-events-v3-2019-conformal",
         })
 
     stats = {
@@ -156,8 +245,31 @@ def aggregate_archive(
         "bucketCount": len(records),
         "segmentCount": len(bays),
         "mappedBayRows": mapped_bays,
+        "observationStateCounts": dict(sorted(state_counts.items())),
+        "validationCount": len(validations),
+        "calibrationStart": holdout_start.isoformat(),
+        "evaluationStart": evaluation_start.isoformat(),
     }
+    return records, stats, validations
+
+
+def aggregate_archive(
+    archive_path: Path,
+    metadata_path: Path | None = None,
+    max_rows: int | None = None,
+) -> tuple[list[dict], dict]:
+    records, stats, _ = _aggregate_archive(archive_path, metadata_path, max_rows)
     return records, stats
+
+
+def aggregate_archive_with_validation(
+    archive_path: Path,
+    metadata_path: Path | None = None,
+    max_rows: int | None = None,
+    holdout_start: datetime = datetime(2019, 11, 1),
+    evaluation_start: datetime = datetime(2019, 12, 1),
+) -> tuple[list[dict], dict, list[dict]]:
+    return _aggregate_archive(archive_path, metadata_path, max_rows, holdout_start, evaluation_start)
 
 
 def main() -> None:
@@ -166,10 +278,19 @@ def main() -> None:
     parser.add_argument("output", type=Path)
     parser.add_argument("--metadata", type=Path)
     parser.add_argument("--max-rows", type=int)
+    parser.add_argument("--validation-output", type=Path)
+    parser.add_argument("--holdout-start", type=datetime.fromisoformat, default=datetime(2019, 11, 1))
+    parser.add_argument("--evaluation-start", type=datetime.fromisoformat, default=datetime(2019, 12, 1))
     args = parser.parse_args()
-    records, stats = aggregate_archive(args.archive, args.metadata, args.max_rows)
+    records, stats, validations = aggregate_archive_with_validation(
+        args.archive, args.metadata, args.max_rows, args.holdout_start, args.evaluation_start
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(records, separators=(",", ":")))
+    if args.validation_output:
+        args.validation_output.parent.mkdir(parents=True, exist_ok=True)
+        args.validation_output.write_text(json.dumps(validations, separators=(",", ":")))
+        stats["validationOutputBytes"] = args.validation_output.stat().st_size
     stats["outputBytes"] = args.output.stat().st_size
     print(json.dumps(stats, sort_keys=True))
 

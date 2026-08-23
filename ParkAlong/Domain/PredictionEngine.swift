@@ -21,22 +21,65 @@ enum PredictionEngine {
         trustedBayCount: Int,
         historicalOccupiedRatio: Double?,
         etaMinutes: Int,
-        sampleCount: Int
+        validation: ForecastValidation?,
+        forecastDate: Date
     ) -> AvailabilityPrediction {
         let capacity = max(0, trustedBayCount)
         let live = Double(min(max(0, liveAvailable), capacity))
-        let ratio = min(1, max(0, historicalOccupiedRatio ?? (capacity == 0 ? 1 : 1 - live / Double(capacity))))
+        guard capacity > 0 else { return abstained(.missingCapacity, horizonMinutes: etaMinutes) }
+        if etaMinutes <= 5 {
+            return AvailabilityPrediction(
+                expectedAvailable: live, lowerBound: Int(live), upperBound: Int(live),
+                probabilityAtLeastOne: live > 0 ? 1 : 0, liveWeight: 1,
+                evidenceTier: .liveObserved, horizonMinutes: max(0, etaMinutes), modelVersion: nil,
+                validation: nil, abstentionReason: nil
+            )
+        }
+        guard let historicalOccupiedRatio else { return abstained(.missingHistory, horizonMinutes: etaMinutes) }
+        guard let validation else { return abstained(.missingValidation, horizonMinutes: etaMinutes) }
+        if let reason = validationFailure(validation, forecastDate: forecastDate) {
+            return abstained(reason, horizonMinutes: etaMinutes, validation: validation)
+        }
+        let ratio = min(1, max(0, historicalOccupiedRatio))
         let historicalAvailable = Double(capacity) * (1 - ratio)
-        let liveWeight = max(0.35, min(0.8, 0.8 - Double(max(0, etaMinutes - 15)) / 360))
+        let liveDecay = 1 - Double(max(0, etaMinutes - 15)) / Double(6 * 60 - 15)
+        let liveWeight = max(0, min(0.8, 0.8 * liveDecay))
         let expected = min(Double(capacity), max(0, liveWeight * live + (1 - liveWeight) * historicalAvailable))
-        let confidence = min(1, max(0.2, sqrt(Double(max(0, sampleCount)) / 500)))
-        let margin = 0.75 + (1 - confidence) * 2
+        let margin = max(1, Int(ceil(Double(capacity) * validation.intervalRadius)))
         return AvailabilityPrediction(
             expectedAvailable: expected,
-            lowerBound: max(0, Int(floor(expected - margin))),
-            upperBound: min(capacity, Int(ceil(expected + margin))),
+            lowerBound: max(0, Int(floor(expected)) - margin),
+            upperBound: min(capacity, Int(ceil(expected)) + margin),
+            probabilityAtLeastOne: probabilityAtLeastOne(expected: expected, capacity: capacity),
             liveWeight: liveWeight,
-            confidence: confidence
+            evidenceTier: liveWeight > 0 ? .liveInformed : .historical,
+            horizonMinutes: max(0, etaMinutes),
+            modelVersion: validation.modelVersion,
+            validation: validation,
+            abstentionReason: nil
+        )
+    }
+
+    static func historicalEstimate(
+        capacity: Int,
+        occupiedRatio: Double,
+        horizonMinutes: Int,
+        validation: ForecastValidation?,
+        forecastDate: Date
+    ) -> AvailabilityPrediction {
+        guard capacity > 0 else { return abstained(.missingCapacity, horizonMinutes: horizonMinutes) }
+        guard let validation else { return abstained(.missingValidation, horizonMinutes: horizonMinutes) }
+        if let reason = validationFailure(validation, forecastDate: forecastDate) {
+            return abstained(reason, horizonMinutes: horizonMinutes, validation: validation)
+        }
+        let expected = Double(capacity) * (1 - min(1, max(0, occupiedRatio)))
+        let margin = max(1, Int(ceil(Double(capacity) * validation.intervalRadius)))
+        return AvailabilityPrediction(
+            expectedAvailable: expected, lowerBound: max(0, Int(floor(expected)) - margin),
+            upperBound: min(capacity, Int(ceil(expected)) + margin),
+            probabilityAtLeastOne: probabilityAtLeastOne(expected: expected, capacity: capacity), liveWeight: 0,
+            evidenceTier: .historical, horizonMinutes: max(0, horizonMinutes),
+            modelVersion: validation.modelVersion, validation: validation, abstentionReason: nil
         )
     }
 
@@ -44,13 +87,24 @@ enum PredictionEngine {
         capacity: Int?,
         evidence: PredictionEvidence,
         archetype: ParkingArchetype,
-        context: ParkingDemandContext
+        context: ParkingDemandContext,
+        forecastDate: Date = .now
     ) -> AvailabilityPrediction? {
         guard let capacity, capacity > 0,
-              evidence.sampleCount >= 100,
+              evidence.sampleCount >= 500,
               evidence.calibrationError >= 0,
               evidence.calibrationError <= 0.10,
-              (0...1).contains(evidence.baselineOccupiedRatio) else { return nil }
+              (0...1).contains(evidence.baselineOccupiedRatio),
+              let brierScore = evidence.brierScore,
+              let intervalCoverage = evidence.intervalCoverage,
+              let observedThrough = evidence.observedThrough,
+              let modelVersion = evidence.modelVersion else { return nil }
+        let validation = ForecastValidation(
+            sampleCount: evidence.sampleCount, normalizedMAE: evidence.calibrationError,
+            brierScore: brierScore, intervalCoverage: intervalCoverage,
+            observedThrough: observedThrough, modelVersion: modelVersion
+        )
+        guard validationFailure(validation, forecastDate: forecastDate) == nil else { return nil }
 
         let weekday = (2...6).contains(context.weekday)
         let weekend = context.weekday == 1 || context.weekday == 7
@@ -101,15 +155,51 @@ enum PredictionEngine {
 
         occupied = min(0.98, max(0.05, occupied))
         let expected = Double(capacity) * (1 - occupied)
-        let sampleStrength = min(1, log10(Double(evidence.sampleCount) / 100 + 1) / log10(51))
-        let confidence = min(0.92, max(0.2, 0.48 + sampleStrength * 0.35 - evidence.calibrationError))
-        let margin = max(1, Int(ceil(Double(capacity) * (evidence.calibrationError + (1 - confidence) * 0.08))))
+        let margin = max(1, Int(ceil(Double(capacity) * evidence.calibrationError)))
         return AvailabilityPrediction(
             expectedAvailable: expected,
             lowerBound: max(0, Int(floor(expected)) - margin),
             upperBound: min(capacity, Int(ceil(expected)) + margin),
+            probabilityAtLeastOne: probabilityAtLeastOne(expected: expected, capacity: capacity),
             liveWeight: 0,
-            confidence: confidence
+            evidenceTier: .historical,
+            horizonMinutes: 0,
+            modelVersion: modelVersion,
+            validation: validation,
+            abstentionReason: nil
+        )
+    }
+
+    private static func validationFailure(
+        _ validation: ForecastValidation,
+        forecastDate: Date
+    ) -> ForecastAbstentionReason? {
+        guard validation.sampleCount >= 500 else { return .insufficientSupport }
+        guard (0...0.20).contains(validation.normalizedMAE),
+              (0...0.20).contains(validation.brierScore),
+              (0.80...1).contains(validation.intervalCoverage),
+              (0...0.35).contains(validation.intervalRadius) else { return .poorCalibration }
+        let age = forecastDate.timeIntervalSince(validation.observedThrough)
+        guard age >= -86_400, age <= 2 * 365 * 86_400 else { return .staleModel }
+        return nil
+    }
+
+    private static func probabilityAtLeastOne(expected: Double, capacity: Int) -> Double {
+        guard capacity > 0 else { return 0 }
+        let perBayAvailable = min(1, max(0, expected / Double(capacity)))
+        return min(1, max(0, 1 - pow(1 - perBayAvailable, Double(capacity))))
+    }
+
+    private static func abstained(
+        _ reason: ForecastAbstentionReason,
+        horizonMinutes: Int,
+        validation: ForecastValidation? = nil
+    ) -> AvailabilityPrediction {
+        AvailabilityPrediction(
+            expectedAvailable: nil, lowerBound: nil, upperBound: nil,
+            probabilityAtLeastOne: nil, liveWeight: 0, evidenceTier: .abstained,
+            horizonMinutes: max(0, horizonMinutes), modelVersion: validation?.modelVersion,
+            validation: validation, abstentionReason: reason
         )
     }
 }

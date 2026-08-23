@@ -6,12 +6,11 @@ enum RankingEngine {
         return candidates.map { candidate in
             let availability = min(1, max(0, candidate.predictedAvailable / maxAvailability))
             let distance = max(0, 1 - min(candidate.walkingMetres, 1_500) / 1_500)
-            let confidence = min(1, max(0, candidate.confidence))
-            return RankedCandidate(zoneNumber: candidate.zoneNumber, score: 0.7 * availability + 0.2 * distance + 0.1 * confidence)
+            let probability = min(1, max(0, candidate.probabilityAtLeastOne ?? 0))
+            return RankedCandidate(zoneNumber: candidate.zoneNumber, score: 0.7 * availability + 0.2 * distance + 0.1 * probability)
         }.sorted {
             if $0.score == $1.score { return $0.zoneNumber < $1.zoneNumber }
             return $0.score > $1.score
         }
     }
 }
-
