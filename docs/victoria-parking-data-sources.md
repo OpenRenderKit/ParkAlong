@@ -18,6 +18,30 @@ An HTTP 200 response, recent catalog metadata, an app-store description, or the 
 
 Useful anonymous static sources do exist for Maribyrnong, Ballarat, Casey, Boroondara, selected official council car parks, and statewide through OpenStreetMap. The generated ParkAlong catalog currently contains 30,890 nearby-searchable records after filtering explicitly restricted OpenStreetMap parking. Geelong's cached “real-time” resources are historical and are not safe for current availability.
 
+The separate [87-area coverage checklist](victoria-area-parking-source-checklist.md) records the research status for all 79 councils and all eight Vicmap unincorporated areas. A checked area means that its council pages, Victoria's central catalogue, public ArcGIS items and existing ParkAlong catalogue coverage were inspected; it does **not** mean that every area has live data.
+
+## Statewide catalogue and hidden-service scan
+
+The obvious council parking page is not a complete source audit. Councils often split locations, signs, prices, enforcement sensors and surveys across unrelated pages, PDFs, ArcGIS services and vendor apps. On 23 August 2026 the audit therefore also searched:
+
+- the [DataVic CKAN API](https://discover.data.vic.gov.au/api/3/action/package_search?q=parking&rows=1000), including separate queries for `car park`, `parking meter`, `parking restriction`, `parking sensor`, `parking occupancy` and `parking transaction`;
+- the public ArcGIS item index for each of Victoria's 79 council names, then inspected candidate FeatureServer schemas and sample rows;
+- the current ParkAlong catalogue against Vicmap's 87 LGA/unincorporated polygons.
+
+DataVic returned 200 broad matches for `parking`, but nearly all actual parking datasets were published by Melbourne, Ballarat, Casey or Greater Geelong. This confirms that DataVic alone cannot provide statewide council coverage. The ArcGIS pass found additional machine-readable sources that are absent from the central catalogue:
+
+| Area | Public service | Rows | Useful fields | Trust decision |
+| --- | --- | ---: | --- | --- |
+| Wodonga | [Parking spaces FeatureServer](https://services-ap1.arcgis.com/w6r4LlwgJu8O0neQ/arcgis/rest/services/parking_lot_edit_view/FeatureServer/0) | 672 | capacity, accessibility, ownership and up to three day/time/vehicle/permit rule sets | **Official static source**; strong time-limit candidate |
+| Manningham | [Council-owned car parks FeatureServer](https://services5.arcgis.com/DRwxVzcV3wgNIuSu/arcgis/rest/services/ManninghamCarparks/FeatureServer/0) | 387 | asset name, owner, class and precinct | **Official static source**; locations only |
+| Latrobe | [Accessible parking FeatureServer](https://services-ap1.arcgis.com/AtixmNNZDz8cwc9l/arcgis/rest/services/Accessible_Parking%20View/FeatureServer/0) | 273 | locality, bay orientation, timed flag and unloading side | **Official static source**; accessible bays only |
+| Moorabool | [Carpark FeatureServer](https://services8.arcgis.com/LhxDRRTcDHsigpYl/arcgis/rest/services/Carpark/FeatureServer/0) | 178 | name, location, active status, ownership and asset geometry | **Official static source**; locations only |
+| Colac Otway | [Carparks FeatureServer](https://services1.arcgis.com/bLsSwu2wpv4JvxHE/arcgis/rest/services/Colac_Otway_Carparks/FeatureServer/0) | 173 | on/off-road type, purpose, ownership, status and condition | **Candidate only**; public contractor account, provenance/licence still needs council confirmation |
+| Monash | [Strategic parking review FeatureServer](https://services8.arcgis.com/GAZiuYWXmnwzoGFY/arcgis/rest/services/WGA240930_City_of_Monash_Parking_Layer/FeatureServer) | 1,314 street segments; 126 car parks | survey location IDs and geometry | **Candidate only**; consultant-hosted study layer, no restriction or licence fields |
+| Southern Grampians | [2024 carpark inspection FeatureServer](https://services1.arcgis.com/bLsSwu2wpv4JvxHE/arcgis/rest/services/southern_grampians_carpark_inspection_2024/FeatureServer/0) | 22 | asset/location, inspection date and condition | **Candidate only**; contractor-hosted inspection, not a council open-data declaration |
+
+None of these services contains current occupied/vacant state. They improve location, accessibility and restriction coverage; they must not be painted as live availability.
+
 ## Source matrix
 
 | Area/source | What exists publicly | Direct test on 23 Aug 2026 | Classification | ParkAlong decision |
