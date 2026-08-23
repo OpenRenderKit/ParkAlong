@@ -9,11 +9,28 @@ final class ParkAlongUITests: XCTestCase {
         return app
     }
 
+    private func waitForValue(_ value: String, on element: XCUIElement, timeout: TimeInterval = 2) {
+        let expectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "value == %@", value),
+            object: element
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: timeout), .completed)
+    }
+
     func testPermissionDeniedKeepsDefaultCBDUsable() {
         let app = launch(["-fixture-live", "-location-denied"])
         XCTAssertTrue(app.staticTexts["destination-title"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.staticTexts["destination-title"].label, "Melbourne CBD")
         XCTAssertTrue(app.buttons["best-bet-button"].exists)
+    }
+
+    func testPrimaryMapActionsRemainDiscoverableInAdaptiveChrome() {
+        let app = launch()
+
+        XCTAssertTrue(app.otherElements["destination-search-container"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["destination-search-button"].exists)
+        XCTAssertTrue(app.buttons["current-location-button"].exists)
+        XCTAssertTrue(app.otherElements["parking-action-dock"].exists)
     }
 
     func testSearchChangesDestination() {
@@ -29,7 +46,7 @@ final class ParkAlongUITests: XCTestCase {
     func testDurationAndZoneDetailNavigationHandoff() {
         let app = launch()
         app.buttons["duration-2h"].tap()
-        XCTAssertEqual(app.buttons["duration-2h"].value as? String, "selected")
+        waitForValue("selected", on: app.buttons["duration-2h"])
         app.buttons["best-bet-button"].tap()
         XCTAssertTrue(app.otherElements["zone-detail-sheet"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["zone-availability"].label.contains("available"))

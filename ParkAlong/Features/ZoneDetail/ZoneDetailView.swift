@@ -94,7 +94,7 @@ struct ZoneDetailView: View {
             )
             caption(option.price.detail)
         }
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
@@ -219,7 +219,7 @@ struct ZoneDetailView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
-            .buttonStyle(.borderedProminent)
+            .adaptiveProminentAction()
             .controlSize(.large)
             .accessibilityIdentifier("navigate-button")
             if viewModel.navigationWasIntercepted {

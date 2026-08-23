@@ -9,6 +9,51 @@ struct ParkingMapView: View {
     @State private var showingAbout = false
 
     var body: some View {
+        NavigationStack {
+            map
+                .toolbar {
+                    MapToolbarContent(viewModel: viewModel, showingAbout: $showingAbout)
+                }
+                .toolbarBackground(.hidden, for: .navigationBar)
+                .navigationBarTitleDisplayMode(.inline)
+        }
+        .adaptiveStatusBarColorScheme()
+        .sheet(isPresented: $viewModel.isSearching) {
+            DestinationSearchView(viewModel: viewModel)
+        }
+        .sheet(isPresented: zoneSheetPresented) {
+            ZoneDetailView(viewModel: viewModel)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationContentInteraction(.scrolls)
+                .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        }
+        .sheet(isPresented: $showingAbout) {
+            AboutParkingView()
+                .presentationDetents([.medium, .large])
+        }
+        .task {
+            await viewModel.start()
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(for: .seconds(120))
+                } catch {
+                    break
+                }
+                guard !Task.isCancelled else { break }
+                await viewModel.refresh(force: true)
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task { await viewModel.refresh(force: true) }
+        }
+        .onChange(of: viewModel.destination) { _, destination in
+            moveCamera(to: destination.coordinate, animated: !reduceMotion)
+        }
+    }
+
+    private var map: some View {
         Map(position: $cameraPosition) {
             UserAnnotation()
 
@@ -67,50 +112,11 @@ struct ParkingMapView: View {
         .mapStyle(.standard(pointsOfInterest: .excludingAll))
         .mapControlVisibility(.hidden)
         .ignoresSafeArea()
-        .overlay(alignment: .top) {
-            MapSearchBar(viewModel: viewModel, showingAbout: $showingAbout)
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .safeAreaPadding(.top)
-        }
         .overlay(alignment: .bottom) {
             MapBottomChrome(viewModel: viewModel)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8)
                 .safeAreaPadding(.bottom)
-        }
-        .sheet(isPresented: $viewModel.isSearching) {
-            DestinationSearchView(viewModel: viewModel)
-        }
-        .sheet(isPresented: zoneSheetPresented) {
-            ZoneDetailView(viewModel: viewModel)
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-                .presentationContentInteraction(.scrolls)
-                .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-        }
-        .sheet(isPresented: $showingAbout) {
-            AboutParkingView()
-                .presentationDetents([.medium, .large])
-        }
-        .task {
-            await viewModel.start()
-            while !Task.isCancelled {
-                do {
-                    try await Task.sleep(for: .seconds(120))
-                } catch {
-                    break
-                }
-                guard !Task.isCancelled else { break }
-                await viewModel.refresh(force: true)
-            }
-        }
-        .onChange(of: scenePhase) { _, phase in
-            guard phase == .active else { return }
-            Task { await viewModel.refresh(force: true) }
-        }
-        .onChange(of: viewModel.destination) { _, destination in
-            moveCamera(to: destination.coordinate, animated: !reduceMotion)
         }
     }
 

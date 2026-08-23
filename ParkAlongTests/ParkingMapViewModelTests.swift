@@ -3,6 +3,21 @@ import XCTest
 
 @MainActor
 final class ParkingMapViewModelTests: XCTestCase {
+    func testSelectingDurationUpdatesTheVisibleChoiceImmediately() {
+        let viewModel = ParkingMapViewModel(
+            repository: FixtureParkingRepository(mode: .live),
+            locationService: FixtureLocationService(denied: true),
+            destinationSearch: FixtureDestinationSearchService(),
+            navigator: AppleMapsNavigator(intercept: true),
+            offStreetService: FixtureOffStreetParkingService(),
+            staticParkingService: StaticParkingRepository(locations: [])
+        )
+
+        viewModel.selectDuration(.twoHours)
+
+        XCTAssertEqual(viewModel.duration, .twoHours)
+    }
+
     func testRefreshLoadsStaticCatalogAlongsideLiveAndMapKitResults() async {
         let now = Date()
         let location = StaticParkingLocation(

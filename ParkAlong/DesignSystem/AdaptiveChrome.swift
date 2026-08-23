@@ -46,6 +46,7 @@ struct AdaptiveGlassContainer<Content: View>: View {
 
 struct AdaptiveGlassSurfaceModifier: ViewModifier {
     var cornerRadius: CGFloat
+    var isInteractive: Bool
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     private var shape: RoundedRectangle {
@@ -57,7 +58,11 @@ struct AdaptiveGlassSurfaceModifier: ViewModifier {
         if reduceTransparency {
             content.background(.background, in: shape)
         } else if #available(iOS 26, *) {
-            content.glassEffect(.regular.interactive(), in: shape)
+            if isInteractive {
+                content.glassEffect(.regular.interactive(), in: shape)
+            } else {
+                content.glassEffect(.regular, in: shape)
+            }
         } else {
             content.background(.regularMaterial, in: shape)
         }
@@ -65,12 +70,62 @@ struct AdaptiveGlassSurfaceModifier: ViewModifier {
 }
 
 struct AdaptiveProminentActionModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
+        if reduceTransparency {
+            content.buttonStyle(.borderedProminent)
+        } else if #available(iOS 26, *) {
             content.buttonStyle(.glassProminent)
         } else {
             content.buttonStyle(.borderedProminent)
+        }
+    }
+}
+
+struct AdaptiveGlassControlButtonModifier: ViewModifier {
+    var isSelected: Bool
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if reduceTransparency {
+            if isSelected {
+                content.buttonStyle(.borderedProminent)
+            } else {
+                content.buttonStyle(.bordered)
+            }
+        } else if #available(iOS 26, *) {
+            if isSelected {
+                content.buttonStyle(.glassProminent)
+            } else {
+                content.buttonStyle(.glass)
+            }
+        } else if isSelected {
+            content.buttonStyle(.borderedProminent)
+        } else {
+            content.buttonStyle(.plain)
+        }
+    }
+}
+
+private struct AdaptiveControlDockModifier: ViewModifier {
+    var cornerRadius: CGFloat
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    }
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if reduceTransparency {
+            content.background(.background, in: shape)
+        } else if #available(iOS 26, *) {
+            content
+        } else {
+            content.background(.regularMaterial, in: shape)
         }
     }
 }
@@ -151,12 +206,20 @@ private struct AdaptiveStatusBarColorSchemeModifier: ViewModifier {
 }
 
 extension View {
-    func adaptiveGlassSurface(cornerRadius: CGFloat) -> some View {
-        modifier(AdaptiveGlassSurfaceModifier(cornerRadius: cornerRadius))
+    func adaptiveGlassSurface(cornerRadius: CGFloat, isInteractive: Bool = false) -> some View {
+        modifier(AdaptiveGlassSurfaceModifier(cornerRadius: cornerRadius, isInteractive: isInteractive))
     }
 
     func adaptiveProminentAction() -> some View {
         modifier(AdaptiveProminentActionModifier())
+    }
+
+    func adaptiveGlassControlButton(isSelected: Bool = false) -> some View {
+        modifier(AdaptiveGlassControlButtonModifier(isSelected: isSelected))
+    }
+
+    func adaptiveControlDock(cornerRadius: CGFloat) -> some View {
+        modifier(AdaptiveControlDockModifier(cornerRadius: cornerRadius))
     }
 
     func adaptiveToolbarMinimizationBehavior() -> some View {

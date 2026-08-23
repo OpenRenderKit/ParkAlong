@@ -93,7 +93,18 @@ final class ParkingMapViewModel {
     }
 
     func updateDuration(_ value: StayDuration) async {
-        guard duration != value else { return }
+        guard prepareDurationUpdate(value) else { return }
+        await refresh(force: true)
+    }
+
+    /// Applies the visible selection immediately, then refreshes parking in the background.
+    func selectDuration(_ value: StayDuration) {
+        guard prepareDurationUpdate(value) else { return }
+        Task { await refresh(force: true) }
+    }
+
+    private func prepareDurationUpdate(_ value: StayDuration) -> Bool {
+        guard duration != value else { return false }
         duration = value
         refreshGeneration += 1
         selectedZone = nil
@@ -102,7 +113,7 @@ final class ParkingMapViewModel {
         staticOptions = []
         vacantBays = []
         notice = "Finding parking for a \(value.selectionDescription) stay"
-        await refresh(force: true)
+        return true
     }
 
     func useCurrentLocation() async {
@@ -116,8 +127,14 @@ final class ParkingMapViewModel {
     }
 
     func search(query: String) async {
-        do { searchResults = try await destinationSearch.search(query) }
-        catch { searchResults = [] }
+        do {
+            let results = try await destinationSearch.search(query)
+            guard !Task.isCancelled else { return }
+            searchResults = results
+        } catch {
+            guard !Task.isCancelled else { return }
+            searchResults = []
+        }
     }
 
     func chooseDestination(_ value: ParkingDestination) async {
