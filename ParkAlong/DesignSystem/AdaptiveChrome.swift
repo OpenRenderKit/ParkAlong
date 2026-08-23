@@ -19,6 +19,10 @@ enum AdaptiveChromePolicy {
         }
         return .material
     }
+
+    static func showsNavigationBarBackground(supportsLiquidGlass: Bool) -> Bool {
+        !supportsLiquidGlass
+    }
 }
 
 struct AdaptiveGlassContainer<Content: View>: View {
@@ -187,6 +191,34 @@ private struct AdaptiveToolbarMinimizationModifier: ViewModifier {
     }
 }
 
+private struct AdaptiveNavigationBarBackgroundModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    private var supportsLiquidGlass: Bool {
+        if #available(iOS 26, *) { return true }
+        return false
+    }
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if AdaptiveChromePolicy.showsNavigationBarBackground(
+            supportsLiquidGlass: supportsLiquidGlass
+        ), reduceTransparency {
+            content
+                .toolbarBackground(.background, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+        } else if AdaptiveChromePolicy.showsNavigationBarBackground(
+            supportsLiquidGlass: supportsLiquidGlass
+        ) {
+            content
+                .toolbarBackground(.regularMaterial, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+        } else {
+            content.toolbarBackground(.hidden, for: .navigationBar)
+        }
+    }
+}
+
 private struct AdaptiveStatusBarColorSchemeModifier: ViewModifier {
     var colorScheme: ColorScheme?
     @Environment(\.colorScheme) private var environmentColorScheme
@@ -224,6 +256,10 @@ extension View {
 
     func adaptiveToolbarMinimizationBehavior() -> some View {
         modifier(AdaptiveToolbarMinimizationModifier())
+    }
+
+    func adaptiveNavigationBarBackground() -> some View {
+        modifier(AdaptiveNavigationBarBackgroundModifier())
     }
 
     func adaptiveStatusBarColorScheme(_ colorScheme: ColorScheme? = nil) -> some View {

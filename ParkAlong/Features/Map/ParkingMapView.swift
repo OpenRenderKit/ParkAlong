@@ -14,7 +14,7 @@ struct ParkingMapView: View {
                 .toolbar {
                     MapToolbarContent(viewModel: viewModel, showingAbout: $showingAbout)
                 }
-                .toolbarBackground(.hidden, for: .navigationBar)
+                .adaptiveNavigationBarBackground()
                 .navigationBarTitleDisplayMode(.inline)
         }
         .adaptiveStatusBarColorScheme()

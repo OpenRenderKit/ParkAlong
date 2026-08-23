@@ -133,10 +133,9 @@ struct MapBottomChrome: View {
             if viewModel.selectedZone == nil {
                 Text(statusText)
                     .font(.footnote.weight(.medium))
-                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
+                    .lineLimit(4)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)

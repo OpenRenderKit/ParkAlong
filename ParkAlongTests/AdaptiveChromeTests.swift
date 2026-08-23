@@ -31,4 +31,20 @@ final class AdaptiveChromeTests: XCTestCase {
             .material
         )
     }
+
+    func testOlderSystemsKeepNavigationBarBackgroundVisible() {
+        XCTAssertTrue(
+            AdaptiveChromePolicy.showsNavigationBarBackground(
+                supportsLiquidGlass: false
+            )
+        )
+    }
+
+    func testLiquidGlassSystemsLetTheMapFlowBehindSystemChrome() {
+        XCTAssertFalse(
+            AdaptiveChromePolicy.showsNavigationBarBackground(
+                supportsLiquidGlass: true
+            )
+        )
+    }
 }
