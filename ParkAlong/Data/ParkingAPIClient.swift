@@ -46,6 +46,7 @@ struct ParkingAPIClient: ParkingAPIProviding, Sendable {
     private let transport: any HTTPTransport
     private let pageSize: Int
     private let baseURL = URL(string: "https://data.melbourne.vic.gov.au/api/explore/v2.1/catalog/datasets/on-street-parking-bay-sensors/records")!
+    fileprivate static let apiDateStyle = Date.ISO8601FormatStyle()
 
     init(transport: any HTTPTransport = URLSessionTransport(), pageSize: Int = 100) {
         self.transport = transport
@@ -127,9 +128,7 @@ struct ParkingAPIClient: ParkingAPIProviding, Sendable {
     }
 
     private static func apiDate(_ date: Date) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.string(from: date)
+        date.formatted(apiDateStyle)
     }
 }
 
@@ -159,7 +158,7 @@ private struct SensorDTO: Decodable {
             kerbsideID: kerbsideID,
             zoneNumber: zoneNumber,
             status: SensorStatus(apiValue: statusDescription),
-            timestamp: ISO8601DateFormatter().date(from: statusTimestamp) ?? .distantPast,
+            timestamp: (try? Date(statusTimestamp, strategy: ParkingAPIClient.apiDateStyle)) ?? .distantPast,
             coordinate: .init(latitude: location.lat, longitude: location.lon)
         )
     }
@@ -185,7 +184,7 @@ private struct AggregateDTO: Decodable {
             zoneNumber: zoneNumber,
             status: SensorStatus(apiValue: statusDescription),
             bayCount: bayCount,
-            newestTimestamp: ISO8601DateFormatter().date(from: newestTimestamp) ?? .distantPast
+            newestTimestamp: (try? Date(newestTimestamp, strategy: ParkingAPIClient.apiDateStyle)) ?? .distantPast
         )
     }
 }

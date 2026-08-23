@@ -4,7 +4,16 @@ import XCTest
 final class ParkAlongUITests: XCTestCase {
     private func launch(_ arguments: [String] = ["-fixture-live"]) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-ui-testing", "-intercept-navigation"] + arguments
+        var launchArguments = ["-ui-testing", "-intercept-navigation"] + arguments
+        if !arguments.contains("-UIPreferredContentSizeCategoryName") {
+            // The simulator retains this preference between processes. Reset it
+            // so the dedicated accessibility test cannot leak into later cases.
+            launchArguments += [
+                "-UIPreferredContentSizeCategoryName",
+                "UICTContentSizeCategoryL"
+            ]
+        }
+        app.launchArguments = launchArguments
         app.launch()
         return app
     }
@@ -26,6 +35,76 @@ final class ParkAlongUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["destination-title"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.staticTexts["destination-title"].label, "Melbourne CBD")
         XCTAssertTrue(app.buttons["best-bet-button"].exists)
+    }
+
+    func testAuthorizedStartupCentersOnCurrentLocation() {
+        let app = launch()
+        XCTAssertTrue(app.staticTexts["destination-title"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.staticTexts["destination-title"].label, "Current location")
+        waitForValue("selected", on: app.buttons["current-location-button"])
+    }
+
+    func testRestrictedLocationFallsBackWithoutHanging() {
+        let app = launch(["-fixture-live", "-location-restricted"])
+        XCTAssertTrue(app.staticTexts["destination-title"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.staticTexts["destination-title"].label, "Melbourne CBD")
+        XCTAssertTrue(app.staticTexts["Location access restricted"].exists)
+    }
+
+    func testLocationTimeoutFallsBackWithoutHanging() {
+        let app = launch(["-fixture-live", "-location-timeout"])
+        XCTAssertTrue(app.staticTexts["destination-title"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.staticTexts["destination-title"].label, "Melbourne CBD")
+        XCTAssertTrue(app.staticTexts["Current location timed out"].exists)
+    }
+
+    func testUnavailableLocationFallsBackWithoutHanging() {
+        let app = launch(["-fixture-live", "-location-unavailable"])
+        XCTAssertTrue(app.staticTexts["destination-title"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.staticTexts["destination-title"].label, "Melbourne CBD")
+        XCTAssertTrue(app.staticTexts["Current location unavailable"].exists)
+    }
+
+    func testDenseMarkerMapAcceptsPinchAndRemainsInteractive() {
+        let app = launch(["-fixture-live", "-fixture-dense"])
+        let map = app.maps.firstMatch
+        XCTAssertTrue(map.waitForExistence(timeout: 3))
+
+        map.pinch(withScale: 0.55, velocity: -2)
+
+        XCTAssertTrue(map.exists)
+        XCTAssertTrue(map.isHittable)
+        let staticMarkers = app.descendants(matching: .any).matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "static-pin-")
+        )
+        XCTAssertTrue(staticMarkers.firstMatch.waitForExistence(timeout: 3))
+        XCTAssertGreaterThan(staticMarkers.count, 0)
+        XCTAssertLessThanOrEqual(staticMarkers.count, 48)
+        XCTAssertTrue(staticMarkers.firstMatch.isHittable)
+        staticMarkers.firstMatch.tap()
+        let detailSheet = app.otherElements["zone-detail-sheet"]
+        XCTAssertTrue(detailSheet.waitForExistence(timeout: 2))
+        detailSheet.swipeDown()
+        XCTAssertFalse(detailSheet.waitForExistence(timeout: 1))
+        let twoHours = app.buttons["duration-2h"]
+        XCTAssertTrue(twoHours.isHittable)
+        twoHours.tap()
+        waitForValue("selected", on: twoHours)
+    }
+
+    func testStayTrackRemainsUsableAtAccessibilityTextSize() {
+        let app = launch([
+            "-fixture-live",
+            "-UIPreferredContentSizeCategoryName",
+            "UICTContentSizeCategoryAccessibilityExtraExtraLarge"
+        ])
+        let track = element("stay-duration-track", in: app)
+        XCTAssertTrue(track.waitForExistence(timeout: 3))
+        let fifteenMinutes = app.buttons["duration-15m"]
+        XCTAssertTrue(fifteenMinutes.waitForExistence(timeout: 2))
+        XCTAssertTrue(fifteenMinutes.isHittable)
+        fifteenMinutes.tap()
+        waitForValue("selected", on: fifteenMinutes)
     }
 
     func testPrimaryMapActionsRemainDiscoverableInAdaptiveChrome() {
@@ -170,7 +249,7 @@ final class ParkAlongUITests: XCTestCase {
 
     func testLiveFailureKeepsMappedParkingWithWarning() {
         let app = launch(["-fixture-live-error"])
-        let pin = app.buttons["static-pin-static-fixture-ballarat"]
+        let pin = element("static-pin-static-fixture-ballarat", in: app)
 
         XCTAssertTrue(pin.waitForExistence(timeout: 3))
         XCTAssertTrue(pin.label.localizedCaseInsensitiveContains("not live"))
@@ -185,7 +264,7 @@ final class ParkAlongUITests: XCTestCase {
 
     func testStaticLocationPinShowsWarningRuleAndVerifiedPrice() {
         let app = launch()
-        let pin = app.buttons["static-pin-static-fixture-ballarat"]
+        let pin = element("static-pin-static-fixture-ballarat", in: app)
         XCTAssertTrue(pin.waitForExistence(timeout: 3))
         XCTAssertTrue(pin.label.localizedCaseInsensitiveContains("location only"))
         pin.tap()

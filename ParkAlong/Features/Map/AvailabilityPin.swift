@@ -12,6 +12,7 @@ enum ParkingPinPalette: Equatable {
     static let predictedPlumColor = Color(red: 107 / 255, green: 58 / 255, blue: 110 / 255)
     static let warningAmber = Color(red: 0.93, green: 0.62, blue: 0.12)
     static let clusterBlue = Color(red: 0.18, green: 0.39, blue: 0.72)
+    static let locationMutedColor = Color(red: 0.48, green: 0.29, blue: 0.31)
 
     static func live(for available: Int) -> ParkingPinPalette {
         switch available {
@@ -25,7 +26,8 @@ enum ParkingPinPalette: Equatable {
         switch self {
         case .liveAvailable: .green
         case .liveLimited: .orange
-        case .liveFull, .locationRed: .red
+        case .liveFull: .red
+        case .locationRed: Self.locationMutedColor
         case .predictedPlum: Self.predictedPlumColor
         case .cluster: Self.clusterBlue
         }
@@ -103,6 +105,7 @@ struct AvailabilityPin: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .caption) private var badgeHeight = 28.0
+    @ScaledMetric(relativeTo: .caption2) private var compactBadgeHeight = 22.0
     @ScaledMetric(relativeTo: .caption2) private var warningSize = 10.0
 
     private var presentation: ParkingPinPresentation {
@@ -142,12 +145,12 @@ struct AvailabilityPin: View {
             }
         }
         .compositingGroup()
-        .shadow(color: .black.opacity(isSelected ? 0.2 : 0.1), radius: isSelected ? 2.5 : 1, y: 1)
+        .opacity(presentation.palette == .locationRed && !isSelected ? 0.78 : 1)
+        .shadow(color: .black.opacity(isSelected ? 0.2 : 0.08), radius: isSelected ? 2.5 : 1, y: 1)
         .scaleEffect(isSelected ? 1.1 : 1)
         .animation(reduceMotion ? nil : .smooth(duration: 0.22), value: isSelected)
         .frame(minWidth: 44, minHeight: 44, alignment: .bottom)
         .contentShape(Rectangle())
-        .accessibilityHidden(true)
     }
 
     private func pinBody(fill: Color, selected: Bool) -> some View {
@@ -158,7 +161,10 @@ struct AvailabilityPin: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
                 .padding(.horizontal, presentation.label.count > 2 ? 6 : 8)
-                .frame(minWidth: presentation.isCluster ? 34 : 30, minHeight: badgeHeight)
+                .frame(
+                    minWidth: presentation.isCluster ? 34 : (presentation.palette == .locationRed ? 24 : 30),
+                    minHeight: presentation.palette == .locationRed ? compactBadgeHeight : badgeHeight
+                )
                 .background(fill, in: RoundedRectangle(cornerRadius: presentation.isCluster ? 12 : 8, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: presentation.isCluster ? 12 : 8, style: .continuous)
@@ -175,36 +181,12 @@ struct AvailabilityPin: View {
     private var labelFont: Font {
         switch presentation.palette {
         case .locationRed:
-            .caption.weight(.heavy)
+            .caption2.weight(.semibold)
         case .cluster:
             .caption.weight(.heavy).monospacedDigit()
         default:
             .caption.weight(.bold).monospacedDigit()
         }
-    }
-}
-
-struct ParkingPinButton: View {
-    let option: ParkingOption
-    var isSelected = false
-    let identifier: String
-    var hint = "Shows parking details"
-    var action: () -> Void
-
-    private var resolvedHint: String {
-        option.clusterCount == nil ? hint : "Zooms into this area"
-    }
-
-    var body: some View {
-        Button(action: action) {
-            AvailabilityPin(option: option, isSelected: isSelected)
-        }
-        .buttonStyle(.plain)
-        .frame(minWidth: 44, minHeight: 44, alignment: .bottom)
-        .contentShape(Rectangle())
-        .accessibilityLabel(ParkingPinPresentation(option: option).accessibilityLabel)
-        .accessibilityHint(resolvedHint)
-        .accessibilityIdentifier(identifier)
     }
 }
 

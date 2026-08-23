@@ -233,6 +233,14 @@ struct StayDurationBar: View {
     @State private var showingPlanner = false
     @State private var plannerPrefersEightHours = false
 
+    private var trackShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+    }
+
+    private var thumbShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 13, style: .continuous)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let caption = StayPlanFormatting.arrivalCaption(for: viewModel.plan) {
@@ -243,10 +251,13 @@ struct StayDurationBar: View {
                     .accessibilityIdentifier("planned-arrival-caption")
             }
 
-            HStack(alignment: .center, spacing: 8) {
-                stayTrack
-                plannerButton
-                refreshButton
+            AdaptiveGlassContainer(spacing: 8) {
+                HStack(alignment: .center, spacing: 8) {
+                    stayTrack
+                    plannerButton
+                    refreshButton
+                }
+                .adaptiveControlDock(cornerRadius: 22)
             }
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: viewModel.plan)
@@ -259,40 +270,38 @@ struct StayDurationBar: View {
         }
     }
 
-    @ViewBuilder
     private var stayTrack: some View {
-        AdaptiveGlassContainer(spacing: 4) {
-            if dynamicTypeSize.isAccessibilitySize {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 4) {
-                    trackChips
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 0) {
+                    ForEach(Array(StayTrackItem.all.enumerated()), id: \.element.id) { index, item in
+                        sizedSegment(item, index: index)
+                    }
                 }
-                .padding(6)
-            } else {
-                ScrollViewReader { proxy in
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 2) {
-                            trackChips
-                        }
-                        .scrollTargetLayout()
-                        .padding(4)
-                    }
-                    .scrollTargetBehavior(.viewAligned)
-                    .onAppear {
-                        proxy.scrollTo(selectedItem.id, anchor: .center)
-                    }
-                    .onChange(of: selectedItem) { _, item in
-                        if reduceMotion {
-                            proxy.scrollTo(item.id, anchor: .center)
-                        } else {
-                            withAnimation(.snappy(duration: 0.28)) {
-                                proxy.scrollTo(item.id, anchor: .center)
-                            }
-                        }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.viewAligned)
+            .scrollBounceBehavior(.basedOnSize)
+            .onAppear {
+                if dynamicTypeSize.isAccessibilitySize {
+                    proxy.scrollTo(StayTrackItem.all[0].id, anchor: .leading)
+                } else {
+                    proxy.scrollTo(selectedItem.id, anchor: .center)
+                }
+            }
+            .onChange(of: selectedItem) { _, item in
+                if reduceMotion {
+                    proxy.scrollTo(item.id, anchor: .center)
+                } else {
+                    withAnimation(.snappy(duration: 0.28)) {
+                        proxy.scrollTo(item.id, anchor: .center)
                     }
                 }
             }
         }
-        .adaptiveControlDock(cornerRadius: 24)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 4)
+        .adaptiveGlassSurface(shape: trackShape, isInteractive: true)
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("stay-duration-track")
@@ -302,38 +311,50 @@ struct StayDurationBar: View {
     }
 
     @ViewBuilder
-    private var trackChips: some View {
-        ForEach(StayTrackItem.presets) { item in
-            stayChip(item)
+    private func sizedSegment(_ item: StayTrackItem, index: Int) -> some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            staySegment(item, index: index)
+                .fixedSize(horizontal: true, vertical: false)
+        } else {
+            staySegment(item, index: index)
+                .containerRelativeFrame(.horizontal) { length, _ in
+                    max(44, length / CGFloat(StayTrackItem.all.count))
+                }
         }
-        stayChip(.extended)
     }
 
-    private func stayChip(_ item: StayTrackItem) -> some View {
+    private func staySegment(_ item: StayTrackItem, index: Int) -> some View {
         let selected = selectedItem == item
         return Button {
             select(item)
         } label: {
             Text(chipLabel(for: item, selected: selected))
-                .font(.subheadline.weight(selected ? .semibold : .medium))
+                .font(.footnote.weight(selected ? .semibold : .medium))
                 .monospacedDigit()
                 .foregroundStyle(selected ? Color.white : Color.primary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.75)
-                .padding(.horizontal, 12)
-                .frame(minWidth: 44, minHeight: 44)
+                .minimumScaleFactor(0.7)
+                .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 12 : 4)
+                .frame(minWidth: 44, maxWidth: .infinity, minHeight: 44)
                 .background {
                     if selected {
                         if reduceMotion {
-                            Capsule().fill(Color.accentColor)
+                            thumbShape.fill(Color.accentColor)
                         } else {
-                            Capsule()
+                            thumbShape
                                 .fill(Color.accentColor)
                                 .matchedGeometryEffect(id: "stay-selection", in: staySelection)
                         }
                     }
                 }
-                .contentShape(Capsule())
+                .overlay(alignment: .leading) {
+                    if showsDivider(before: index) {
+                        Capsule()
+                            .fill(.primary.opacity(0.16))
+                            .frame(width: 1, height: 16)
+                    }
+                }
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .id(item.id)
@@ -341,6 +362,12 @@ struct StayDurationBar: View {
         .accessibilityValue(selected ? "selected" : "not selected")
         .accessibilityIdentifier(item.identifier)
         .accessibilityAddTraits(selected ? [.isSelected] : [])
+    }
+
+    private func showsDivider(before index: Int) -> Bool {
+        guard index > 0 else { return false }
+        let items = StayTrackItem.all
+        return selectedItem != items[index] && selectedItem != items[index - 1]
     }
 
     private var plannerButton: some View {
@@ -429,6 +456,7 @@ private enum StayTrackItem: Hashable, Identifiable {
 
     static let presetMinutes = [15, 60, 120, 180, 240, 360]
     static let presets = presetMinutes.map(StayTrackItem.minutes)
+    static let all = presets + [.extended]
 
     var id: String { identifier }
 

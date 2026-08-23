@@ -56,6 +56,42 @@ final class StaticParkingRepositoryTests: XCTestCase {
         XCTAssertTrue(locations.contains(where: { $0.id == "bendigo-hargreaves-multistorey" && $0.tariffs.first?.hourlyCents == 240 }))
     }
 
+    func testBundledCatalogDecodeCompletesWithinInteractiveStartupBudget() throws {
+        let clock = ContinuousClock()
+
+        let elapsed = try clock.measure {
+            _ = try BundleDataLoader.load([StaticParkingLocation].self, named: "victoria_static_parking")
+        }
+
+        print("PARKALONG_PERF bundled_catalog_decode_seconds=\(elapsed.components.seconds).\(elapsed.components.attoseconds)")
+        XCTAssertLessThan(elapsed, .seconds(5))
+    }
+
+    func testRealCatalogStreetViewportQueryPerformance() async throws {
+        let locations = try BundleDataLoader.load([StaticParkingLocation].self, named: "victoria_static_parking")
+        let repository = StaticParkingRepository(locations: locations, resultLimit: 48)
+        let viewports = (0..<8).map { step in
+            ParkingViewport(
+                south: -37.84 + Double(step) * 0.0004,
+                west: 144.92 + Double(step) * 0.0004,
+                north: -37.78 + Double(step) * 0.0004,
+                east: 145.00 + Double(step) * 0.0004,
+                zoomLevel: 14
+            )
+        }
+        let clock = ContinuousClock()
+        var visibleCounts: [Int] = []
+
+        let elapsed = await clock.measure {
+            for viewport in viewports {
+                visibleCounts.append(await repository.options(in: viewport, plan: plan(.twoHours)).count)
+            }
+        }
+
+        print("PARKALONG_PERF eight_street_viewport_queries_seconds=\(elapsed.components.seconds).\(elapsed.components.attoseconds) visible_counts=\(visibleCounts)")
+        XCTAssertLessThan(elapsed, .seconds(2))
+    }
+
     func testBundledForecastValidationDecodesWithMeasuredReleaseEvidence() throws {
         let records = try BundleDataLoader.load([ForecastValidationRecord].self, named: "historical_validation")
 
@@ -76,6 +112,24 @@ final class StaticParkingRepositoryTests: XCTestCase {
         let options = await repository.options(in: viewport(center: .melbourneCBD), plan: plan(.oneHour))
 
         XCTAssertEqual(options.map(\.title), ["Lazy catalog"])
+    }
+
+    func testExactViewportAndPlanQueryUsesCacheAndPlanChangeInvalidatesIt() async {
+        let location = fixture(id: "cache", name: "Cached location", coordinate: .melbourneCBD)
+        let repository = StaticParkingRepository(locations: [location])
+        let queryViewport = viewport(center: .melbourneCBD)
+
+        let first = await repository.options(in: queryViewport, plan: plan(.oneHour))
+        let second = await repository.options(in: queryViewport, plan: plan(.oneHour))
+        let cachedMetrics = await repository.cacheMetrics()
+        _ = await repository.options(in: queryViewport, plan: plan(.twoHours))
+        let invalidatedMetrics = await repository.cacheMetrics()
+
+        XCTAssertEqual(first, second)
+        XCTAssertEqual(cachedMetrics, .init(hits: 1, misses: 1, entries: 1))
+        XCTAssertEqual(invalidatedMetrics.hits, 1)
+        XCTAssertEqual(invalidatedMetrics.misses, 2)
+        XCTAssertEqual(invalidatedMetrics.entries, 1)
     }
 
     func testReturnsNearbyStaticLocationWithResolvedRulePriceAndProvenance() async {

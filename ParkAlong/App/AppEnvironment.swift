@@ -4,7 +4,19 @@ import Foundation
 enum AppEnvironment {
     static func makeViewModel(arguments: [String] = ProcessInfo.processInfo.arguments) -> ParkingMapViewModel {
         let isUITesting = arguments.contains("-ui-testing")
-        let location = FixtureLocationService(denied: arguments.contains("-location-denied"))
+        let locationResult: LocationRequestResult
+        if arguments.contains("-location-denied") {
+            locationResult = .denied
+        } else if arguments.contains("-location-restricted") {
+            locationResult = .restricted
+        } else if arguments.contains("-location-timeout") {
+            locationResult = .timedOut
+        } else if arguments.contains("-location-unavailable") {
+            locationResult = .unavailable
+        } else {
+            locationResult = .success(.init(latitude: -37.8582, longitude: 145.0582))
+        }
+        let location = FixtureLocationService(result: locationResult)
         if isUITesting {
             let totalError = arguments.contains("-fixture-error")
             let repositoryError = totalError || arguments.contains("-fixture-live-error")
@@ -17,7 +29,10 @@ enum AppEnvironment {
                 destinationSearch: FixtureDestinationSearchService(),
                 navigator: AppleMapsNavigator(intercept: arguments.contains("-intercept-navigation")),
                 offStreetService: FixtureOffStreetParkingService(includeResult: !totalError),
-                staticParkingService: FixtureStaticParkingService(includeResult: !totalError)
+                staticParkingService: FixtureStaticParkingService(
+                    includeResult: !totalError,
+                    resultCount: arguments.contains("-fixture-dense") ? 160 : 1
+                )
             )
         }
 
@@ -56,6 +71,7 @@ enum AppEnvironment {
 
 struct FixtureStaticParkingService: StaticParkingProviding {
     var includeResult = true
+    var resultCount = 1
 
     func options(in viewport: ParkingViewport, plan: ParkingPlan) async -> [ParkingOption] {
         guard includeResult else { return [] }
@@ -67,18 +83,26 @@ struct FixtureStaticParkingService: StaticParkingProviding {
             licenseName: "Official council information", licenseURL: nil,
             datasetUpdatedAt: date.addingTimeInterval(-86_400), checkedAt: date
         )
-        let location = StaticParkingLocation(
-            id: "fixture-ballarat", name: "Sturt Street parking", municipality: "Ballarat",
-            coordinate: .init(latitude: destination.latitude + 0.0012, longitude: destination.longitude - 0.0018),
-            kind: .onStreet, archetype: .cbdRetail, capacity: 36, accessibleSpaces: nil,
-            schedules: [.init(days: Array(1...7), startMinutes: 0, endMinutes: 24 * 60, maxStayMinutes: nil,
-                              restrictionText: "No signed maximum", appliesOnPublicHolidays: true, outsideWindowMeansUnrestricted: false)],
-            tariffs: [.init(effectiveFrom: date.addingTimeInterval(-86_400), effectiveTo: nil, days: Array(1...7),
-                            startMinutes: 0, endMinutes: 24 * 60, hourlyCents: 360, freeMinutes: 60,
-                            dailyCapCents: nil, tiers: [])],
-            source: source, classification: .staticOnly, predictionEvidence: nil
-        )
-        return await StaticParkingRepository(locations: [location]).options(in: viewport, plan: plan)
+        let locations = (0..<max(1, resultCount)).map { index in
+            let row = index / 16
+            let column = index % 16
+            let latitudeOffset = resultCount == 1 ? 0.0012 : (Double(row) - 4.5) * 0.00045
+            let longitudeOffset = resultCount == 1 ? -0.0018 : (Double(column) - 7.5) * 0.00035
+            return StaticParkingLocation(
+                id: resultCount == 1 ? "fixture-ballarat" : "fixture-dense-\(index)",
+                name: resultCount == 1 ? "Sturt Street parking" : "Mapped parking \(index + 1)",
+                municipality: "Ballarat",
+                coordinate: .init(latitude: destination.latitude + latitudeOffset, longitude: destination.longitude + longitudeOffset),
+                kind: .onStreet, archetype: .cbdRetail, capacity: 36, accessibleSpaces: nil,
+                schedules: [.init(days: Array(1...7), startMinutes: 0, endMinutes: 24 * 60, maxStayMinutes: nil,
+                                  restrictionText: "No signed maximum", appliesOnPublicHolidays: true, outsideWindowMeansUnrestricted: false)],
+                tariffs: [.init(effectiveFrom: date.addingTimeInterval(-86_400), effectiveTo: nil, days: Array(1...7),
+                                startMinutes: 0, endMinutes: 24 * 60, hourlyCents: 360, freeMinutes: 60,
+                                dailyCapCents: nil, tiers: [])],
+                source: source, classification: .staticOnly, predictionEvidence: nil
+            )
+        }
+        return await StaticParkingRepository(locations: locations).options(in: viewport, plan: plan)
     }
 }
 
