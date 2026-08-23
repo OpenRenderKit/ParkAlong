@@ -9,6 +9,7 @@ Modernize ParkAlong into a native-first iOS 26/27 map experience while retaining
 The app remains map-first. This upgrade includes:
 
 - Native Liquid Glass controls and navigation surfaces on iOS 26 and later.
+- Purposeful iOS 27 beta behavior for toolbar priority, pinned actions, minimizing navigation chrome, status-bar contrast, and resizable iPhone windows.
 - Carefully matched material-backed controls on iOS 17 through iOS 25.
 - Faster destination search, duration filtering, best-option selection, refresh feedback, parking-detail review, and navigation handoff.
 - Clearer distinctions between verified live availability, predictions, and location-only data.
@@ -29,7 +30,20 @@ The stable implementation is compiled with the installed Xcode 26 toolchain. iOS
 - Standard SwiftUI materials, shapes, and button styles on iOS 17 through iOS 25.
 - More opaque surfaces when Reduce Transparency is enabled.
 
-No Xcode 27-only API is required for the product flow. Xcode 27 is still used in CI as a source-compatibility gate because iOS 27 changes SwiftUI’s `State` and result-builder implementation. Physical testing on the paired iOS 27 phone verifies runtime behavior; this is distinct from claiming local compilation with the iOS 27 SDK, because only Xcode 26.4 is installed locally.
+The implementation uses a small set of Xcode 27-only SwiftUI APIs where they improve the existing product flow. Those source paths are compiled with Xcode 27 beta and availability-gated for iOS 27, while equivalent iOS 17–26 toolbar behavior remains present. Xcode 27 is also used in CI as a source-compatibility gate because it changes SwiftUI’s `State` and result-builder implementation. The stable Xcode 26 build remains a required gate for the iOS 17–26 path, and the Xcode 27 build plus the paired iOS 27 phone verify the beta path.
+
+## iOS 27-Specific Behavior
+
+The beta APIs are used conservatively because Apple can still change them before the final release:
+
+- The current-location action uses `topBarPinnedTrailing` so the key map-recovery action remains visible as toolbar space changes.
+- The destination/search action receives high toolbar visibility priority so it remains available ahead of secondary actions.
+- About moves into `ToolbarOverflowMenu` on iOS 27, keeping the main map toolbar focused without deleting access to provenance and privacy information.
+- Search and About navigation bars use `toolbarMinimizationBehavior(.onScrollDown, for: .navigationBar)` so scrolling results or documentation yields more content space. The implementation uses the renamed API documented in the current iOS 27 beta release notes, not the superseded `toolbarMinimizeBehavior` spelling.
+- The map sets an explicit status-bar color scheme through the iOS 27 status-bar toolbar placement so status information remains legible over map imagery.
+- Layouts respond to available container width rather than fixed screen assumptions, supporting iOS 27 resizable iPhone app windows and iPhone Mirroring.
+
+No document, drag-and-drop, tab-role, or image-caching API is added because those iOS 27 features do not serve ParkAlong’s approved find-and-navigate flow.
 
 ## Design Principles
 
@@ -50,13 +64,14 @@ The map remains edge-to-edge and visually dominant.
 
 ### Destination Control
 
-The current wide top card becomes a compact destination control group:
+The current wide top card becomes native toolbar content with a compact destination control group:
 
 - The destination name and subtitle form one large, tappable search target.
 - Search uses the magnifying-glass symbol and the existing `destination-search-button` test identifier.
 - Current location is a separate 44-point action with selected-state feedback.
-- About remains a secondary icon action.
-- iOS 26+ renders the group as coordinated interactive glass; iOS 17–25 renders the same geometry using regular material with a restrained border.
+- About remains a secondary icon action on iOS 17–26 and moves into the iOS 27 toolbar overflow menu.
+- Standard toolbar placement supplies native Liquid Glass on iOS 26/27 and the appropriate system bar appearance on iOS 17–25.
+- The destination action remains high priority on iOS 27, while current location uses the pinned trailing placement.
 - Long destination names wrap without pushing icon targets below 44 points.
 
 ### Parking Markers
@@ -107,6 +122,7 @@ A small shared SwiftUI compatibility layer owns platform styling so availability
 - An adaptive prominent action style.
 - A coordinated container that becomes `GlassEffectContainer` on iOS 26+ and a normal layout container on older systems.
 - A high-legibility fallback when Reduce Transparency is enabled.
+- iOS 27 toolbar placement, priority, minimization, overflow, and status-bar wrappers with iOS 17–26 equivalents.
 
 This layer owns presentation only. It must not contain parking data, selection, refresh, or navigation logic.
 
@@ -177,6 +193,6 @@ Implementation is accepted only after fresh evidence for all of the following:
 - Do not add third-party UI dependencies.
 - Do not add excluded comparison or personalization features.
 - Do not weaken live/static/prediction truthfulness.
-- Do not claim iOS 27 SDK compilation from the local Xcode 26 toolchain.
+- Do not claim the iOS 27 beta path works until it compiles with Xcode 27 and launches on the iOS 27 device.
 - Do not claim CI success until a fresh GitHub run is green.
 - Do not claim device delivery until installation and launch both succeed.
