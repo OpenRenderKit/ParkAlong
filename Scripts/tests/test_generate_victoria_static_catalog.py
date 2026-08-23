@@ -10,8 +10,15 @@ from generate_victoria_static_catalog import (  # noqa: E402
     build_ballarat_records,
     build_boroondara_records,
     build_casey_records,
+    build_colac_otway_records,
+    build_latrobe_records,
+    build_manningham_records,
     build_maribyrnong_records,
+    build_monash_records,
+    build_moorabool_records,
     build_osm_records,
+    build_southern_grampians_records,
+    build_wodonga_records,
     deduplicate_records,
     geometry_centroid,
 )
@@ -112,6 +119,80 @@ class VictoriaStaticCatalogTests(unittest.TestCase):
 
         self.assertEqual([record["id"] for record in records], ["osm-node-3", "osm-node-4"])
         self.assertEqual(records[1]["name"], "Mapped parking")
+
+    def test_wodonga_preserves_capacity_accessibility_and_multiple_rule_windows(self):
+        features = [{
+            "attributes": {
+                "OBJECTID": 7, "public_view": 1, "park_name": "High Street bays", "spaces": 3,
+                "disable": "Y", "time_h": 2, "start_time": "09:00", "end_time": "17:30", "days": "Mon-Fri",
+                "time_h_2": 4, "start_time_2": "09:00", "end_time_2": "13:00", "days_2": "Sat",
+            },
+            "geometry": {"rings": [[[146.88, -36.12], [146.89, -36.12], [146.89, -36.13]]]},
+        }]
+
+        record = build_wodonga_records(features, checked_at="2026-08-23T00:00:00Z")[0]
+
+        self.assertEqual(record["capacity"], 3)
+        self.assertEqual(record["accessibleSpaces"], 3)
+        self.assertEqual(record["schedules"][0]["maxStayMinutes"], 120)
+        self.assertEqual(record["schedules"][0]["days"], [2, 3, 4, 5, 6])
+        self.assertEqual(record["schedules"][1]["maxStayMinutes"], 240)
+
+    def test_official_arcgis_sources_map_stable_identity_and_accessibility(self):
+        manningham = build_manningham_records([{
+            "attributes": {"ASSET_ID_ASSETIC": "CP-1", "ASSETNAME": "Templestowe Village", "ASSETCLASS": "Car Park"},
+            "geometry": {"x": 145.13, "y": -37.76},
+        }], checked_at="2026-08-23T00:00:00Z")[0]
+        latrobe = build_latrobe_records([{
+            "attributes": {"OBJECTID": 2, "Larger_Car": "Accessible bay", "Locality": "Morwell", "Timed": "2P"},
+            "geometry": {"x": 146.40, "y": -38.24},
+        }], checked_at="2026-08-23T00:00:00Z")[0]
+        moorabool = build_moorabool_records([{
+            "attributes": {"FID": 3, "AssetId": "M-3", "Name": "Main Street Car Park", "Status": "Active", "Locality": "Bacchus Marsh"},
+            "geometry": {"x": 144.44, "y": -37.68},
+        }], checked_at="2026-08-23T00:00:00Z")[0]
+
+        self.assertEqual(manningham["id"], "manningham-CP-1")
+        self.assertEqual(latrobe["accessibleSpaces"], 1)
+        self.assertEqual(latrobe["schedules"][0]["maxStayMinutes"], 120)
+        self.assertEqual(moorabool["municipality"], "Moorabool")
+
+    def test_approved_contractor_sources_remain_traceable_to_their_actual_publishers(self):
+        colac = build_colac_otway_records([{
+            "attributes": {"ObjectID": 10, "Carpark_AM_ID": "CO-10", "Street_Name": "Murray Street", "Location": "Colac", "Status": "Active"},
+            "geometry": {"x": 143.58, "y": -38.34},
+        }], checked_at="2026-08-23T00:00:00Z")[0]
+        monash = build_monash_records(
+            [{"attributes": {"LocationID": "S-1"}, "geometry": {"x": 145.13, "y": -37.91}}],
+            [{"attributes": {"LocationID": "C-2"}, "geometry": {"x": 145.14, "y": -37.92}}],
+            checked_at="2026-08-23T00:00:00Z",
+        )
+        southern = build_southern_grampians_records([{
+            "attributes": {"asset_id": "SG-4", "asset_type": "Carpark", "road_name": "Gray Street", "locality": "Hamilton", "asset_description": "Library car park"},
+            "geometry": {"x": 142.02, "y": -37.74},
+        }], checked_at="2026-08-23T00:00:00Z")[0]
+
+        self.assertIn("Shepherd Services", colac["source"]["name"])
+        self.assertEqual([record["kind"] for record in monash], ["on_street", "off_street"])
+        self.assertIn("WGA", monash[0]["source"]["name"])
+        self.assertEqual(southern["name"], "Library car park")
+
+    def test_osm_conservatively_parses_supported_maxstay_opening_hours_and_charge(self):
+        elements = [{
+            "type": "way", "id": 99, "center": {"lat": -37.7, "lon": 145.0},
+            "tags": {
+                "amenity": "parking", "name": "Timed public parking", "fee": "yes",
+                "maxstay": "2 hours", "opening_hours": "Mo-Fr 09:00-17:30", "charge": "$2.40/hour",
+            },
+        }]
+
+        record = build_osm_records(elements, checked_at="2026-08-23T00:00:00Z", dataset_updated_at=None)[0]
+
+        self.assertEqual(record["schedules"][0]["days"], [2, 3, 4, 5, 6])
+        self.assertEqual(record["schedules"][0]["startMinutes"], 540)
+        self.assertEqual(record["schedules"][0]["endMinutes"], 1050)
+        self.assertEqual(record["schedules"][0]["maxStayMinutes"], 120)
+        self.assertEqual(record["tariffs"][0]["hourlyCents"], 240)
 
 
 if __name__ == "__main__":

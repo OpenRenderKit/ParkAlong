@@ -8,6 +8,7 @@ restrictions, capacities, and dated tariffs; it never contains or implies live v
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import re
@@ -354,6 +355,221 @@ def _parse_days(value: str) -> list[int] | None:
     return parsed or None
 
 
+def _parse_24_hour_range(value: str) -> tuple[int, int] | None:
+    match = re.fullmatch(r"\s*(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})\s*", value)
+    if not match:
+        return None
+    start = int(match.group(1)) * 60 + int(match.group(2))
+    end = int(match.group(3)) * 60 + int(match.group(4))
+    if start > 24 * 60 or end > 24 * 60 or int(match.group(2)) > 59 or int(match.group(4)) > 59:
+        return None
+    return start, end
+
+
+def _parse_duration_minutes(value: Any) -> int | None:
+    if isinstance(value, (int, float)) and value > 0:
+        return round(float(value) * 60)
+    normalized = str(value or "").strip().lower()
+    if not normalized:
+        return None
+    if match := re.fullmatch(r"(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hour|hours)", normalized):
+        return round(float(match.group(1)) * 60)
+    if match := re.fullmatch(r"(\d+)\s*(?:m|min|mins|minute|minutes)", normalized):
+        return int(match.group(1))
+    if match := re.fullmatch(r"(\d{1,2}):(\d{2})", normalized):
+        return int(match.group(1)) * 60 + int(match.group(2))
+    return _restriction_minutes(normalized)
+
+
+def _safe_component(value: Any, fallback: Any) -> str:
+    component = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value or fallback).strip()).strip("-")
+    return component or str(fallback)
+
+
+def _feature_coordinate(feature: dict[str, Any]) -> dict[str, float] | None:
+    attributes = feature.get("attributes") or {}
+    return geometry_centroid(feature.get("geometry")) or _coordinate(attributes.get("latitude"), attributes.get("longitude"))
+
+
+def _wodonga_schedules(attributes: dict[str, Any]) -> list[dict[str, Any]]:
+    schedules: list[dict[str, Any]] = []
+    for index in range(1, 4):
+        suffixes = [""] if index == 1 else [str(index), f"_{index}"]
+        def value(prefix: str) -> Any:
+            return next((attributes.get(f"{prefix}{suffix}") for suffix in suffixes if attributes.get(f"{prefix}{suffix}") not in (None, "")), None)
+        max_stay = _parse_duration_minutes(value("time_h"))
+        days = _parse_days(str(value("days") or ""))
+        window = _parse_24_hour_range(str(value("start_time") or "") + "-" + str(value("end_time") or ""))
+        if not (max_stay and days and window):
+            continue
+        vehicle = str(value("veh_type") or "general vehicles").strip()
+        permit = str(value("permit") or "").strip()
+        text = f"Up to {max_stay // 60}h" if max_stay % 60 == 0 else f"Up to {max_stay} min"
+        if vehicle and vehicle.lower() not in {"general", "general vehicles", "all", "any"}:
+            text += f" · {vehicle}"
+        if permit and permit.lower() not in {"n", "no", "none"}:
+            text += " · permit condition"
+        schedules.append(_schedule(days, window[0], window[1], max_stay, text, outside_unrestricted=True))
+    return schedules
+
+
+def build_wodonga_records(features: list[dict[str, Any]], *, checked_at: str) -> list[dict[str, Any]]:
+    source = _source(
+        "wodonga-parking-lot", "Wodonga Council parking lot",
+        "https://services-ap1.arcgis.com/w6r4LlwgJu8O0neQ/arcgis/rest/services/parking_lot_edit_view/FeatureServer/0",
+        checked_at, license_name="Wodonga Council public ArcGIS service",
+    )
+    records: list[dict[str, Any]] = []
+    for feature in features:
+        attributes = feature.get("attributes") or {}
+        if attributes.get("public_view") in {0, False, "0", "N", "No", "no"}:
+            continue
+        coordinate = _feature_coordinate(feature)
+        if not coordinate:
+            continue
+        identifier = _safe_component(attributes.get("OBJECTID"), len(records))
+        name = str(attributes.get("park_name") or "Public parking area").strip()
+        capacity = _positive_int(attributes.get("spaces"))
+        is_accessible = str(attributes.get("disable") or "").strip().lower() in {"y", "yes", "true", "1"}
+        records.append(_record(
+            f"wodonga-{identifier}", name, "Wodonga", coordinate, source,
+            capacity=capacity, accessible_spaces=capacity if is_accessible else None,
+            schedules=_wodonga_schedules(attributes),
+        ))
+    return records
+
+
+def build_manningham_records(features: list[dict[str, Any]], *, checked_at: str) -> list[dict[str, Any]]:
+    source = _source(
+        "manningham-council-carparks", "Manningham Council car parks",
+        "https://services5.arcgis.com/DRwxVzcV3wgNIuSu/arcgis/rest/services/ManninghamCarparks/FeatureServer/0",
+        checked_at, license_name="Manningham Council public ArcGIS service",
+    )
+    records: list[dict[str, Any]] = []
+    for feature in features:
+        attributes = feature.get("attributes") or {}
+        coordinate = _feature_coordinate(feature)
+        if not coordinate:
+            continue
+        identifier = _safe_component(attributes.get("ASSET_ID_ASSETIC"), attributes.get("OBJECTID") or len(records))
+        name = str(attributes.get("ASSETNAME") or attributes.get("ASSETZONE") or "Council car park").strip()
+        records.append(_record(f"manningham-{identifier}", name, "Manningham", coordinate, source))
+    return records
+
+
+def build_latrobe_records(features: list[dict[str, Any]], *, checked_at: str) -> list[dict[str, Any]]:
+    source = _source(
+        "latrobe-accessible-parking", "Latrobe City accessible parking",
+        "https://services-ap1.arcgis.com/AtixmNNZDz8cwc9l/arcgis/rest/services/Accessible_Parking%20View/FeatureServer/0",
+        checked_at, license_name="Latrobe City Council public ArcGIS service",
+    )
+    records: list[dict[str, Any]] = []
+    for feature in features:
+        attributes = feature.get("attributes") or {}
+        coordinate = _feature_coordinate(feature)
+        if not coordinate:
+            continue
+        locality = str(attributes.get("Locality") or "Latrobe City").strip()
+        descriptor = str(attributes.get("Larger_Car") or attributes.get("Access_To_") or "Accessible parking").strip()
+        timed = str(attributes.get("Timed") or "").strip()
+        max_stay = _parse_duration_minutes(timed)
+        schedules = [_schedule(range(1, 8), 0, 24 * 60, max_stay, timed)] if max_stay else []
+        records.append(_record(
+            f"latrobe-accessible-{_safe_component(attributes.get('OBJECTID'), len(records))}",
+            f"{descriptor} · {locality}", "Latrobe", coordinate, source,
+            kind="on_street", accessible_spaces=1, schedules=schedules,
+        ))
+    return records
+
+
+def build_moorabool_records(features: list[dict[str, Any]], *, checked_at: str) -> list[dict[str, Any]]:
+    source = _source(
+        "moorabool-carparks", "Moorabool Shire car parks",
+        "https://services8.arcgis.com/LhxDRRTcDHsigpYl/arcgis/rest/services/Carpark/FeatureServer/0",
+        checked_at, license_name="Moorabool Shire Council public ArcGIS service",
+    )
+    excluded_statuses = {"inactive", "disposed", "decommissioned", "deleted", "proposed"}
+    records: list[dict[str, Any]] = []
+    for feature in features:
+        attributes = feature.get("attributes") or {}
+        if str(attributes.get("Status") or "").strip().lower() in excluded_statuses:
+            continue
+        coordinate = _feature_coordinate(feature)
+        if not coordinate:
+            continue
+        identifier = _safe_component(attributes.get("AssetId") or attributes.get("Id"), attributes.get("FID") or len(records))
+        name = str(attributes.get("Name") or attributes.get("Location") or attributes.get("Locality") or "Public car park").strip()
+        records.append(_record(f"moorabool-{identifier}", name, "Moorabool", coordinate, source))
+    return records
+
+
+def build_colac_otway_records(features: list[dict[str, Any]], *, checked_at: str) -> list[dict[str, Any]]:
+    source = _source(
+        "colac-otway-carparks", "Shepherd Services / Colac Otway carparks",
+        "https://services1.arcgis.com/bLsSwu2wpv4JvxHE/arcgis/rest/services/Colac_Otway_Carparks/FeatureServer/0",
+        checked_at, license_name="Public contractor-hosted ArcGIS service",
+    )
+    excluded_statuses = {"inactive", "disposed", "decommissioned", "deleted", "proposed"}
+    records: list[dict[str, Any]] = []
+    for feature in features:
+        attributes = feature.get("attributes") or {}
+        if str(attributes.get("Status") or "").strip().lower() in excluded_statuses:
+            continue
+        coordinate = _feature_coordinate(feature)
+        if not coordinate:
+            continue
+        identifier = _safe_component(attributes.get("Carpark_AM_ID"), attributes.get("OBJECTID") or attributes.get("ObjectID") or len(records))
+        street = str(attributes.get("Street_Name") or "").strip()
+        location = str(attributes.get("Location") or "").strip()
+        name = " · ".join(value for value in (street, location) if value) or "Mapped car park"
+        kind = "on_street" if "on" in str(attributes.get("Type") or "").lower() else "off_street"
+        records.append(_record(f"colac-otway-{identifier}", name, "Colac Otway", coordinate, source, kind=kind))
+    return records
+
+
+def build_monash_records(
+    street_features: list[dict[str, Any]], carpark_features: list[dict[str, Any]], *, checked_at: str,
+) -> list[dict[str, Any]]:
+    source = _source(
+        "monash-wga-parking-review", "WGA / City of Monash parking review",
+        "https://services8.arcgis.com/GAZiuYWXmnwzoGFY/arcgis/rest/services/WGA240930_City_of_Monash_Parking_Layer/FeatureServer",
+        checked_at, license_name="Public consultant-hosted ArcGIS study layer",
+    )
+    records: list[dict[str, Any]] = []
+    for kind, features in (("on_street", street_features), ("off_street", carpark_features)):
+        for feature in features:
+            attributes = feature.get("attributes") or {}
+            coordinate = _feature_coordinate(feature)
+            if not coordinate:
+                continue
+            raw_identifier = attributes.get("LocationID") or attributes.get("OBJECTID") or len(records)
+            identifier = _safe_component(raw_identifier, len(records))
+            readable = re.sub(r"[_-]+", " ", str(raw_identifier)).strip()
+            prefix = "Street parking" if kind == "on_street" else "Car park"
+            records.append(_record(f"monash-{kind}-{identifier}", f"{prefix} · {readable}", "Monash", coordinate, source, kind=kind))
+    return records
+
+
+def build_southern_grampians_records(features: list[dict[str, Any]], *, checked_at: str) -> list[dict[str, Any]]:
+    source = _source(
+        "southern-grampians-carpark-inspection-2024", "Shepherd Services / Southern Grampians carpark inspection 2024",
+        "https://services1.arcgis.com/bLsSwu2wpv4JvxHE/arcgis/rest/services/southern_grampians_carpark_inspection_2024/FeatureServer/0",
+        checked_at, license_name="Public contractor-hosted ArcGIS inspection layer", dataset_updated_at="2024-12-31T00:00:00Z",
+    )
+    records: list[dict[str, Any]] = []
+    for feature in features:
+        attributes = feature.get("attributes") or {}
+        if str(attributes.get("carpark_yesno") or "yes").strip().lower() in {"no", "n", "false", "0"}:
+            continue
+        coordinate = _feature_coordinate(feature)
+        if not coordinate:
+            continue
+        identifier = _safe_component(attributes.get("asset_id") or attributes.get("fulcrum_id"), attributes.get("ObjectId") or len(records))
+        name = str(attributes.get("asset_description") or attributes.get("road_name") or "Inspected car park").strip()
+        records.append(_record(f"southern-grampians-{identifier}", name, "Southern Grampians", coordinate, source))
+    return records
+
+
 def build_boroondara_records(
     public_rows: list[dict[str, Any]],
     accessible_rows: list[dict[str, Any]],
@@ -386,6 +602,83 @@ def build_boroondara_records(
     return records
 
 
+_OSM_DAY_NAMES = {"Mo": "Mon", "Tu": "Tue", "We": "Wed", "Th": "Thu", "Fr": "Fri", "Sa": "Sat", "Su": "Sun"}
+
+
+def _parse_osm_window(value: str) -> tuple[list[int], int, int] | None:
+    normalized = value.strip()
+    if normalized == "24/7":
+        return list(range(1, 8)), 0, 24 * 60
+    if ";" in normalized or "," in normalized:
+        return None
+    match = re.fullmatch(r"([A-Za-z-]+)\s+(\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2})", normalized)
+    if not match:
+        return None
+    day_text = match.group(1)
+    for short, full in _OSM_DAY_NAMES.items():
+        day_text = re.sub(rf"(?<![A-Za-z]){short}(?![A-Za-z])", full, day_text)
+    days = _parse_days(day_text)
+    times = _parse_24_hour_range(match.group(2))
+    return (days, times[0], times[1]) if days and times else None
+
+
+def _parse_osm_conditional(value: str) -> tuple[str, tuple[list[int], int, int]] | None:
+    match = re.fullmatch(r"\s*(.+?)\s*@\s*\((.+)\)\s*", value)
+    if not match:
+        return None
+    window = _parse_osm_window(match.group(2))
+    return (match.group(1).strip(), window) if window else None
+
+
+def _osm_tariff(charge: str, days: list[int], start: int, end: int) -> dict[str, Any] | None:
+    normalized = charge.strip().lower().replace("aud", "").strip()
+    match = re.fullmatch(r"\$?\s*(\d+(?:\.\d{1,2})?)\s*/\s*(hour|hr|h|day|daily)", normalized)
+    if not match:
+        return None
+    cents = round(float(match.group(1)) * 100)
+    if match.group(2) in {"day", "daily"}:
+        return _tariff("2000-01-01T00:00:00Z", days, start, end, daily_cap_cents=cents)
+    return _tariff("2000-01-01T00:00:00Z", days, start, end, hourly_cents=cents)
+
+
+def _osm_schedules(tags: dict[str, Any]) -> list[dict[str, Any]]:
+    schedules: list[dict[str, Any]] = []
+    unconditional = _parse_duration_minutes(tags.get("maxstay"))
+    opening_raw = str(tags.get("opening_hours") or "").strip()
+    window = _parse_osm_window(opening_raw) if opening_raw else (list(range(1, 8)), 0, 24 * 60)
+    if unconditional and window:
+        schedules.append(_schedule(
+            window[0], window[1], window[2], unconditional,
+            f"OSM maxstay {tags.get('maxstay')}", outside_unrestricted=bool(opening_raw),
+        ))
+    conditional = _parse_osm_conditional(str(tags.get("maxstay:conditional") or ""))
+    if conditional:
+        duration = _parse_duration_minutes(conditional[0])
+        if duration:
+            condition_window = conditional[1]
+            schedules.append(_schedule(
+                condition_window[0], condition_window[1], condition_window[2], duration,
+                f"OSM conditional maxstay {conditional[0]}", outside_unrestricted=True,
+            ))
+    return schedules
+
+
+def _osm_tariffs(tags: dict[str, Any]) -> list[dict[str, Any]]:
+    fee = str(tags.get("fee") or "").strip().lower()
+    if fee in {"no", "free"}:
+        return [_tariff("2000-01-01T00:00:00Z", range(1, 8), 0, 24 * 60, hourly_cents=0)]
+    conditional = _parse_osm_conditional(str(tags.get("charge:conditional") or ""))
+    if conditional:
+        value, window = conditional
+        tariff = _osm_tariff(value, window[0], window[1], window[2])
+        if tariff:
+            return [tariff]
+    opening_raw = str(tags.get("opening_hours") or "").strip()
+    window = _parse_osm_window(opening_raw) if opening_raw else (list(range(1, 8)), 0, 24 * 60)
+    tariff = _osm_tariff(str(tags.get("charge") or ""), window[0], window[1], window[2]) if window else None
+    return [tariff] if tariff else []
+
+
 def build_osm_records(
     elements: list[dict[str, Any]],
     *,
@@ -412,8 +705,8 @@ def build_osm_records(
         name = str(tags.get("name") or tags.get("operator") or "Mapped parking").strip()
         capacity = _positive_int(tags.get("capacity"))
         accessible = _positive_int(tags.get("capacity:disabled"))
-        fee = str(tags.get("fee") or "").strip().lower()
-        tariffs = [_tariff("2000-01-01T00:00:00Z", range(1, 8), 0, 24 * 60, hourly_cents=0)] if fee in {"no", "free"} else []
+        tariffs = _osm_tariffs(tags)
+        schedules = _osm_schedules(tags)
         lower_name = name.lower()
         if str(tags.get("park_ride") or "").lower() in {"yes", "train"} or "station" in lower_name:
             archetype = "station_commuter"
@@ -427,7 +720,8 @@ def build_osm_records(
         kind = "on_street" if parking_type in {"street_side", "lane", "on_street"} else "off_street"
         records.append(_record(
             f"osm-{element.get('type')}-{element.get('id')}", name, "Victoria", coordinate, source,
-            kind=kind, archetype=archetype, capacity=capacity, accessible_spaces=accessible, tariffs=tariffs,
+            kind=kind, archetype=archetype, capacity=capacity, accessible_spaces=accessible,
+            schedules=schedules, tariffs=tariffs,
         ))
     return records
 
@@ -608,12 +902,27 @@ def build_catalog(timeout: int = 45, *, include_osm: bool = True) -> tuple[list[
     casey_stations = fetch_opendatasoft_rows("https://data.casey.vic.gov.au/api/explore/v2.1/catalog/datasets/railway-station-carparks-ptv", timeout)
     boroondara_public = request_json("https://www.boroondara.vic.gov.au/rest/category/locations", {"tid[]": "766"}, timeout)
     boroondara_accessible = request_json("https://www.boroondara.vic.gov.au/rest/category/locations", {"tid[]": "1396"}, timeout)
+    wodonga = fetch_arcgis_features("https://services-ap1.arcgis.com/w6r4LlwgJu8O0neQ/arcgis/rest/services/parking_lot_edit_view/FeatureServer/0", timeout)
+    manningham = fetch_arcgis_features("https://services5.arcgis.com/DRwxVzcV3wgNIuSu/arcgis/rest/services/ManninghamCarparks/FeatureServer/0", timeout)
+    latrobe = fetch_arcgis_features("https://services-ap1.arcgis.com/AtixmNNZDz8cwc9l/arcgis/rest/services/Accessible_Parking%20View/FeatureServer/0", timeout)
+    moorabool = fetch_arcgis_features("https://services8.arcgis.com/LhxDRRTcDHsigpYl/arcgis/rest/services/Carpark/FeatureServer/0", timeout)
+    colac_otway = fetch_arcgis_features("https://services1.arcgis.com/bLsSwu2wpv4JvxHE/arcgis/rest/services/Colac_Otway_Carparks/FeatureServer/0", timeout)
+    monash_streets = fetch_arcgis_features("https://services8.arcgis.com/GAZiuYWXmnwzoGFY/arcgis/rest/services/WGA240930_City_of_Monash_Parking_Layer/FeatureServer/0", timeout)
+    monash_carparks = fetch_arcgis_features("https://services8.arcgis.com/GAZiuYWXmnwzoGFY/arcgis/rest/services/WGA240930_City_of_Monash_Parking_Layer/FeatureServer/1", timeout)
+    southern_grampians = fetch_arcgis_features("https://services1.arcgis.com/bLsSwu2wpv4JvxHE/arcgis/rest/services/southern_grampians_carpark_inspection_2024/FeatureServer/0", timeout)
 
     groups = {
         "maribyrnong": build_maribyrnong_records(maribyrnong_regular, maribyrnong_accessible, checked_at=checked_at),
         "ballarat": build_ballarat_records(ballarat, checked_at=checked_at),
         "casey": build_casey_records(casey_restrictions, casey_stations, checked_at=checked_at),
         "boroondara": build_boroondara_records(boroondara_public, boroondara_accessible, checked_at=checked_at),
+        "wodonga": build_wodonga_records(wodonga, checked_at=checked_at),
+        "manningham": build_manningham_records(manningham, checked_at=checked_at),
+        "latrobe": build_latrobe_records(latrobe, checked_at=checked_at),
+        "moorabool": build_moorabool_records(moorabool, checked_at=checked_at),
+        "colacOtway": build_colac_otway_records(colac_otway, checked_at=checked_at),
+        "monash": build_monash_records(monash_streets, monash_carparks, checked_at=checked_at),
+        "southernGrampians": build_southern_grampians_records(southern_grampians, checked_at=checked_at),
         "curatedOfficial": curated_official_records(checked_at),
     }
     if include_osm:
@@ -634,15 +943,21 @@ def main() -> None:
     args = parser.parse_args()
 
     records, counts = build_catalog(args.timeout, include_osm=not args.without_osm)
-    if not records or any(counts[name] == 0 for name in ("maribyrnong", "ballarat", "casey", "boroondara")):
+    required_sources = (
+        "maribyrnong", "ballarat", "casey", "boroondara", "wodonga", "manningham", "latrobe",
+        "moorabool", "colacOtway", "monash", "southernGrampians",
+    )
+    if not records or any(counts[name] == 0 for name in required_sources):
         raise RuntimeError(f"Required public source produced no records: {counts}")
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(records, separators=(",", ":")))
+    output = json.dumps(records, separators=(",", ":")).encode("utf-8")
+    args.output.write_bytes(output)
     manifest = {
         "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "recordCount": len(records),
         "sourceCounts": counts,
         "outputBytes": args.output.stat().st_size,
+        "outputSHA256": hashlib.sha256(output).hexdigest(),
     }
     args.manifest.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     print(json.dumps(manifest, sort_keys=True))
