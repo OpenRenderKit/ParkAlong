@@ -75,7 +75,27 @@ struct ParkingSchedule: Codable, Equatable, Sendable {
     let restrictionText: String
     let appliesOnPublicHolidays: Bool
     let outsideWindowMeansUnrestricted: Bool
-    let unparsedCondition: String? = nil
+    let unparsedCondition: String?
+
+    init(
+        days: [Int],
+        startMinutes: Int,
+        endMinutes: Int,
+        maxStayMinutes: Int?,
+        restrictionText: String,
+        appliesOnPublicHolidays: Bool,
+        outsideWindowMeansUnrestricted: Bool,
+        unparsedCondition: String? = nil
+    ) {
+        self.days = days
+        self.startMinutes = startMinutes
+        self.endMinutes = endMinutes
+        self.maxStayMinutes = maxStayMinutes
+        self.restrictionText = restrictionText
+        self.appliesOnPublicHolidays = appliesOnPublicHolidays
+        self.outsideWindowMeansUnrestricted = outsideWindowMeansUnrestricted
+        self.unparsedCondition = unparsedCondition
+    }
 }
 
 struct TariffTier: Codable, Equatable, Sendable {
@@ -93,7 +113,31 @@ struct ParkingTariff: Codable, Equatable, Sendable {
     let freeMinutes: Int
     let dailyCapCents: Int?
     let tiers: [TariffTier]
-    let unparsedCondition: String? = nil
+    let unparsedCondition: String?
+
+    init(
+        effectiveFrom: Date,
+        effectiveTo: Date?,
+        days: [Int],
+        startMinutes: Int,
+        endMinutes: Int,
+        hourlyCents: Int?,
+        freeMinutes: Int,
+        dailyCapCents: Int?,
+        tiers: [TariffTier],
+        unparsedCondition: String? = nil
+    ) {
+        self.effectiveFrom = effectiveFrom
+        self.effectiveTo = effectiveTo
+        self.days = days
+        self.startMinutes = startMinutes
+        self.endMinutes = endMinutes
+        self.hourlyCents = hourlyCents
+        self.freeMinutes = freeMinutes
+        self.dailyCapCents = dailyCapCents
+        self.tiers = tiers
+        self.unparsedCondition = unparsedCondition
+    }
 }
 
 struct StaticParkingLocation: Codable, Equatable, Identifiable, Sendable {

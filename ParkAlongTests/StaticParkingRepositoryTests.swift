@@ -4,6 +4,46 @@ import XCTest
 final class StaticParkingRepositoryTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_777_000_000)
 
+    func testScheduleDecodesUnparsedConditionForFailClosedHandling() throws {
+        let data = Data("""
+        {
+          "days": [2],
+          "startMinutes": 0,
+          "endMinutes": 1440,
+          "maxStayMinutes": null,
+          "restrictionText": "Unparsed OSM opening hours",
+          "appliesOnPublicHolidays": false,
+          "outsideWindowMeansUnrestricted": false,
+          "unparsedCondition": "sunrise-sunset"
+        }
+        """.utf8)
+
+        let schedule = try BundleDataLoader.decoder().decode(ParkingSchedule.self, from: data)
+
+        XCTAssertEqual(schedule.unparsedCondition, "sunrise-sunset")
+    }
+
+    func testTariffDecodesUnparsedConditionForFailClosedHandling() throws {
+        let data = Data("""
+        {
+          "effectiveFrom": "2026-01-01T00:00:00Z",
+          "effectiveTo": null,
+          "days": [2],
+          "startMinutes": 0,
+          "endMinutes": 1440,
+          "hourlyCents": null,
+          "freeMinutes": 0,
+          "dailyCapCents": null,
+          "tiers": [],
+          "unparsedCondition": "EUR 2/hour"
+        }
+        """.utf8)
+
+        let tariff = try BundleDataLoader.decoder().decode(ParkingTariff.self, from: data)
+
+        XCTAssertEqual(tariff.unparsedCondition, "EUR 2/hour")
+    }
+
     func testGeneratedVictorianCatalogDecodesFromAppBundle() throws {
         let locations = try BundleDataLoader.load([StaticParkingLocation].self, named: "victoria_static_parking")
         let manifest = try BundleDataLoader.load(StaticCatalogManifest.self, named: "victoria_static_manifest")
