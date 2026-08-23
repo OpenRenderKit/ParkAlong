@@ -43,6 +43,14 @@ final class RestrictionEngineTests: XCTestCase {
         XCTAssertFalse(engine.isEligible(oneHour, for: .twoHours))
     }
 
+    func testLongStayPresetsDoNotTreatThreeHourParkingAsAllDay() {
+        let threeHour = engine.rule(from: "3P")!
+
+        XCTAssertTrue(engine.isEligible(threeHour, for: .threeHours))
+        XCTAssertFalse(engine.isEligible(threeHour, for: .fourHours))
+        XCTAssertFalse(engine.isEligible(threeHour, for: .eightHours))
+    }
+
     private func localDate(_ value: String) -> Date {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)

@@ -16,6 +16,7 @@ final class ParkingMapViewModel {
     private let destinationSearch: any DestinationSearching
     private let navigator: any ParkingNavigating
     private let offStreetService: any OffStreetParkingProviding
+    private let staticParkingService: any StaticParkingProviding
     private var refreshGeneration = 0
 
     var destination = ParkingDestination(id: "cbd", name: "Melbourne CBD", subtitle: "Central Melbourne", coordinate: .melbourneCBD)
@@ -24,6 +25,7 @@ final class ParkingMapViewModel {
     var selectedZone: ParkingZone?
     var selectedOffStreetOption: ParkingOption?
     var offStreetOptions: [ParkingOption] = []
+    var staticOptions: [ParkingOption] = []
     var vacantBays: [Coordinate] = []
     var state: AvailabilityLoadState = .idle
     var mode: ParkingDataMode = .live
@@ -41,12 +43,13 @@ final class ParkingMapViewModel {
         return selectedOffStreetOption
     }
 
-    init(repository: any ParkingRepositoryProviding, locationService: any LocationProviding, destinationSearch: any DestinationSearching, navigator: any ParkingNavigating, offStreetService: any OffStreetParkingProviding) {
+    init(repository: any ParkingRepositoryProviding, locationService: any LocationProviding, destinationSearch: any DestinationSearching, navigator: any ParkingNavigating, offStreetService: any OffStreetParkingProviding, staticParkingService: any StaticParkingProviding) {
         self.repository = repository
         self.locationService = locationService
         self.destinationSearch = destinationSearch
         self.navigator = navigator
         self.offStreetService = offStreetService
+        self.staticParkingService = staticParkingService
     }
 
     func start() async { await refresh(force: false) }
@@ -56,6 +59,7 @@ final class ParkingMapViewModel {
         let generation = refreshGeneration
         state = .loading
         async let nearbyFacilities = offStreetService.options(near: destination.coordinate)
+        async let mappedParking = staticParkingService.options(near: destination.coordinate, duration: duration, at: Date.now)
         do {
             let result = try await repository.refresh(destination: destination.coordinate, duration: duration, now: .now, force: force)
             guard generation == refreshGeneration else { return }
@@ -66,18 +70,24 @@ final class ParkingMapViewModel {
             if let selected = selectedZone { selectedZone = zones.first(where: { $0.zoneNumber == selected.zoneNumber }) }
             state = .loaded
             let facilities = await nearbyFacilities
+            let staticLocations = await mappedParking
             guard generation == refreshGeneration else { return }
             offStreetOptions = facilities
+            staticOptions = staticLocations
         } catch {
             guard generation == refreshGeneration else { return }
             let facilities = await nearbyFacilities
+            let staticLocations = await mappedParking
             guard generation == refreshGeneration else { return }
             offStreetOptions = facilities
-            if zones.isEmpty {
+            staticOptions = staticLocations
+            if zones.isEmpty && facilities.isEmpty && staticLocations.isEmpty {
                 state = .failed("Parking information couldn’t be updated. Try again in a moment.")
             } else {
                 state = .loaded
-                notice = "Couldn’t refresh · showing the last checked results"
+                notice = zones.isEmpty
+                    ? "Live availability unavailable · showing mapped parking with warnings"
+                    : "Couldn’t refresh · showing the last checked results"
             }
         }
     }
@@ -89,6 +99,7 @@ final class ParkingMapViewModel {
         selectedZone = nil
         selectedOffStreetOption = nil
         zones = []
+        staticOptions = []
         vacantBays = []
         notice = "Finding parking for a \(value.selectionDescription) stay"
         await refresh(force: true)
@@ -129,6 +140,10 @@ final class ParkingMapViewModel {
         selectedZone = nil
         vacantBays = []
         selectedOffStreetOption = option
+    }
+
+    func selectStatic(_ option: ParkingOption) {
+        selectOffStreet(option)
     }
 
     func dismissZone() {

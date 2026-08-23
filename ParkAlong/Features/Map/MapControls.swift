@@ -220,29 +220,64 @@ struct StayDurationBar: View {
 
     @ViewBuilder
     private var durationButtons: some View {
-        ForEach(StayDuration.allCases) { duration in
-            let selected = viewModel.duration == duration
-            Button {
-                Task { await viewModel.updateDuration(duration) }
-            } label: {
-                Text(duration.shortLabel)
-                    .font(.subheadline.weight(selected ? .semibold : .medium))
-                    .monospacedDigit()
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 44)
-                    .foregroundStyle(selected ? Color(.systemBackground) : Color.primary)
-                    .background {
-                        if selected {
-                            Capsule()
-                                .fill(Color.primary)
-                        }
-                    }
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(duration.accessibilityLabel)
-            .accessibilityValue(selected ? "selected" : "not selected")
-            .accessibilityIdentifier("duration-\(duration.shortLabel)")
+        ForEach([StayDuration.fifteenMinutes, .oneHour, .twoHours, .threeHours]) { duration in
+            durationButton(for: duration)
         }
+        extraDurationsMenu
+    }
+
+    private func durationButton(for duration: StayDuration) -> some View {
+        let selected = viewModel.duration == duration
+        return Button {
+            Task { await viewModel.updateDuration(duration) }
+        } label: {
+            durationChipLabel(duration.shortLabel, selected: selected)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(duration.accessibilityLabel)
+        .accessibilityValue(selected ? "selected" : "not selected")
+        .accessibilityIdentifier("duration-\(duration.shortLabel)")
+    }
+
+    private var extraDurationsMenu: some View {
+        let extras: [StayDuration] = [.fourHours, .sixHours, .eightHours]
+        let selectedExtra = extras.first { $0 == viewModel.duration }
+        let selected = selectedExtra != nil
+
+        return Menu {
+            ForEach(extras) { duration in
+                Button {
+                    Task { await viewModel.updateDuration(duration) }
+                } label: {
+                    Text(duration.shortLabel)
+                }
+                .accessibilityLabel(duration.accessibilityLabel)
+                .accessibilityIdentifier("duration-\(duration.shortLabel)")
+            }
+        } label: {
+            durationChipLabel(selectedExtra?.shortLabel ?? "More", selected: selected)
+        }
+        .menuIndicator(.hidden)
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .accessibilityLabel(selectedExtra?.accessibilityLabel ?? "More")
+        .accessibilityValue(selected ? "selected" : "not selected")
+        .accessibilityIdentifier("duration-more")
+    }
+
+    private func durationChipLabel(_ text: String, selected: Bool) -> some View {
+        Text(text)
+            .font(.subheadline.weight(selected ? .semibold : .medium))
+            .monospacedDigit()
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 44)
+            .foregroundStyle(selected ? Color(.systemBackground) : Color.primary)
+            .background {
+                if selected {
+                    Capsule()
+                        .fill(Color.primary)
+                }
+            }
     }
 
     private var refreshButton: some View {
@@ -313,21 +348,24 @@ struct AboutParkingView: View {
         NavigationStack {
             List {
                 Section {
-                    Text("ParkAlong brings availability, location, active limits, and price or provider information into one parking view.")
+                    markerLegend
                 }
 
-                Section("Source") {
-                    Text("On-street bay occupancy comes from City of Melbourne sensor data, licensed under Creative Commons Attribution 4.0 International (CC BY 4.0).")
+                Section {
+                    wrappingText("ParkAlong brings availability, location, active limits, and price or provider information into one parking view.")
+                }
+
+                Section("Sources") {
+                    wrappingText("Only City of Melbourne currently provides verified live occupancy, from bay sensors licensed under Creative Commons Attribution 4.0 International (CC BY 4.0).")
+                    wrappingText("Council public maps and OpenStreetMap provide attributed static locations, capacities, restrictions, or prices where available.")
+                    wrappingText("Posted signs and meters always govern.")
                     Link("CC BY 4.0 licence", destination: URL(string: "https://creativecommons.org/licenses/by/4.0/")!)
                     Link("City of Melbourne open data", destination: URL(string: "https://data.melbourne.vic.gov.au/")!)
+                    Link("OpenStreetMap copyright", destination: URL(string: "https://www.openstreetmap.org/copyright")!)
                 }
 
                 Section("Privacy") {
-                    Text("Your location stays on this device to centre the map. It is not stored, and this app has no account. Place search uses Apple. Sensor requests go to City of Melbourne.")
-                }
-
-                Section("Caveats") {
-                    Text("Counts are indicative and change quickly. Posted signs and meters always govern. Sensors can misread on public holidays and in construction zones. Typical figures are historical patterns used only when live data is missing or stale.")
+                    wrappingText("Your location stays on this device to centre the map. It is not stored, and this app has no account. Place search uses Apple. Live occupancy requests go only to City of Melbourne.")
                 }
             }
             .navigationTitle("ParkAlong")
@@ -339,5 +377,127 @@ struct AboutParkingView: View {
                 }
             }
         }
+    }
+
+    private var markerLegend: some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 60), spacing: 10, alignment: .top)],
+            spacing: 12
+        ) {
+            AboutMiniMarkerLegendItem(
+                label: "4",
+                palette: .liveAvailable,
+                showsWarning: false,
+                caption: "Available",
+                accessibilityText: "Available, verified live"
+            )
+            AboutMiniMarkerLegendItem(
+                label: "2",
+                palette: .liveLimited,
+                showsWarning: false,
+                caption: "Limited",
+                accessibilityText: "Limited, verified live"
+            )
+            AboutMiniMarkerLegendItem(
+                label: "0",
+                palette: .liveFull,
+                showsWarning: false,
+                caption: "Full",
+                accessibilityText: "Full, verified live"
+            )
+            AboutMiniMarkerLegendItem(
+                label: "~4",
+                palette: .predictedPlum,
+                showsWarning: true,
+                caption: "Estimate",
+                accessibilityText: "Estimate, not live"
+            )
+            AboutMiniMarkerLegendItem(
+                label: "P",
+                palette: .locationRed,
+                showsWarning: true,
+                caption: "Location only",
+                accessibilityText: "Location only, not live"
+            )
+        }
+        .listRowInsets(EdgeInsets(top: 10, leading: 8, bottom: 10, trailing: 8))
+        .accessibilityElement(children: .contain)
+    }
+
+    private func wrappingText(_ text: String) -> some View {
+        Text(text)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+private struct AboutMiniMarkerLegendItem: View {
+    let label: String
+    let palette: ParkingPinPalette
+    let showsWarning: Bool
+    let caption: String
+    let accessibilityText: String
+
+    @ScaledMetric(relativeTo: .caption2) private var badgeHeight = 22.0
+    @ScaledMetric(relativeTo: .caption2) private var warningSize = 8.0
+
+    var body: some View {
+        VStack(spacing: 6) {
+            miniMarker
+            Text(caption)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private var miniMarker: some View {
+        let fill = palette.color
+
+        return ZStack(alignment: .topTrailing) {
+            VStack(spacing: 0) {
+                Text(label)
+                    .font(labelFont)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .padding(.horizontal, label.count > 2 ? 4 : 6)
+                    .frame(minWidth: 24, minHeight: badgeHeight)
+                    .background(fill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .strokeBorder(.white.opacity(0.35), lineWidth: 0.6)
+                    }
+
+                Image(systemName: "arrowtriangle.down.fill")
+                    .font(.system(size: 6, weight: .bold))
+                    .foregroundStyle(fill)
+                    .offset(y: -1)
+            }
+            .padding(.top, showsWarning ? 4 : 0)
+            .padding(.trailing, showsWarning ? 4 : 0)
+
+            if showsWarning {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: warningSize, weight: .bold))
+                    .foregroundStyle(ParkingPinPalette.warningAmber)
+                    .background {
+                        Circle()
+                            .fill(.white)
+                            .padding(-1)
+                    }
+                    .accessibilityHidden(true)
+            }
+        }
+    }
+
+    private var labelFont: Font {
+        palette == .locationRed
+            ? .caption2.weight(.heavy)
+            : .caption2.weight(.bold).monospacedDigit()
     }
 }

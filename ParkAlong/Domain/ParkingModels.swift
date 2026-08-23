@@ -11,7 +11,10 @@ enum StayDuration: Int, CaseIterable, Codable, Identifiable, Sendable {
     case fifteenMinutes = 15
     case oneHour = 60
     case twoHours = 120
-    case threePlusHours = 180
+    case threeHours = 180
+    case fourHours = 240
+    case sixHours = 360
+    case eightHours = 480
 
     var id: Int { rawValue }
 
@@ -20,7 +23,10 @@ enum StayDuration: Int, CaseIterable, Codable, Identifiable, Sendable {
         case .fifteenMinutes: "15m"
         case .oneHour: "1h"
         case .twoHours: "2h"
-        case .threePlusHours: "3h+"
+        case .threeHours: "3h"
+        case .fourHours: "4h"
+        case .sixHours: "6h"
+        case .eightHours: "8h"
         }
     }
 
@@ -29,7 +35,10 @@ enum StayDuration: Int, CaseIterable, Codable, Identifiable, Sendable {
         case .fifteenMinutes: "15 minutes"
         case .oneHour: "1 hour"
         case .twoHours: "2 hours"
-        case .threePlusHours: "3 hours or more"
+        case .threeHours: "3 hours"
+        case .fourHours: "4 hours"
+        case .sixHours: "6 hours"
+        case .eightHours: "8 hours"
         }
     }
 
@@ -38,7 +47,10 @@ enum StayDuration: Int, CaseIterable, Codable, Identifiable, Sendable {
         case .fifteenMinutes: "15-minute"
         case .oneHour: "1-hour"
         case .twoHours: "2-hour"
-        case .threePlusHours: "3-hour-or-longer"
+        case .threeHours: "3-hour"
+        case .fourHours: "4-hour"
+        case .sixHours: "6-hour"
+        case .eightHours: "8-hour"
         }
     }
 }

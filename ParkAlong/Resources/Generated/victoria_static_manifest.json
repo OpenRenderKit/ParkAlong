@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-08-23T04:09:50Z",
+  "outputBytes": 20259846,
+  "recordCount": 30890,
+  "sourceCounts": {
+    "ballarat": 746,
+    "boroondara": 155,
+    "casey": 668,
+    "curatedOfficial": 19,
+    "maribyrnong": 477,
+    "openStreetMap": 28825
+  }
+}

@@ -1,6 +1,6 @@
 import Foundation
 
-enum ParkingOptionKind: String, Sendable {
+enum ParkingOptionKind: String, Codable, Sendable {
     case onStreet = "On-street"
     case offStreet = "Off-street"
 }
@@ -38,11 +38,33 @@ struct ParkingOption: Identifiable, Equatable, Sendable {
     let prediction: AvailabilityPrediction?
     let isBestBet: Bool
     let zoneNumber: Int?
+    let classification: ParkingDataClassification
+    let warningText: String?
+    let sourceDatasetAt: Date?
+    let sourceCheckedAt: Date?
 
     var availabilityLabel: String {
-        if let available, let total { return "\(available) of \(total) available" }
-        return availabilityState == .unknown ? "Check with provider" : availabilityState.rawValue.capitalized
+        switch classification {
+        case .verifiedLive:
+            if let available, let total { return "\(available) of \(total) available now" }
+            return "Live availability unavailable"
+        case .predicted:
+            if let available, let total { return "About \(available) of \(total) typically available" }
+            return "Typical demand estimate"
+        case .staticOnly, .staleHistorical:
+            return "Availability unknown"
+        }
     }
+
+    var pinLabel: String {
+        switch classification {
+        case .verifiedLive: return available.map(String.init) ?? "?"
+        case .predicted: return available.map { "~\($0)" } ?? "~"
+        case .staticOnly, .staleHistorical: return "P"
+        }
+    }
+
+    var hasNonLiveWarning: Bool { classification.needsWarning }
 
     static func onStreet(_ zone: ParkingZone, duration: StayDuration) -> ParkingOption {
         let price = ParkingPriceEngine.price(payment: zone.payment, duration: duration)
@@ -52,7 +74,10 @@ struct ParkingOption: Identifiable, Equatable, Sendable {
             availabilityState: zone.available > 0 ? .available : .occupied, available: zone.available, total: zone.total,
             restrictionLabel: zone.restrictionLabel, restrictionWindow: "Active restriction now", activeNow: true,
             price: price, provider: price.provider, sourceTimestamp: zone.newestTimestamp,
-            walkingMetres: zone.walkingMetres, prediction: zone.prediction, isBestBet: zone.isBestBet, zoneNumber: zone.zoneNumber
+            walkingMetres: zone.walkingMetres, prediction: zone.prediction, isBestBet: zone.isBestBet, zoneNumber: zone.zoneNumber,
+            classification: zone.mode == .live ? .verifiedLive : .predicted,
+            warningText: zone.mode == .live ? nil : "Estimate based on historical patterns, not live sensors",
+            sourceDatasetAt: nil, sourceCheckedAt: nil
         )
     }
 }
@@ -89,4 +114,3 @@ enum OffStreetProviderResolver {
         name.split(separator: "-").first.map { String($0).trimmingCharacters(in: .whitespaces) } ?? name
     }
 }
-

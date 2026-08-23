@@ -65,7 +65,7 @@ final class ParkingRepositoryTests: XCTestCase {
             .init(zoneNumber: 7002, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "MP3P")
         ], history: [])
 
-        let result = try await repository.refresh(destination: .melbourneCBD, duration: .threePlusHours, now: now, force: true)
+        let result = try await repository.refresh(destination: .melbourneCBD, duration: .threeHours, now: now, force: true)
 
         XCTAssertEqual(result.zones.map(\.zoneNumber), [7002])
         XCTAssertEqual(result.zones.first?.restrictionLabel, "Up to 3 hours, meter required")
@@ -79,11 +79,11 @@ final class ParkingRepositoryTests: XCTestCase {
             .init(zoneNumber: 7001, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "1P")
         ], history: [])
 
-        let result = try await repository.refresh(destination: .melbourneCBD, duration: .threePlusHours, now: now, force: true)
+        let result = try await repository.refresh(destination: .melbourneCBD, duration: .threeHours, now: now, force: true)
 
         XCTAssertEqual(result.mode, .live)
         XCTAssertTrue(result.zones.isEmpty)
-        XCTAssertTrue(result.notice.contains(StayDuration.threePlusHours.selectionDescription))
+        XCTAssertTrue(result.notice.contains(StayDuration.threeHours.selectionDescription))
         XCTAssertTrue(result.notice.contains("off-street"))
         XCTAssertFalse(result.notice.localizedCaseInsensitiveContains("connection"))
     }

@@ -26,31 +26,41 @@ struct ParkingMapView: View {
                 }
             }
 
-            ForEach(viewModel.mapZones) { zone in
-                Annotation("", coordinate: zone.coordinate.locationCoordinate, anchor: .bottom) {
-                    Button {
-                        Task { await viewModel.selectZone(zone) }
-                    } label: {
-                        AvailabilityPin(
-                            zone: zone,
-                            isSelected: viewModel.selectedZone?.zoneNumber == zone.zoneNumber
-                        )
+            ForEach(viewModel.staticOptions) { option in
+                Annotation("", coordinate: option.coordinate.locationCoordinate, anchor: .bottom) {
+                    ParkingPinButton(
+                        option: option,
+                        isSelected: viewModel.selectedOption?.id == option.id,
+                        identifier: "static-pin-\(option.id)"
+                    ) {
+                        viewModel.selectStatic(option)
                     }
-                    .buttonStyle(.plain)
-                    .frame(minWidth: 44, minHeight: 44)
-                    .accessibilityLabel(AvailabilityStyle.accessibilityLabel(for: zone))
-                    .accessibilityHint("Shows zone details")
-                    .accessibilityIdentifier("zone-pin-\(zone.zoneNumber)")
                 }
             }
 
             ForEach(viewModel.offStreetOptions) { option in
-                Annotation(option.title, coordinate: option.coordinate.locationCoordinate, anchor: .bottom) {
-                    Button { viewModel.selectOffStreet(option) } label: { OffStreetPin() }
-                        .buttonStyle(.plain)
-                        .frame(minWidth: 44, minHeight: 44)
-                        .accessibilityLabel("\(option.title), off-street parking, check provider for spaces and price")
-                        .accessibilityIdentifier("offstreet-pin-\(option.id)")
+                Annotation("", coordinate: option.coordinate.locationCoordinate, anchor: .bottom) {
+                    ParkingPinButton(
+                        option: option,
+                        isSelected: viewModel.selectedOption?.id == option.id,
+                        identifier: "offstreet-pin-\(option.id)"
+                    ) {
+                        viewModel.selectOffStreet(option)
+                    }
+                }
+            }
+
+            ForEach(viewModel.mapZones) { zone in
+                let option = ParkingOption.onStreet(zone, duration: viewModel.duration)
+                Annotation("", coordinate: zone.coordinate.locationCoordinate, anchor: .bottom) {
+                    ParkingPinButton(
+                        option: option,
+                        isSelected: viewModel.selectedZone?.zoneNumber == zone.zoneNumber,
+                        identifier: "zone-pin-\(zone.zoneNumber)",
+                        hint: "Shows zone details"
+                    ) {
+                        Task { await viewModel.selectZone(zone) }
+                    }
                 }
             }
         }
