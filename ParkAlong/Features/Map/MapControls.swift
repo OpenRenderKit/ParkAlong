@@ -144,6 +144,7 @@ struct MapBottomChrome: View {
                     .padding(.vertical, 8)
                     .adaptiveGlassSurface(cornerRadius: 16)
                     .accessibilityLabel(statusText)
+                    .accessibilityIdentifier("availability-status")
             }
         }
     }
@@ -228,17 +229,11 @@ struct BestBetButton: View {
 struct StayDurationBar: View {
     @Bindable var viewModel: ParkingMapViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Namespace private var staySelection
     @State private var showingPlanner = false
     @State private var plannerPrefersEightHours = false
 
-    private var trackShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
-    }
-
-    private var thumbShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: 13, style: .continuous)
+    private var trackShape: Capsule {
+        Capsule(style: .continuous)
     }
 
     var body: some View {
@@ -252,10 +247,14 @@ struct StayDurationBar: View {
             }
 
             AdaptiveGlassContainer(spacing: 8) {
-                HStack(alignment: .center, spacing: 8) {
+                VStack(spacing: 8) {
                     stayTrack
-                    plannerButton
-                    refreshButton
+
+                    HStack(spacing: 8) {
+                        Spacer(minLength: 0)
+                        plannerButton
+                        refreshButton
+                    }
                 }
                 .adaptiveControlDock(cornerRadius: 22)
             }
@@ -271,103 +270,23 @@ struct StayDurationBar: View {
     }
 
     private var stayTrack: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    ForEach(Array(StayTrackItem.all.enumerated()), id: \.element.id) { index, item in
-                        sizedSegment(item, index: index)
-                    }
-                }
-                .scrollTargetLayout()
-            }
-            .scrollTargetBehavior(.viewAligned)
-            .scrollBounceBehavior(.basedOnSize)
-            .onAppear {
-                if dynamicTypeSize.isAccessibilitySize {
-                    proxy.scrollTo(StayTrackItem.all[0].id, anchor: .leading)
-                } else {
-                    proxy.scrollTo(selectedItem.id, anchor: .center)
-                }
-            }
-            .onChange(of: selectedItem) { _, item in
-                if reduceMotion {
-                    proxy.scrollTo(item.id, anchor: .center)
-                } else {
-                    withAnimation(.snappy(duration: 0.28)) {
-                        proxy.scrollTo(item.id, anchor: .center)
-                    }
-                }
+        Picker("Stay duration", selection: durationSelection) {
+            ForEach(StayTrackItem.all) { item in
+                Text(chipLabel(for: item, selected: selectedItem == item))
+                    .tag(item)
+                    .accessibilityLabel(item.accessibilityLabel)
+                    .accessibilityIdentifier(item.identifier)
             }
         }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(maxWidth: .infinity, minHeight: 36)
+        .accessibilityIdentifier("stay-duration-picker")
         .padding(.horizontal, 5)
         .padding(.vertical, 4)
         .adaptiveGlassSurface(shape: trackShape, isInteractive: true)
-        .frame(maxWidth: .infinity)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("stay-duration-track")
-        .accessibilityAdjustableAction { direction in
-            adjustStay(direction)
-        }
-    }
-
-    @ViewBuilder
-    private func sizedSegment(_ item: StayTrackItem, index: Int) -> some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            staySegment(item, index: index)
-                .fixedSize(horizontal: true, vertical: false)
-        } else {
-            staySegment(item, index: index)
-                .containerRelativeFrame(.horizontal) { length, _ in
-                    max(44, length / CGFloat(StayTrackItem.all.count))
-                }
-        }
-    }
-
-    private func staySegment(_ item: StayTrackItem, index: Int) -> some View {
-        let selected = selectedItem == item
-        return Button {
-            select(item)
-        } label: {
-            Text(chipLabel(for: item, selected: selected))
-                .font(.footnote.weight(selected ? .semibold : .medium))
-                .monospacedDigit()
-                .foregroundStyle(selected ? Color.white : Color.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 12 : 4)
-                .frame(minWidth: 44, maxWidth: .infinity, minHeight: 44)
-                .background {
-                    if selected {
-                        if reduceMotion {
-                            thumbShape.fill(Color.accentColor)
-                        } else {
-                            thumbShape
-                                .fill(Color.accentColor)
-                                .matchedGeometryEffect(id: "stay-selection", in: staySelection)
-                        }
-                    }
-                }
-                .overlay(alignment: .leading) {
-                    if showsDivider(before: index) {
-                        Capsule()
-                            .fill(.primary.opacity(0.16))
-                            .frame(width: 1, height: 16)
-                    }
-                }
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .id(item.id)
-        .accessibilityLabel(item.accessibilityLabel)
-        .accessibilityValue(selected ? "selected" : "not selected")
-        .accessibilityIdentifier(item.identifier)
-        .accessibilityAddTraits(selected ? [.isSelected] : [])
-    }
-
-    private func showsDivider(before index: Int) -> Bool {
-        guard index > 0 else { return false }
-        let items = StayTrackItem.all
-        return selectedItem != items[index] && selectedItem != items[index - 1]
     }
 
     private var plannerButton: some View {
@@ -413,6 +332,13 @@ struct StayDurationBar: View {
         StayTrackItem.matching(durationMinutes: viewModel.plan.durationMinutes)
     }
 
+    private var durationSelection: Binding<StayTrackItem> {
+        Binding(
+            get: { selectedItem },
+            set: { select($0) }
+        )
+    }
+
     private func chipLabel(for item: StayTrackItem, selected: Bool) -> String {
         if item == .extended, selected, !StayTrackItem.presetMinutes.contains(viewModel.plan.durationMinutes) {
             return StayPlanFormatting.compactDuration(viewModel.plan.durationMinutes)
@@ -436,18 +362,6 @@ struct StayDurationBar: View {
         }
     }
 
-    private func adjustStay(_ direction: AccessibilityAdjustmentDirection) {
-        let items = StayTrackItem.presets + [.extended]
-        guard let current = items.firstIndex(of: selectedItem) else { return }
-        let next: Int
-        switch direction {
-        case .increment: next = min(items.count - 1, current + 1)
-        case .decrement: next = max(0, current - 1)
-        @unknown default: return
-        }
-        guard next != current else { return }
-        select(items[next])
-    }
 }
 
 private enum StayTrackItem: Hashable, Identifiable {

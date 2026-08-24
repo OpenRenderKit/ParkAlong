@@ -19,10 +19,10 @@ final class ParkAlongUITests: XCTestCase {
     }
 
     private func waitForValue(_ value: String, on element: XCUIElement, timeout: TimeInterval = 2) {
-        let expectation = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "value == %@", value),
-            object: element
-        )
+        let predicate = NSPredicate { _, _ in
+            element.value as? String == value || (value == "selected" && element.isSelected)
+        }
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
         XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: timeout), .completed)
     }
 
@@ -105,6 +105,14 @@ final class ParkAlongUITests: XCTestCase {
         XCTAssertTrue(fifteenMinutes.isHittable)
         fifteenMinutes.tap()
         waitForValue("selected", on: fifteenMinutes)
+    }
+
+    func testStayDurationUsesNativeSegmentedControl() {
+        let app = launch()
+        let picker = app.segmentedControls["stay-duration-picker"]
+
+        XCTAssertTrue(picker.waitForExistence(timeout: 3))
+        XCTAssertEqual(picker.buttons.count, 7)
     }
 
     func testPrimaryMapActionsRemainDiscoverableInAdaptiveChrome() {
@@ -204,9 +212,15 @@ final class ParkAlongUITests: XCTestCase {
         let app = launch()
         let fourHours = app.buttons["duration-4h"]
         XCTAssertTrue(fourHours.waitForExistence(timeout: 2))
+        XCTAssertTrue(fourHours.isHittable)
         fourHours.tap()
 
-        waitForValue("selected", on: fourHours)
+        let fourHourStatus = app.staticTexts["availability-status"]
+        let expectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label CONTAINS[c] %@", "4-hour stay"),
+            object: fourHourStatus
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 3), .completed)
         XCTAssertFalse(app.buttons["duration-more"].exists)
     }
 
