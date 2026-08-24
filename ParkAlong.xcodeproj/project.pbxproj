@@ -11,6 +11,7 @@
 		11B09167F99F4ADCA9F2B8B3 /* ParkingMapViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3CC03EE5AF64E9F03489E57 /* ParkingMapViewModel.swift */; };
 		1EF0E538B24BB0866B43EC33 /* ParkingOptionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44451E8A231A417084799826 /* ParkingOptionTests.swift */; };
 		24C7DB94BAB87535780FFF18 /* ParkingRuleResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0F1FBD74529A7AC8B799805 /* ParkingRuleResolverTests.swift */; };
+		2A06F16AF0ECA1DF4422AD5A /* ParkingMarkerSelectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75F160AACE3259123DB422B2 /* ParkingMarkerSelectorTests.swift */; };
 		35CB24FAE3BF5411927E7D7D /* victoria_static_manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 787E6973F51F16CA9F442FAA /* victoria_static_manifest.json */; };
 		3D670DC418F7B59DA15BB54C /* ParkingMapViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3B6C431C3B32FBA27C8D3B8 /* ParkingMapViewModelTests.swift */; };
 		3FC2A0E0788A2925C735DDFF /* PredictionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAAE045CF41482B2703EF3D4 /* PredictionEngine.swift */; };
@@ -34,6 +35,7 @@
 		89B2020A7EE8E17A79AB89D4 /* AvailabilityEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F45422F42AD40407B83008 /* AvailabilityEngine.swift */; };
 		8A09B17F5D5E6E949CBBA31C /* ParkingAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F1A693FCE60AD13B71A085A /* ParkingAPIClient.swift */; };
 		931270936035531BF4503C57 /* DestinationSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAEFCC4099D4E7442BDD7330 /* DestinationSearchView.swift */; };
+		933B04A1230D74EC011C00E1 /* ParkingMarkerSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48A1F9B281CAB7262BC46821 /* ParkingMarkerSelector.swift */; };
 		958BAD5C8A67BA4E96166339 /* AdaptiveChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8C1152F6E69EBA200086512 /* AdaptiveChrome.swift */; };
 		9707BF4169722A2D66A1FC73 /* victoria_static_parking.json in Resources */ = {isa = PBXBuildFile; fileRef = F9DCE4DDFD1BC73F153C592D /* victoria_static_parking.json */; };
 		9733AB89A15DE9C297366863 /* DestinationSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22B784BB00A338E4068B9DB /* DestinationSearchService.swift */; };
@@ -46,6 +48,8 @@
 		B0A073681E86EF11EDAA2E4D /* ParkingOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B4CD237284CEE57B25D537B /* ParkingOption.swift */; };
 		B132F3D38D21B719CF25B387 /* RankingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314BC67F93762607C5A7BFDE /* RankingEngine.swift */; };
 		BBEB5AE4CA3213E0A17D13C5 /* RemoteParkingRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E38BEE15124C90557D7DCA3 /* RemoteParkingRepository.swift */; };
+		CBE11642628CECC01D843412 /* StaticParkingSpatialIndexTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 297FD2D2EE86B081CDFAF634 /* StaticParkingSpatialIndexTests.swift */; };
+		D8B07902E9FCAC0372A71A9D /* StaticParkingSpatialIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99ADCE048BB2757EE03F52E6 /* StaticParkingSpatialIndex.swift */; };
 		DC3C3F8D35AF238910771637 /* restrictions.json in Resources */ = {isa = PBXBuildFile; fileRef = 301A559806C71BAC78A917B7 /* restrictions.json */; };
 		DF1E9E28BDD4DCC8BE88EAF2 /* StaticParkingRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47BF6FD4E4F9D00FAE448D71 /* StaticParkingRepositoryTests.swift */; };
 		E68C35B8778EE002B99ABB51 /* AvailabilityPin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B70525C712110B663350AA1 /* AvailabilityPin.swift */; };
@@ -80,6 +84,7 @@
 		1B4CD237284CEE57B25D537B /* ParkingOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkingOption.swift; sourceTree = "<group>"; };
 		22B7D0E92A86AAFE17AD247D /* ParkAlongUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkAlongUITests.swift; sourceTree = "<group>"; };
 		294A199F4552998C76C67604 /* AvailabilityEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvailabilityEngineTests.swift; sourceTree = "<group>"; };
+		297FD2D2EE86B081CDFAF634 /* StaticParkingSpatialIndexTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticParkingSpatialIndexTests.swift; sourceTree = "<group>"; };
 		301A559806C71BAC78A917B7 /* restrictions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = restrictions.json; sourceTree = "<group>"; };
 		3069812EAA382A66BCDCA377 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		314BC67F93762607C5A7BFDE /* RankingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingEngine.swift; sourceTree = "<group>"; };
@@ -90,6 +95,7 @@
 		4394FAA3B127B8A8ADB01D25 /* RestrictionEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestrictionEngineTests.swift; sourceTree = "<group>"; };
 		44451E8A231A417084799826 /* ParkingOptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkingOptionTests.swift; sourceTree = "<group>"; };
 		47BF6FD4E4F9D00FAE448D71 /* StaticParkingRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticParkingRepositoryTests.swift; sourceTree = "<group>"; };
+		48A1F9B281CAB7262BC46821 /* ParkingMarkerSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkingMarkerSelector.swift; sourceTree = "<group>"; };
 		50E588B1BBF03C8B8623C3DE /* historical_availability.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = historical_availability.json; sourceTree = "<group>"; };
 		6009E4D94206EB0F128454A6 /* ParkingMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkingMapView.swift; sourceTree = "<group>"; };
 		6325E13364B1EF1B96468BF3 /* BundleDataLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleDataLoader.swift; sourceTree = "<group>"; };
@@ -98,11 +104,13 @@
 		6CDA7A548B875B3D3B9C254B /* ParkAlong.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ParkAlong.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6DEB158348AD5645DD9EF0B0 /* RestrictionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestrictionEngine.swift; sourceTree = "<group>"; };
 		72226E6CA6CC2FE10D595BEA /* ParkingRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkingRepositoryTests.swift; sourceTree = "<group>"; };
+		75F160AACE3259123DB422B2 /* ParkingMarkerSelectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkingMarkerSelectorTests.swift; sourceTree = "<group>"; };
 		787E6973F51F16CA9F442FAA /* victoria_static_manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = victoria_static_manifest.json; sourceTree = "<group>"; };
 		7B6489A07DCDE835BF51A5BB /* PredictionRankingCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionRankingCacheTests.swift; sourceTree = "<group>"; };
 		7B70525C712110B663350AA1 /* AvailabilityPin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvailabilityPin.swift; sourceTree = "<group>"; };
 		7E38BEE15124C90557D7DCA3 /* RemoteParkingRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteParkingRepository.swift; sourceTree = "<group>"; };
 		8CFB2D1566E81623B5E1BFC5 /* ParkAlongUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ParkAlongUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		99ADCE048BB2757EE03F52E6 /* StaticParkingSpatialIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticParkingSpatialIndex.swift; sourceTree = "<group>"; };
 		AE9B12F2049BD91A9ECB5DAE /* ParkingRuleResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkingRuleResolver.swift; sourceTree = "<group>"; };
 		B0F1FBD74529A7AC8B799805 /* ParkingRuleResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkingRuleResolverTests.swift; sourceTree = "<group>"; };
 		B1DE8CF816FEF78018F98A3D /* ParkingRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkingRepository.swift; sourceTree = "<group>"; };
@@ -191,6 +199,7 @@
 				38CEB50FF79DDDFCD0A6A0D8 /* DestinationSearchServiceTests.swift */,
 				16A45176AD665B3782116DA9 /* ParkingAPIClientTests.swift */,
 				C3B6C431C3B32FBA27C8D3B8 /* ParkingMapViewModelTests.swift */,
+				75F160AACE3259123DB422B2 /* ParkingMarkerSelectorTests.swift */,
 				44451E8A231A417084799826 /* ParkingOptionTests.swift */,
 				72226E6CA6CC2FE10D595BEA /* ParkingRepositoryTests.swift */,
 				B0F1FBD74529A7AC8B799805 /* ParkingRuleResolverTests.swift */,
@@ -198,6 +207,7 @@
 				B62F3E21CE52BD95E0694744 /* RemoteParkingRepositoryTests.swift */,
 				4394FAA3B127B8A8ADB01D25 /* RestrictionEngineTests.swift */,
 				47BF6FD4E4F9D00FAE448D71 /* StaticParkingRepositoryTests.swift */,
+				297FD2D2EE86B081CDFAF634 /* StaticParkingSpatialIndexTests.swift */,
 			);
 			path = ParkAlongTests;
 			sourceTree = "<group>";
@@ -209,6 +219,7 @@
 				F72CEB631D4233646A08BE3B /* MapControls.swift */,
 				6009E4D94206EB0F128454A6 /* ParkingMapView.swift */,
 				C3CC03EE5AF64E9F03489E57 /* ParkingMapViewModel.swift */,
+				48A1F9B281CAB7262BC46821 /* ParkingMarkerSelector.swift */,
 			);
 			path = Map;
 			sourceTree = "<group>";
@@ -244,6 +255,7 @@
 				B1DE8CF816FEF78018F98A3D /* ParkingRepository.swift */,
 				7E38BEE15124C90557D7DCA3 /* RemoteParkingRepository.swift */,
 				BA5411D75F09370209CAF6AD /* StaticParkingRepository.swift */,
+				99ADCE048BB2757EE03F52E6 /* StaticParkingSpatialIndex.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -426,6 +438,7 @@
 				84346CCB3AC74DDB58885B25 /* DestinationSearchServiceTests.swift in Sources */,
 				97F154CDF26681B345925314 /* ParkingAPIClientTests.swift in Sources */,
 				3D670DC418F7B59DA15BB54C /* ParkingMapViewModelTests.swift in Sources */,
+				2A06F16AF0ECA1DF4422AD5A /* ParkingMarkerSelectorTests.swift in Sources */,
 				1EF0E538B24BB0866B43EC33 /* ParkingOptionTests.swift in Sources */,
 				5BF78C35C92ACFD8C3E020D5 /* ParkingRepositoryTests.swift in Sources */,
 				24C7DB94BAB87535780FFF18 /* ParkingRuleResolverTests.swift in Sources */,
@@ -433,6 +446,7 @@
 				F209205630C58EA50D41A6EE /* RemoteParkingRepositoryTests.swift in Sources */,
 				9BCC369289366A376FBC85F0 /* RestrictionEngineTests.swift in Sources */,
 				DF1E9E28BDD4DCC8BE88EAF2 /* StaticParkingRepositoryTests.swift in Sources */,
+				CBE11642628CECC01D843412 /* StaticParkingSpatialIndexTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -455,6 +469,7 @@
 				8A09B17F5D5E6E949CBBA31C /* ParkingAPIClient.swift in Sources */,
 				7F357FFECF281222991DEF44 /* ParkingMapView.swift in Sources */,
 				11B09167F99F4ADCA9F2B8B3 /* ParkingMapViewModel.swift in Sources */,
+				933B04A1230D74EC011C00E1 /* ParkingMarkerSelector.swift in Sources */,
 				F4940DCE1EB4F6925B9348BD /* ParkingModels.swift in Sources */,
 				B0A073681E86EF11EDAA2E4D /* ParkingOption.swift in Sources */,
 				7830976AE7942BC2CD1B5B12 /* ParkingRepository.swift in Sources */,
@@ -465,6 +480,7 @@
 				BBEB5AE4CA3213E0A17D13C5 /* RemoteParkingRepository.swift in Sources */,
 				45BE0C2A83C318A8FE91F629 /* RestrictionEngine.swift in Sources */,
 				E75657F650BDBF60D6AC8C05 /* StaticParkingRepository.swift in Sources */,
+				D8B07902E9FCAC0372A71A9D /* StaticParkingSpatialIndex.swift in Sources */,
 				5545685B14AAEAD2FB3FB934 /* ZoneDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -144,6 +144,7 @@ struct MapBottomChrome: View {
                     .padding(.vertical, 8)
                     .adaptiveGlassSurface(cornerRadius: 16)
                     .accessibilityLabel(statusText)
+                    .accessibilityIdentifier("availability-status")
             }
         }
     }
@@ -228,10 +229,11 @@ struct BestBetButton: View {
 struct StayDurationBar: View {
     @Bindable var viewModel: ParkingMapViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Namespace private var staySelection
     @State private var showingPlanner = false
-    @State private var plannerPrefersEightHours = false
+
+    private var trackShape: Capsule {
+        Capsule(style: .continuous)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -243,109 +245,51 @@ struct StayDurationBar: View {
                     .accessibilityIdentifier("planned-arrival-caption")
             }
 
-            HStack(alignment: .center, spacing: 8) {
-                stayTrack
-                plannerButton
-                refreshButton
+            AdaptiveGlassContainer(spacing: 8) {
+                VStack(spacing: 8) {
+                    stayTrack
+
+                    HStack(spacing: 8) {
+                        Spacer(minLength: 0)
+                        plannerButton
+                        refreshButton
+                    }
+                }
+                .adaptiveControlDock(cornerRadius: 22)
             }
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: viewModel.plan)
         .sensoryFeedback(.selection, trigger: viewModel.plan.durationMinutes)
         .sheet(isPresented: $showingPlanner) {
-            ArrivalStayPlannerView(viewModel: viewModel, preferEightHourDefault: plannerPrefersEightHours)
+            ArrivalStayPlannerView(viewModel: viewModel, preferEightHourDefault: false)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
                 .presentationContentInteraction(.resizes)
         }
     }
 
-    @ViewBuilder
     private var stayTrack: some View {
-        AdaptiveGlassContainer(spacing: 4) {
-            if dynamicTypeSize.isAccessibilitySize {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 4) {
-                    trackChips
-                }
-                .padding(6)
-            } else {
-                ScrollViewReader { proxy in
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 2) {
-                            trackChips
-                        }
-                        .scrollTargetLayout()
-                        .padding(4)
-                    }
-                    .scrollTargetBehavior(.viewAligned)
-                    .onAppear {
-                        proxy.scrollTo(selectedItem.id, anchor: .center)
-                    }
-                    .onChange(of: selectedItem) { _, item in
-                        if reduceMotion {
-                            proxy.scrollTo(item.id, anchor: .center)
-                        } else {
-                            withAnimation(.snappy(duration: 0.28)) {
-                                proxy.scrollTo(item.id, anchor: .center)
-                            }
-                        }
-                    }
-                }
+        Picker("Stay duration", selection: durationSelection) {
+            ForEach(StayTrackItem.all) { item in
+                Text(chipLabel(for: item, selected: selectedItem == item))
+                    .tag(item)
+                    .accessibilityLabel(item.accessibilityLabel)
+                    .accessibilityIdentifier(item.identifier)
             }
         }
-        .adaptiveControlDock(cornerRadius: 24)
-        .frame(maxWidth: .infinity)
+        .pickerStyle(.segmented)
+        .controlSize(.extraLarge)
+        .labelsHidden()
+        .frame(maxWidth: .infinity, minHeight: 44)
+        .accessibilityIdentifier("stay-duration-picker")
+        .padding(2)
+        .adaptiveGlassSurface(shape: trackShape, isInteractive: true)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("stay-duration-track")
-        .accessibilityAdjustableAction { direction in
-            adjustStay(direction)
-        }
-    }
-
-    @ViewBuilder
-    private var trackChips: some View {
-        ForEach(StayTrackItem.presets) { item in
-            stayChip(item)
-        }
-        stayChip(.extended)
-    }
-
-    private func stayChip(_ item: StayTrackItem) -> some View {
-        let selected = selectedItem == item
-        return Button {
-            select(item)
-        } label: {
-            Text(chipLabel(for: item, selected: selected))
-                .font(.subheadline.weight(selected ? .semibold : .medium))
-                .monospacedDigit()
-                .foregroundStyle(selected ? Color.white : Color.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-                .padding(.horizontal, 12)
-                .frame(minWidth: 44, minHeight: 44)
-                .background {
-                    if selected {
-                        if reduceMotion {
-                            Capsule().fill(Color.accentColor)
-                        } else {
-                            Capsule()
-                                .fill(Color.accentColor)
-                                .matchedGeometryEffect(id: "stay-selection", in: staySelection)
-                        }
-                    }
-                }
-                .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .id(item.id)
-        .accessibilityLabel(item.accessibilityLabel)
-        .accessibilityValue(selected ? "selected" : "not selected")
-        .accessibilityIdentifier(item.identifier)
-        .accessibilityAddTraits(selected ? [.isSelected] : [])
     }
 
     private var plannerButton: some View {
         Button {
-            plannerPrefersEightHours = false
             showingPlanner = true
         } label: {
             Image(systemName: "calendar.badge.clock")
@@ -386,6 +330,13 @@ struct StayDurationBar: View {
         StayTrackItem.matching(durationMinutes: viewModel.plan.durationMinutes)
     }
 
+    private var durationSelection: Binding<StayTrackItem> {
+        Binding(
+            get: { selectedItem },
+            set: { select($0) }
+        )
+    }
+
     private func chipLabel(for item: StayTrackItem, selected: Bool) -> String {
         if item == .extended, selected, !StayTrackItem.presetMinutes.contains(viewModel.plan.durationMinutes) {
             return StayPlanFormatting.compactDuration(viewModel.plan.durationMinutes)
@@ -404,23 +355,16 @@ struct StayDurationBar: View {
                 )
             )
         case .extended:
-            plannerPrefersEightHours = selectedItem != .extended
-            showingPlanner = true
+            viewModel.applyPlan(
+                ParkingPlan(
+                    arrival: viewModel.plan.arrival,
+                    duration: .eightHours,
+                    isPublicHoliday: viewModel.plan.isPublicHoliday
+                )
+            )
         }
     }
 
-    private func adjustStay(_ direction: AccessibilityAdjustmentDirection) {
-        let items = StayTrackItem.presets + [.extended]
-        guard let current = items.firstIndex(of: selectedItem) else { return }
-        let next: Int
-        switch direction {
-        case .increment: next = min(items.count - 1, current + 1)
-        case .decrement: next = max(0, current - 1)
-        @unknown default: return
-        }
-        guard next != current else { return }
-        select(items[next])
-    }
 }
 
 private enum StayTrackItem: Hashable, Identifiable {
@@ -429,6 +373,7 @@ private enum StayTrackItem: Hashable, Identifiable {
 
     static let presetMinutes = [15, 60, 120, 180, 240, 360]
     static let presets = presetMinutes.map(StayTrackItem.minutes)
+    static let all = presets + [.extended]
 
     var id: String { identifier }
 
@@ -460,7 +405,7 @@ private enum StayTrackItem: Hashable, Identifiable {
         case .minutes(180): "3 hours"
         case .minutes(240): "4 hours"
         case .minutes(360): "6 hours"
-        case .extended: "8 hours or custom stay, opens arrival and stay planner"
+        case .extended: "8 hours"
         default: "Stay duration"
         }
     }

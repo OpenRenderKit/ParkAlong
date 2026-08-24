@@ -115,14 +115,32 @@ final class RemoteParkingRepositoryTests: XCTestCase {
         XCTAssertEqual(options.map(\.id), ["static-bundled"])
     }
 
+    func testStaticRepositoryDoesNotHideRemoteRefreshBehindItsViewportCache() async {
+        let first = location(id: "changing", checkedAt: arrival, capacity: 10)
+        let second = location(id: "changing", checkedAt: arrival.addingTimeInterval(60), capacity: 20)
+        let remote = SequenceRemoteParkingProvider(responses: [[first], [second]])
+        let repository = StaticParkingRepository(locations: [], remote: remote)
+        let viewport = ParkingViewport(south: -38, west: 144, north: -37, east: 145, zoomLevel: 14)
+        let plan = ParkingPlan(arrival: arrival, durationMinutes: 60)
+
+        let firstOptions = await repository.options(in: viewport, plan: plan)
+        let secondOptions = await repository.options(in: viewport, plan: plan)
+        let requestCount = await remote.requestCount
+
+        XCTAssertEqual(firstOptions.first?.total, 10)
+        XCTAssertEqual(secondOptions.first?.total, 20)
+        XCTAssertEqual(requestCount, 2)
+    }
+
     private func location(
         id: String,
         coordinate: Coordinate = .melbourneCBD,
-        checkedAt: Date
+        checkedAt: Date,
+        capacity: Int = 10
     ) -> StaticParkingLocation {
         .init(
             id: id, name: id, municipality: "Fixture", coordinate: coordinate,
-            kind: .offStreet, archetype: .general, capacity: 10, accessibleSpaces: nil,
+            kind: .offStreet, archetype: .general, capacity: capacity, accessibleSpaces: nil,
             schedules: [], tariffs: [],
             source: .init(
                 id: "fixture", name: "Fixture", sourceURL: URL(string: "https://example.com")!,
@@ -146,6 +164,20 @@ private struct TestRemoteEnvelope: Encodable {
 private actor FailingRemoteParkingProvider: RemoteParkingProviding {
     func locations(for query: RemoteParkingQuery) async throws -> [StaticParkingLocation] {
         throw RemoteParkingError.invalidResponse
+    }
+}
+
+private actor SequenceRemoteParkingProvider: RemoteParkingProviding {
+    private var responses: [[StaticParkingLocation]]
+    private(set) var requestCount = 0
+
+    init(responses: [[StaticParkingLocation]]) {
+        self.responses = responses
+    }
+
+    func locations(for query: RemoteParkingQuery) async throws -> [StaticParkingLocation] {
+        requestCount += 1
+        return responses.isEmpty ? [] : responses.removeFirst()
     }
 }
 
