@@ -115,6 +115,30 @@ final class ParkAlongUITests: XCTestCase {
         XCTAssertEqual(picker.buttons.count, 7)
     }
 
+    func testStayDurationSegmentsHaveFullHeightTargetsAndAcceptAdjacentSelections() {
+        let app = launch()
+        XCTAssertTrue(app.segmentedControls["stay-duration-picker"].waitForExistence(timeout: 3))
+
+        for identifier in ["duration-3h", "duration-4h", "duration-6h"] {
+            XCTAssertGreaterThanOrEqual(app.buttons[identifier].frame.height, 44, identifier)
+        }
+
+        for (identifier, statusText) in [
+            ("duration-3h", "3-hour stay"),
+            ("duration-4h", "4-hour stay"),
+            ("duration-6h", "6-hour stay")
+        ] {
+            let segment = app.buttons[identifier]
+            XCTAssertTrue(segment.isHittable, identifier)
+            segment.tap()
+            let expectation = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "label CONTAINS[c] %@", statusText),
+                object: app.staticTexts["availability-status"]
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 3), .completed, identifier)
+        }
+    }
+
     func testPrimaryMapActionsRemainDiscoverableInAdaptiveChrome() {
         let app = launch()
 
@@ -126,7 +150,7 @@ final class ParkAlongUITests: XCTestCase {
         XCTAssertTrue(app.buttons["refresh-availability-button"].exists)
     }
 
-    func testStayTrackExposesEveryPresetAndOpensPlanner() {
+    func testStayTrackExposesEveryPresetAndEightHoursDoesNotOpenPlanner() {
         let app = launch()
         XCTAssertTrue(element("stay-duration-track", in: app).waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["duration-more"].exists)
@@ -136,18 +160,21 @@ final class ParkAlongUITests: XCTestCase {
         }
 
         app.buttons["duration-8h+"].tap()
-        XCTAssertTrue(element("arrival-stay-planner", in: app).waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["planner-arrival-tomorrow"].exists)
-        XCTAssertTrue(app.buttons["planner-apply"].exists)
-        XCTAssertTrue(element("planner-arrival-context", in: app).exists)
+        waitForValue("selected", on: app.buttons["duration-8h+"])
+        XCTAssertFalse(element("arrival-stay-planner", in: app).exists)
+        let expectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label CONTAINS[c] %@", "8-hour stay"),
+            object: app.staticTexts["availability-status"]
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 3), .completed)
     }
 
     func testPlannerAppliesFutureCustomStay() {
         let app = launch()
         XCTAssertTrue(element("stay-duration-track", in: app).waitForExistence(timeout: 3))
-        let eightHoursPlus = app.buttons["duration-8h+"]
-        XCTAssertTrue(eightHoursPlus.waitForExistence(timeout: 2))
-        eightHoursPlus.tap()
+        let plannerButton = app.buttons["arrival-planner-button"]
+        XCTAssertTrue(plannerButton.waitForExistence(timeout: 2))
+        plannerButton.tap()
         XCTAssertTrue(element("arrival-stay-planner", in: app).waitForExistence(timeout: 2))
 
         app.buttons["planner-arrival-tomorrow"].tap()

@@ -19,6 +19,7 @@ enum ParkingSearchState: Equatable {
 @Observable
 @MainActor
 final class ParkingMapViewModel {
+    private static let viewportQueryPaddingFraction = 0.5
     private let repository: any ParkingRepositoryProviding
     private let locationService: any LocationProviding
     private let destinationSearch: any DestinationSearching
@@ -116,7 +117,7 @@ final class ParkingMapViewModel {
         let generation = refreshGeneration
         let plan = self.plan
         let now = Date.now
-        let viewport = self.viewport
+        let viewport = self.viewport.padded(by: Self.viewportQueryPaddingFraction)
         state = .loading
         let task = Task { [weak self] in
             guard let self else { return }

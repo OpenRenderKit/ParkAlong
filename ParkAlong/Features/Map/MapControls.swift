@@ -230,7 +230,6 @@ struct StayDurationBar: View {
     @Bindable var viewModel: ParkingMapViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingPlanner = false
-    @State private var plannerPrefersEightHours = false
 
     private var trackShape: Capsule {
         Capsule(style: .continuous)
@@ -262,7 +261,7 @@ struct StayDurationBar: View {
         .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: viewModel.plan)
         .sensoryFeedback(.selection, trigger: viewModel.plan.durationMinutes)
         .sheet(isPresented: $showingPlanner) {
-            ArrivalStayPlannerView(viewModel: viewModel, preferEightHourDefault: plannerPrefersEightHours)
+            ArrivalStayPlannerView(viewModel: viewModel, preferEightHourDefault: false)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
                 .presentationContentInteraction(.resizes)
@@ -279,11 +278,11 @@ struct StayDurationBar: View {
             }
         }
         .pickerStyle(.segmented)
+        .controlSize(.extraLarge)
         .labelsHidden()
-        .frame(maxWidth: .infinity, minHeight: 36)
+        .frame(maxWidth: .infinity, minHeight: 44)
         .accessibilityIdentifier("stay-duration-picker")
-        .padding(.horizontal, 5)
-        .padding(.vertical, 4)
+        .padding(2)
         .adaptiveGlassSurface(shape: trackShape, isInteractive: true)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("stay-duration-track")
@@ -291,7 +290,6 @@ struct StayDurationBar: View {
 
     private var plannerButton: some View {
         Button {
-            plannerPrefersEightHours = false
             showingPlanner = true
         } label: {
             Image(systemName: "calendar.badge.clock")
@@ -357,8 +355,13 @@ struct StayDurationBar: View {
                 )
             )
         case .extended:
-            plannerPrefersEightHours = selectedItem != .extended
-            showingPlanner = true
+            viewModel.applyPlan(
+                ParkingPlan(
+                    arrival: viewModel.plan.arrival,
+                    duration: .eightHours,
+                    isPublicHoliday: viewModel.plan.isPublicHoliday
+                )
+            )
         }
     }
 
@@ -402,7 +405,7 @@ private enum StayTrackItem: Hashable, Identifiable {
         case .minutes(180): "3 hours"
         case .minutes(240): "4 hours"
         case .minutes(360): "6 hours"
-        case .extended: "8 hours or custom stay, opens arrival and stay planner"
+        case .extended: "8 hours"
         default: "Stay duration"
         }
     }

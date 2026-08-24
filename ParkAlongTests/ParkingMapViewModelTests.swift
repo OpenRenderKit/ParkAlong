@@ -394,9 +394,43 @@ final class ParkingMapViewModelTests: XCTestCase {
 
         let lastStartedViewport = await repository.lastStartedViewport
         let totalStartedCount = await repository.totalStartedCount
-        XCTAssertEqual(lastStartedViewport, newest)
+        XCTAssertEqual(lastStartedViewport!.south, -36.88, accuracy: 0.000_001)
+        XCTAssertEqual(lastStartedViewport!.west, 144.12, accuracy: 0.000_001)
+        XCTAssertEqual(lastStartedViewport!.north, -36.64, accuracy: 0.000_001)
+        XCTAssertEqual(lastStartedViewport!.east, 144.44, accuracy: 0.000_001)
+        XCTAssertEqual(lastStartedViewport!.zoomLevel, 13)
         XCTAssertEqual(totalStartedCount, 1)
         await repository.completeLast(with: result(notice: "newest"))
+    }
+
+    func testViewportRefreshQueriesBeyondEveryVisibleEdge() async {
+        let repository = ControllableParkingRepository()
+        let viewModel = ParkingMapViewModel(
+            repository: repository,
+            locationService: FixtureLocationService(denied: true),
+            destinationSearch: FixtureDestinationSearchService(),
+            navigator: AppleMapsNavigator(intercept: true),
+            offStreetService: FixtureOffStreetParkingService(includeResult: false),
+            staticParkingService: StaticParkingRepository(locations: []),
+            viewportDebounce: .zero
+        )
+        let visible = ParkingViewport(
+            south: -37.84, west: 144.92,
+            north: -37.78, east: 145.00,
+            zoomLevel: 14
+        )
+
+        viewModel.updateViewport(visible, interactionEnded: true)
+        await repository.waitForStartedRequestCount(1)
+
+        let queried = await repository.lastStartedViewport
+        XCTAssertNotNil(queried)
+        XCTAssertLessThan(queried!.south, visible.south)
+        XCTAssertLessThan(queried!.west, visible.west)
+        XCTAssertGreaterThan(queried!.north, visible.north)
+        XCTAssertGreaterThan(queried!.east, visible.east)
+        XCTAssertEqual(queried!.zoomLevel, visible.zoomLevel)
+        await repository.completeLast(with: result(notice: "prefetched"))
     }
 
     func testImmaterialCameraJitterDoesNotStartAViewportRefresh() async {
@@ -426,7 +460,7 @@ final class ParkingMapViewModelTests: XCTestCase {
         XCTAssertEqual(totalStartedCount, 0)
     }
 
-    func testChoosingDestinationRefreshesOneMapSizedViewport() async {
+    func testChoosingDestinationRefreshesOneBufferedMapViewport() async {
         let repository = RefreshCountingParkingRepository()
         let viewModel = ParkingMapViewModel(
             repository: repository,
@@ -446,7 +480,11 @@ final class ParkingMapViewModelTests: XCTestCase {
         let refreshCount = await repository.refreshCount
         let lastViewport = await repository.lastViewport
         XCTAssertEqual(refreshCount, 1)
-        XCTAssertEqual(lastViewport, viewModel.viewport)
+        XCTAssertLessThan(lastViewport!.south, viewModel.viewport.south)
+        XCTAssertLessThan(lastViewport!.west, viewModel.viewport.west)
+        XCTAssertGreaterThan(lastViewport!.north, viewModel.viewport.north)
+        XCTAssertGreaterThan(lastViewport!.east, viewModel.viewport.east)
+        XCTAssertEqual(lastViewport!.zoomLevel, viewModel.viewport.zoomLevel)
         XCTAssertLessThan(viewModel.viewport.latitudeSpan, 0.01)
         XCTAssertLessThan(viewModel.viewport.longitudeSpan, 0.015)
         XCTAssertEqual(viewModel.mapFocusRequest, viewModel.viewport)
@@ -494,7 +532,7 @@ final class ParkingMapViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.staticOptions.first?.classification, .staticOnly)
     }
 
-    func testRefreshPassesTheExactVisibleViewportToOffStreetDiscovery() async {
+    func testRefreshPassesTheBufferedViewportToOffStreetDiscovery() async {
         let offStreet = ViewportCapturingOffStreetService()
         let viewModel = ParkingMapViewModel(
             repository: FixtureParkingRepository(mode: .live),
@@ -512,7 +550,11 @@ final class ParkingMapViewModelTests: XCTestCase {
         await viewModel.refresh(force: true)
 
         let requestedViewport = await offStreet.lastViewport
-        XCTAssertEqual(requestedViewport, bendigoViewport)
+        XCTAssertEqual(requestedViewport!.south, -36.85, accuracy: 0.000_001)
+        XCTAssertEqual(requestedViewport!.west, 144.12, accuracy: 0.000_001)
+        XCTAssertEqual(requestedViewport!.north, -36.65, accuracy: 0.000_001)
+        XCTAssertEqual(requestedViewport!.east, 144.44, accuracy: 0.000_001)
+        XCTAssertEqual(requestedViewport!.zoomLevel, 12)
     }
 
     func testSelectingClusterRequestsZoomInsteadOfOpeningParkingDetails() async {
