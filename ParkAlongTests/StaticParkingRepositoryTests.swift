@@ -127,7 +127,7 @@ final class StaticParkingRepositoryTests: XCTestCase {
         )
         let repository = StaticParkingRepository(locations: [unknown, onStreet, offStreet])
 
-        let options = await repository.options(in: viewport(center: .melbourneCBD), plan: plan(.oneHour))
+        let options = await repository.options(in: viewport(center: .melbourneCBD), relativeTo: reference(), plan: plan(.oneHour))
         let byID = Dictionary(uniqueKeysWithValues: options.map { ($0.id, $0) })
 
         XCTAssertEqual(byID["static-unknown"]?.kind, .unknown)
@@ -488,7 +488,7 @@ final class StaticParkingRepositoryTests: XCTestCase {
         XCTAssertEqual(metrics.entries, 2)
     }
 
-    func testZoomedOutClusterUsesUnknownKindForMixedAndUnknownMembers() async {
+    func testZoomedOutClusterUsesUnknownKindForMixedAndUnknownMembers() async throws {
         let kinds: [StaticParkingKind] = [.unknown, .onStreet, .offStreet]
         let locations = kinds.enumerated().map { index, kind in
             fixture(
@@ -506,7 +506,7 @@ final class StaticParkingRepositoryTests: XCTestCase {
         let repository = StaticParkingRepository(locations: locations, resultLimit: 80)
         let wide = ParkingViewport(south: -38.0, west: 144.7, north: -37.6, east: 145.1, zoomLevel: 9)
 
-        let options = await repository.options(in: wide, plan: plan(.oneHour))
+        let options = await repository.options(in: wide, relativeTo: reference(coordinate: wide.center), plan: plan(.oneHour))
 
         XCTAssertEqual(options.count, 1)
         XCTAssertEqual(options[0].kind, .unknown)
@@ -518,7 +518,8 @@ final class StaticParkingRepositoryTests: XCTestCase {
         XCTAssertEqual(options[0].title, "3 parking locations")
         XCTAssertEqual(options[0].locationLabel, "Glen Waverley, Monash")
         XCTAssertEqual(options[0].pinLabel, "3")
-        XCTAssertEqual(options[0].clusterViewport?.zoomLevel, 11)
+        let target = try XCTUnwrap(options[0].clusterViewport)
+        XCTAssertEqual(target.zoomLevel, log2(360 / max(target.longitudeSpan, 0.002)), accuracy: 0.000_001)
     }
 
     func testWideViewportClustersEveryVisibleRecordInsteadOfTruncatingAroundTheCentre() async {
@@ -575,6 +576,7 @@ final class StaticParkingRepositoryTests: XCTestCase {
         let matches = await repository.search(
             "Glen Waverley",
             near: viewport(center: glenWaverley.coordinate),
+            relativeTo: reference(coordinate: glenWaverley.coordinate),
             plan: plan(.oneHour)
         )
 
@@ -620,7 +622,7 @@ final class StaticParkingRepositoryTests: XCTestCase {
         let repository = StaticParkingRepository(
             locations: [withLocality, missing, duplicate, blank, caseDuplicate]
         )
-        let options = await repository.options(in: viewport(center: .melbourneCBD), plan: plan(.oneHour))
+        let options = await repository.options(in: viewport(center: .melbourneCBD), relativeTo: reference(), plan: plan(.oneHour))
         let byID = Dictionary(uniqueKeysWithValues: options.map { ($0.id, $0) })
 
         XCTAssertEqual(byID["static-with-locality"]?.locationLabel, "Glen Waverley, Monash")
