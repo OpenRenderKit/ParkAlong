@@ -1,12 +1,12 @@
 # Victoria parking source coverage checklist
 
-Research checkpoint: **23 August 2026 (Australia/Melbourne)**.
+Research checkpoint: **19 September 2026 (Australia/Melbourne)**. The narrative ledger below preserves the earlier area-by-area research notes. Its count column is the 23 August snapshot. The fresh 35,004-record spatial join, evidence-quality bands, gap priorities, and complete 87-area JSON are in the [19 September geographic coverage audit](victoria-parking-geographic-coverage-2026-09-19.md). See also the [source-expansion checkpoint](victoria-parking-source-expansion-2026-09-19.md).
 
 This is the exhaustive area ledger for ParkAlong's Victorian scope. It uses the [Victorian Electoral Commission's 79-council list](https://www.vec.vic.gov.au/electoral-boundaries/local-councils) and [Vicmap Admin](https://discover.data.vic.gov.au/dataset/vicmap-admin) LGA polygons. Vicmap returns 87 polygons: 79 councils plus eight unincorporated areas.
 
 Every row below has been checked against:
 
-1. the generated 34,023-record ParkAlong catalogue and its integrity manifest;
+1. the generated 35,004-record ParkAlong catalogue and its integrity manifest;
 2. council/authority parking pages, maps, studies and open-data portals;
 3. DataVic parking searches;
 4. public ArcGIS items and FeatureServer schemas;
@@ -24,7 +24,7 @@ Every row below has been checked against:
 - **CANDIDATE** — public technical source found, but provenance/licensing is not yet strong enough to ship;
 - **N/A** — ordinary public motor-vehicle parking is not a meaningful product case.
 
-The catalogue count is a spatial join of ParkAlong's current static records to the area boundary. It measures discoverable locations, not rule completeness or availability quality.
+The count column below is retained as a historical research snapshot. Use the linked geographic audit for current counts. In either report, counts measure discoverable locations, not rule completeness or availability quality.
 
 ## 79 councils
 
@@ -76,7 +76,7 @@ The catalogue count is a spatial join of ParkAlong's current static records to t
 | [x] | Melbourne | 883 static | LIVE, STATIC, HIST | Only verified fresh anonymous Victorian occupancy feed; extensive restrictions, meters and 2011–2020 history also exist |
 | [x] | Melton | 460 | DOC | Restriction map and general rules found; no maintained structured or live source |
 | [x] | Merri-bek | 421 | INTERNAL, APP, DOC | Sensor/vendor and EasyPark evidence plus policies; no anonymous live state found |
-| [x] | Mildura | 554 | DOC, HIST | Published parking supply and free-parking context; no public live/transaction feed found |
+| [x] | Mildura | 554 | STATIC, DOC, HIST | Official CC BY accessible-bay GeoJSON now contributes 368 public disabled-only records; restricted staff/permit/club rows are excluded, and no public live/transaction feed was found |
 | [x] | Mitchell | 161 | DOC | General rules/project material only; no structured authority parking source found |
 | [x] | Moira | 74 | DOC, HIST | Cobram/Yarrawonga precinct plans provide static/survey evidence; no maintained feed found |
 | [x] | Monash | 817 baseline | STATIC, INTERNAL, DOC | Sensors remain internal; the consultant ArcGIS study geometry now contributes 1,440 attributed static records without inventing restriction fields |
@@ -96,7 +96,7 @@ The catalogue count is a spatial join of ParkAlong's current static records to t
 | [x] | Stonnington | 194 | INTERNAL, APP, STATIC | Sensor/PayStay and public-sign evidence plus curated facilities; no anonymous live endpoint |
 | [x] | Strathbogie | 43 | DOC sparse | Individual project evidence found; no municipality-wide structured source or study found |
 | [x] | Surf Coast | 270 | INTERNAL, DOC | 399 sensors across major coastal towns; no public timestamped vacancy response verified |
-| [x] | Swan Hill | 112 | DOC | Current meter rate and two-hour rule published; no structured tariff/availability API |
+| [x] | Swan Hill | 112 | STATIC, DOC | Official CC BY accessible-parking CSV now contributes 45 static locations; current meter rate and two-hour rule remain page evidence, with no availability API |
 | [x] | Towong | 88 | OSM | No parking-specific authority dataset, map, tariff table or utilisation study found |
 | [x] | Wangaratta | 130 | DOC, APP | Current weekday meter rate and EasyPark coverage; no anonymous occupancy feed |
 | [x] | Warrnambool | 188 | DOC, HIST | Current hourly/all-day prices and studies; no public live source found |
@@ -128,8 +128,9 @@ The catalogue count is a spatial join of ParkAlong's current static records to t
 - **87/87 areas identified and checked**: 79 councils and eight unincorporated polygons.
 - **79/79 councils have at least an OSM location baseline** in the current catalogue.
 - **86/87 polygons have at least one catalogue record**; Gabo Island is intentionally the exception because normal road parking is not applicable.
+- The fresh spatial audit finds only **41/79 councils with any non-OSM record** and **38/79 councils that remain discovery-only**. These quality gaps, rather than statewide raw volume, now drive acquisition priority.
 - **One area has verified fresh anonymous occupancy**: City of Melbourne.
-- Static council and approved contractor/consultant services for Wodonga, Manningham, Latrobe, Moorabool, Colac Otway, Monash and Southern Grampians are now integrated with source-specific attribution.
+- Static council, state and approved contractor/consultant services for Wodonga, Manningham, Latrobe, Moorabool, Mildura, Swan Hill, Vicmap, Colac Otway, Monash and Southern Grampians are now integrated with source-specific attribution.
 - A source may help one part of the product without answering the others: a carpark polygon can improve search, a sign layer can resolve time limits, transactions can train demand models, and only a fresh recognized sensor event may claim “available now.”
 
 ## Next verification queue

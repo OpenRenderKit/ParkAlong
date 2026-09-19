@@ -4,7 +4,9 @@ from unittest.mock import patch
 
 from Scripts.probe_victoria_sources import (
     classify_occupancy_records,
+    probe_mildura_accessible,
     probe_melbourne,
+    probe_vicmap_parking,
     summarize_maribyrnong,
 )
 
@@ -85,6 +87,31 @@ class StaticSourceSummaryTests(unittest.TestCase):
         self.assertEqual(10379, result["parkingExplorerCounts"]["regularBays"])
         self.assertEqual("unavailable", result["historicalMap"]["status"])
         self.assertEqual("not exposed by these anonymous endpoints", result["occupancy"])
+
+    @patch("Scripts.probe_victoria_sources._request_json")
+    def test_mildura_accessible_probe_never_promotes_sensor_flag_to_occupancy(self, request_json):
+        request_json.return_value = {
+            "features": [{"properties": {"Updated": "20230906", "Sensor": "no"}}]
+        }
+
+        result = probe_mildura_accessible(timeout=1)
+
+        self.assertEqual("static_locations_or_restrictions", result["classification"])
+        self.assertEqual(1, result["parkingFeatures"])
+        self.assertIn("not present", result["occupancy"])
+
+    @patch("Scripts.probe_victoria_sources._request_json")
+    def test_vicmap_probe_classifies_parking_areas_as_static(self, request_json):
+        request_json.side_effect = [
+            {"editingInfo": {"dataLastEditDate": 1789237014104}},
+            {"count": 464},
+        ]
+
+        result = probe_vicmap_parking(timeout=1)
+
+        self.assertEqual("static_locations_or_restrictions", result["classification"])
+        self.assertEqual(464, result["parkingFeatures"])
+        self.assertEqual("not present", result["occupancy"])
 
 
 class MelbourneProbeTests(unittest.TestCase):

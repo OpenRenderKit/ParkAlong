@@ -14,10 +14,13 @@ from generate_victoria_static_catalog import (  # noqa: E402
     build_latrobe_records,
     build_manningham_records,
     build_maribyrnong_records,
+    build_mildura_accessible_records,
     build_monash_records,
     build_moorabool_records,
     build_osm_records,
     build_southern_grampians_records,
+    build_swan_hill_accessible_records,
+    build_vicmap_parking_records,
     build_wodonga_records,
     curated_official_records,
     deduplicate_records,
@@ -157,6 +160,60 @@ class VictoriaStaticCatalogTests(unittest.TestCase):
         self.assertEqual(latrobe["accessibleSpaces"], 1)
         self.assertEqual(latrobe["schedules"][0]["maxStayMinutes"], 120)
         self.assertEqual(moorabool["municipality"], "Moorabool")
+
+    def test_mildura_accessible_bays_keep_scope_rules_freshness_and_open_licence(self):
+        features = [{
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [142.1616, -34.1870]},
+            "properties": {
+                "Mode": "disabled", "Updated": "20230906", "Ref": "49",
+                "Days": "Monday; Tuesday; Wednesday; Thursday; Friday; Saturday; Sunday",
+                "Minsmax": "120", "Hourlyfee": "0.00", "Type": "street", "Capacity": "1",
+                "Address": "122 Ninth ST, MILDURA", "Location": "Mallee Family Care",
+            },
+        }]
+
+        record = build_mildura_accessible_records(features, checked_at="2026-09-19T00:00:00Z")[0]
+
+        self.assertEqual(record["id"], "mildura-accessible-49")
+        self.assertEqual(record["accessibleSpaces"], 1)
+        self.assertEqual(record["schedules"][0]["maxStayMinutes"], 120)
+        self.assertEqual(record["tariffs"][0]["hourlyCents"], 0)
+        self.assertEqual(record["source"]["datasetUpdatedAt"], "2023-09-06T00:00:00Z")
+        self.assertEqual(record["source"]["licenseName"], "Creative Commons Attribution 3.0 Australia")
+        self.assertEqual(record["classification"], "static_only")
+
+    def test_swan_hill_accessible_bays_are_static_and_attributed(self):
+        rows = [{
+            "id": "4", "lat": "-35.340608", "lon": "143.560907",
+            "name": "McCrae Street between Campbell Street and Curlewis Street, Swan Hill",
+        }]
+
+        record = build_swan_hill_accessible_records(rows, checked_at="2026-09-19T00:00:00Z")[0]
+
+        self.assertEqual(record["id"], "swan-hill-accessible-4")
+        self.assertEqual(record["municipality"], "Swan Hill")
+        self.assertEqual(record["capacity"], 1)
+        self.assertEqual(record["accessibleSpaces"], 1)
+        self.assertEqual(record["classification"], "static_only")
+
+    def test_vicmap_parking_areas_use_authoritative_cc_by_source_without_live_claim(self):
+        features = [{
+            "attributes": {
+                "OBJECTID": 433, "feature_ufi": 76321071,
+                "feature_subtype": "parking area", "name_label": "Royal Womens Hospital",
+            },
+            "geometry": {"x": 144.95545, "y": -37.79868},
+        }]
+
+        record = build_vicmap_parking_records(
+            features, checked_at="2026-09-19T00:00:00Z", dataset_updated_at="2026-09-13T00:00:00Z",
+        )[0]
+
+        self.assertEqual(record["id"], "vicmap-parking-76321071")
+        self.assertEqual(record["municipality"], "Victoria")
+        self.assertEqual(record["classification"], "static_only")
+        self.assertEqual(record["source"]["licenseName"], "Creative Commons Attribution 4.0")
 
     def test_approved_contractor_sources_remain_traceable_to_their_actual_publishers(self):
         colac = build_colac_otway_records([{

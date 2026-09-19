@@ -3,7 +3,11 @@ import Foundation
 struct StaticCatalogManifest: Decodable, Equatable, Sendable {
     let generatedAt: Date
     let recordCount: Int
+    let municipalityCount: Int?
+    let sourceCount: Int?
     let sourceCounts: [String: Int]
+    let sourceAttributions: [ParkingSourceAttribution]?
+    let accessibleRecordCount: Int?
     let outputBytes: Int
     let outputSHA256: String
 

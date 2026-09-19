@@ -1,6 +1,6 @@
 # Victorian parking data source audit
 
-Checked on **23 August 2026 (Australia/Melbourne)**. This is an endpoint audit, not a list of vendor claims.
+Checked on **19 September 2026 (Australia/Melbourne)**. This is an endpoint audit, not a list of vendor claims. The original 23 August statewide pass remains below; the [19 September source-expansion checkpoint](victoria-parking-source-expansion-2026-09-19.md) records the newer priority scores, licensing decisions, implementation, and measured bundle impact.
 
 ## Integration rule
 
@@ -16,9 +16,19 @@ An HTTP 200 response, recent catalog metadata, an app-store description, or the 
 
 **City of Melbourne remains the only verified, current, anonymous live occupancy feed found.** Several councils operate sensor networks and consumer apps, but no second feed met all of ParkAlong's anonymous-access and timestamp requirements during this audit.
 
-Useful anonymous static sources do exist for Maribyrnong, Ballarat, Casey, Boroondara, Wodonga, Manningham, Latrobe, Moorabool, selected authority car parks, approved contractor/consultant layers, and statewide through OpenStreetMap. The generated ParkAlong catalog contains **34,023** nearby-searchable records after stable-ID deduplication and removal of explicitly restricted OpenStreetMap parking. Its checked-in manifest records the exact per-source counts, byte size and SHA-256 digest. Geelong's cached “real-time” resources are historical and are not safe for current availability.
+Useful anonymous static sources do exist for Maribyrnong, Ballarat, Casey, Boroondara, Wodonga, Manningham, Latrobe, Moorabool, Mildura, Swan Hill, Vicmap parking areas, selected authority car parks, approved contractor/consultant layers, and statewide through OpenStreetMap. The generated ParkAlong catalog contains **35,004** nearby-searchable records after stable-ID deduplication and removal of explicitly restricted OpenStreetMap parking. Its checked-in manifest records complete source attribution, exact per-source counts, municipality/source/accessibility counts, byte size and SHA-256 digest. Geelong's cached “real-time” resources remain historical and are not safe for current availability.
+
+The 19 September endpoint probes added three reusable sources without changing the live-data boundary:
+
+| Source | Anonymous result | Published terms | Classification | ParkAlong decision |
+| --- | ---: | --- | --- | --- |
+| [Vicmap Features of Interest](https://www.arcgis.com/home/item.html?id=57b2690423b14af89ae67c6c47606e9f) | 464 `parking area` features; service data updated 13 Sep 2026 | CC BY 4.0 | Current static authority geometry | Include all valid parking-area centroids; no occupancy/capacity/tariff claim |
+| [Mildura disabled carparks](https://data.gov.au/data/dataset/mildura-rural-city-council-disabled-carparks) | 389 rows; 368 public disabled-only rows retained | CC BY 3.0 Australia | Accessible bays, restrictions and zero-fee metadata; static only | Exclude staff, permit, club, worker and no-stopping rows; never treat `Sensor` as bay state |
+| [Swan Hill disabled parking](https://data.gov.au/data/dataset/swan-hill-rural-city-council-disabled-parking) | 45 geocoded rows; publisher updated 21 Nov 2025 | CC BY 3.0 Australia | Accessible locations; static only | Include with one known accessible space per row and no invented restrictions |
 
 The separate [87-area coverage checklist](victoria-area-parking-source-checklist.md) records the research status for all 79 councils and all eight Vicmap unincorporated areas. A checked area means that its council pages, Victoria's central catalogue, public ArcGIS items and existing ParkAlong catalogue coverage were inspected; it does **not** mean that every area has live data.
+
+The [19 September 2026 geographic coverage audit](victoria-parking-geographic-coverage-2026-09-19.md) performs a fresh spatial join of all 35,004 bundled records. All 79 councils contain at least an OSM point, but only 41 contain any non-OSM record and 38 remain discovery-only. Its complete JSON matrix separates raw location presence from authority geometry, schedules, tariffs, capacity, accessibility, and live occupancy.
 
 ## Statewide catalogue and hidden-service scan
 
@@ -184,7 +194,7 @@ These are deliberately **not integration leads** under ParkAlong's anonymous-onl
 ## Implemented integration
 
 1. City of Melbourne remains the only live sensor adapter.
-2. The bundled catalog contains 477 clustered Maribyrnong results, 746 Ballarat zones, 668 Casey results, 155 Boroondara car parks, 24 curated official facilities/areas, 672 Wodonga records, 385 Manningham records, 273 Latrobe records, 178 Moorabool records, 165 Colac Otway records, 1,440 Monash records, 15 Southern Grampians records, and 28,825 OpenStreetMap parking features. The raw query returned 36,622 OSM features; 7,797 explicitly marked private, customer, resident, permit, employee, destination-only, or no-access features are intentionally excluded from suggestions.
+2. The rebuilt bundled catalog contains 481 clustered Maribyrnong results, 746 Ballarat zones, 671 Casey results, 155 Boroondara car parks, 24 curated official facilities/areas, 673 Wodonga records, 385 Manningham records, 273 Latrobe records, 178 Moorabool records, 165 Colac Otway records, 1,440 Monash records, 15 Southern Grampians records, 368 Mildura accessible records, 45 Swan Hill accessible records, 464 Vicmap parking areas, and 28,921 retained OpenStreetMap parking features. Explicitly private, customer, resident, permit, employee, destination-only, or no-access OSM features are intentionally excluded from suggestions.
 3. Runtime search loads that catalog lazily, keeps only the nearest 24 eligible results, prefers council records, and suppresses an OpenStreetMap result within 75 metres of an accepted official result.
 4. `sourceTimestamp`, `sourceDatasetAt`, `sourceCheckedAt`, and `classification` remain separate. Download time is never substituted for a sensor event.
 5. New live regions still require a fresh anonymous probe. Stale, future-dated, missing, or semantically unclear occupancy fails closed.

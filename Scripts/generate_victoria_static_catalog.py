@@ -8,7 +8,9 @@ restrictions, capacities, and dated tariffs; it never contains or implies live v
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
+import io
 import json
 import math
 import re
@@ -22,6 +24,22 @@ from typing import Any, Iterable
 
 USER_AGENT = "ParkAlong-Static-Catalog/1.0 (+https://github.com/OpenRenderKit/ParkAlong)"
 BALLARAT_FEES_EFFECTIVE = "2026-08-01T00:00:00+10:00"
+MILDURA_ACCESSIBLE_URL = (
+    "https://data.gov.au/data/dataset/6951b015-3f53-4e23-9e11-e863861c9a53/"
+    "resource/f736ca9b-e82e-45df-97f6-ea1cbfddf139/download/disabled-parking-points.json"
+)
+SWAN_HILL_ACCESSIBLE_URL = (
+    "https://data.gov.au/data/dataset/52c7294f-dfdc-410e-ba83-539b0bf83931/"
+    "resource/1e8b32d0-7038-44b8-8f1c-a70504eda408/download/shrccdisabledparking.csv"
+)
+VICMAP_FOI_URL = (
+    "https://services-ap1.arcgis.com/P744lA0wf4LlBZ84/arcgis/rest/services/"
+    "Vicmap_Features_of_Interest/FeatureServer/4"
+)
+OVERPASS_ENDPOINTS = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+)
 
 
 def request_json(url: str, query: dict[str, Any] | None = None, timeout: int = 45) -> Any:
@@ -30,6 +48,12 @@ def request_json(url: str, query: dict[str, Any] | None = None, timeout: int = 4
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.load(response)
+
+
+def request_text(url: str, timeout: int = 45) -> str:
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/csv,text/plain,*/*"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return response.read().decode("utf-8-sig")
 
 
 def geometry_centroid(geometry: dict[str, Any] | None) -> dict[str, float] | None:
@@ -482,6 +506,105 @@ def build_latrobe_records(features: list[dict[str, Any]], *, checked_at: str) ->
             f"latrobe-accessible-{_safe_component(attributes.get('OBJECTID'), len(records))}",
             f"{descriptor} · {locality}", "Latrobe", coordinate, source,
             kind="on_street", accessible_spaces=1, schedules=schedules,
+        ))
+    return records
+
+
+def build_mildura_accessible_records(features: list[dict[str, Any]], *, checked_at: str) -> list[dict[str, Any]]:
+    updated_values = [
+        str((feature.get("properties") or {}).get("Updated") or "")
+        for feature in features
+        if re.fullmatch(r"\d{8}", str((feature.get("properties") or {}).get("Updated") or ""))
+    ]
+    latest = max(updated_values, default="")
+    dataset_updated_at = f"{latest[:4]}-{latest[4:6]}-{latest[6:]}T00:00:00Z" if latest else None
+    source = _source(
+        "mildura-accessible-parking", "Mildura Rural City Council",
+        "https://data.gov.au/data/dataset/mildura-rural-city-council-disabled-carparks",
+        checked_at,
+        license_name="Creative Commons Attribution 3.0 Australia",
+        license_url="https://creativecommons.org/licenses/by/3.0/au/",
+        dataset_updated_at=dataset_updated_at,
+    )
+    records: list[dict[str, Any]] = []
+    for feature in features:
+        properties = feature.get("properties") or {}
+        coordinates = (feature.get("geometry") or {}).get("coordinates") or []
+        coordinate = _coordinate(coordinates[1], coordinates[0]) if len(coordinates) >= 2 else None
+        if not coordinate or str(properties.get("Mode") or "").strip().lower() != "disabled":
+            continue
+        identifier = _safe_component(properties.get("Ref"), len(records))
+        location = str(properties.get("Location") or "").strip()
+        address = str(properties.get("Address") or "").strip()
+        name = " · ".join(value for value in (location, address) if value) or "Accessible parking bay"
+        capacity = _positive_int(properties.get("Capacity")) or 1
+        max_stay = _positive_int(properties.get("Minsmax"))
+        days = _parse_days(str(properties.get("Days") or "")) or list(range(1, 8))
+        schedules = [
+            _schedule(days, 0, 24 * 60, max_stay, f"Accessible parking · up to {max_stay} min")
+        ] if max_stay else []
+        tariffs = []
+        try:
+            hourly_fee = float(properties.get("Hourlyfee"))
+        except (TypeError, ValueError):
+            hourly_fee = None
+        if hourly_fee == 0:
+            tariffs = [_tariff(dataset_updated_at or "2000-01-01T00:00:00Z", days, 0, 24 * 60, hourly_cents=0)]
+        kind = "on_street" if str(properties.get("Type") or "").strip().lower() == "street" else "off_street"
+        records.append(_record(
+            f"mildura-accessible-{identifier}", name, "Mildura", coordinate, source,
+            kind=kind, capacity=capacity, accessible_spaces=capacity,
+            schedules=schedules, tariffs=tariffs,
+        ))
+    return records
+
+
+def build_swan_hill_accessible_records(rows: list[dict[str, Any]], *, checked_at: str) -> list[dict[str, Any]]:
+    source = _source(
+        "swan-hill-accessible-parking", "Swan Hill Rural City Council",
+        "https://data.gov.au/data/dataset/swan-hill-rural-city-council-disabled-parking",
+        checked_at,
+        license_name="Creative Commons Attribution 3.0 Australia",
+        license_url="https://creativecommons.org/licenses/by/3.0/au/",
+        dataset_updated_at="2025-11-21T02:31:17Z",
+    )
+    records: list[dict[str, Any]] = []
+    for row in rows:
+        coordinate = _coordinate(row.get("lat"), row.get("lon"))
+        if not coordinate:
+            continue
+        identifier = _safe_component(row.get("id"), len(records))
+        name = str(row.get("name") or "Accessible parking bay").strip()
+        records.append(_record(
+            f"swan-hill-accessible-{identifier}", name, "Swan Hill", coordinate, source,
+            kind="on_street", capacity=1, accessible_spaces=1,
+        ))
+    return records
+
+
+def build_vicmap_parking_records(
+    features: list[dict[str, Any]], *, checked_at: str, dataset_updated_at: str | None,
+) -> list[dict[str, Any]]:
+    source = _source(
+        "vicmap-features-of-interest-parking", "Vicmap Features of Interest",
+        VICMAP_FOI_URL, checked_at,
+        license_name="Creative Commons Attribution 4.0",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        dataset_updated_at=dataset_updated_at,
+    )
+    records: list[dict[str, Any]] = []
+    for feature in features:
+        attributes = feature.get("attributes") or {}
+        if str(attributes.get("feature_subtype") or "").strip().lower() != "parking area":
+            continue
+        coordinate = _feature_coordinate(feature)
+        if not coordinate:
+            continue
+        identifier = _safe_component(attributes.get("feature_ufi") or attributes.get("ufi"), attributes.get("OBJECTID") or len(records))
+        name = str(attributes.get("name_label") or attributes.get("name") or attributes.get("parent_name") or "Mapped parking area").strip()
+        records.append(_record(
+            f"vicmap-parking-{identifier}", name, "Victoria", coordinate, source,
+            kind="off_street",
         ))
     return records
 
@@ -951,12 +1074,12 @@ def _positive_int(value: Any) -> int | None:
     return parsed if parsed > 0 else None
 
 
-def fetch_arcgis_features(service_url: str, timeout: int) -> list[dict[str, Any]]:
+def fetch_arcgis_features(service_url: str, timeout: int, *, where: str = "1=1") -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []
     offset = 0
     while True:
         payload = request_json(f"{service_url}/query", {
-            "where": "1=1", "outFields": "*", "returnGeometry": "true", "outSR": "4326",
+            "where": where, "outFields": "*", "returnGeometry": "true", "outSR": "4326",
             "resultOffset": offset, "resultRecordCount": 2000, "f": "json",
         }, timeout)
         features = payload.get("features", [])
@@ -964,6 +1087,15 @@ def fetch_arcgis_features(service_url: str, timeout: int) -> list[dict[str, Any]
         if len(features) < 2000:
             return output
         offset += len(features)
+
+
+def arcgis_dataset_updated_at(service_url: str, timeout: int) -> str | None:
+    metadata = request_json(service_url, {"f": "json"}, timeout)
+    milliseconds = (metadata.get("editingInfo") or {}).get("dataLastEditDate")
+    try:
+        return datetime.fromtimestamp(float(milliseconds) / 1000, timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    except (TypeError, ValueError, OSError):
+        return None
 
 
 def fetch_opendatasoft_rows(dataset_url: str, timeout: int) -> list[dict[str, Any]]:
@@ -985,13 +1117,19 @@ def fetch_osm_parking(timeout: int) -> tuple[list[dict[str, Any]], str | None]:
         'relation["amenity"="parking"](area.a););out center tags;'
     )
     data = urllib.parse.urlencode({"data": query}).encode("utf-8")
-    request = urllib.request.Request(
-        "https://overpass-api.de/api/interpreter", data=data,
-        headers={"User-Agent": USER_AGENT, "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"},
-    )
-    with urllib.request.urlopen(request, timeout=max(timeout, 240)) as response:
-        payload = json.load(response)
-    return payload.get("elements", []), (payload.get("osm3s") or {}).get("timestamp_osm_base")
+    errors: list[str] = []
+    for endpoint in OVERPASS_ENDPOINTS:
+        request = urllib.request.Request(
+            endpoint, data=data,
+            headers={"User-Agent": USER_AGENT, "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=max(timeout, 240)) as response:
+                payload = json.load(response)
+            return payload.get("elements", []), (payload.get("osm3s") or {}).get("timestamp_osm_base")
+        except Exception as error:
+            errors.append(f"{endpoint}: {type(error).__name__}: {error}")
+    raise RuntimeError("All Overpass endpoints failed: " + " | ".join(errors))
 
 
 def build_catalog(timeout: int = 45, *, include_osm: bool = True) -> tuple[list[dict[str, Any]], dict[str, int]]:
@@ -1012,6 +1150,10 @@ def build_catalog(timeout: int = 45, *, include_osm: bool = True) -> tuple[list[
     monash_streets = fetch_arcgis_features("https://services8.arcgis.com/GAZiuYWXmnwzoGFY/arcgis/rest/services/WGA240930_City_of_Monash_Parking_Layer/FeatureServer/0", timeout)
     monash_carparks = fetch_arcgis_features("https://services8.arcgis.com/GAZiuYWXmnwzoGFY/arcgis/rest/services/WGA240930_City_of_Monash_Parking_Layer/FeatureServer/1", timeout)
     southern_grampians = fetch_arcgis_features("https://services1.arcgis.com/bLsSwu2wpv4JvxHE/arcgis/rest/services/southern_grampians_carpark_inspection_2024/FeatureServer/0", timeout)
+    mildura_accessible = request_json(MILDURA_ACCESSIBLE_URL, timeout=timeout).get("features", [])
+    swan_hill_accessible = list(csv.DictReader(io.StringIO(request_text(SWAN_HILL_ACCESSIBLE_URL, timeout))))
+    vicmap_parking = fetch_arcgis_features(VICMAP_FOI_URL, timeout, where="feature_subtype='parking area'")
+    vicmap_updated_at = arcgis_dataset_updated_at(VICMAP_FOI_URL, timeout)
 
     groups = {
         "maribyrnong": build_maribyrnong_records(maribyrnong_regular, maribyrnong_accessible, checked_at=checked_at),
@@ -1025,6 +1167,11 @@ def build_catalog(timeout: int = 45, *, include_osm: bool = True) -> tuple[list[
         "colacOtway": build_colac_otway_records(colac_otway, checked_at=checked_at),
         "monash": build_monash_records(monash_streets, monash_carparks, checked_at=checked_at),
         "southernGrampians": build_southern_grampians_records(southern_grampians, checked_at=checked_at),
+        "milduraAccessible": build_mildura_accessible_records(mildura_accessible, checked_at=checked_at),
+        "swanHillAccessible": build_swan_hill_accessible_records(swan_hill_accessible, checked_at=checked_at),
+        "vicmapParking": build_vicmap_parking_records(
+            vicmap_parking, checked_at=checked_at, dataset_updated_at=vicmap_updated_at,
+        ),
         "curatedOfficial": curated_official_records(checked_at),
     }
     if include_osm:
@@ -1058,16 +1205,22 @@ def main() -> None:
     required_sources = (
         "maribyrnong", "ballarat", "casey", "boroondara", "wodonga", "manningham", "latrobe",
         "moorabool", "colacOtway", "monash", "southernGrampians",
+        "milduraAccessible", "swanHillAccessible", "vicmapParking",
     )
     if not records or any(counts[name] == 0 for name in required_sources):
         raise RuntimeError(f"Required public source produced no records: {counts}")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     output = json.dumps(records, separators=(",", ":")).encode("utf-8")
     args.output.write_bytes(output)
+    sources = {record["source"]["id"]: record["source"] for record in records}
     manifest = {
         "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "recordCount": len(records),
+        "municipalityCount": len({record["municipality"] for record in records}),
+        "sourceCount": len(sources),
         "sourceCounts": counts,
+        "sourceAttributions": [sources[key] for key in sorted(sources)],
+        "accessibleRecordCount": sum(1 for record in records if (record.get("accessibleSpaces") or 0) > 0),
         "outputBytes": args.output.stat().st_size,
         "outputSHA256": hashlib.sha256(output).hexdigest(),
     }

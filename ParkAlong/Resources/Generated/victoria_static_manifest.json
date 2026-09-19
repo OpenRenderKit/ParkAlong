@@ -1,21 +1,263 @@
 {
-  "generatedAt": "2026-08-23T14:00:24Z",
-  "outputBytes": 22546415,
-  "outputSHA256": "c9bd09de1b332e12797f7ef847c15f441cb5224d18eaaa5ad04f88dab459bfd2",
-  "recordCount": 34023,
+  "accessibleRecordCount": 1389,
+  "generatedAt": "2026-09-19T01:19:03Z",
+  "municipalityCount": 23,
+  "outputBytes": 23344113,
+  "outputSHA256": "918be7f3c6e15a4565a2eb2ce3293707c9c4bb41ef9b13f42c787e065bddf272",
+  "recordCount": 35004,
+  "sourceAttributions": [
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "ballarat-parking-zones",
+      "licenseName": "Creative Commons Attribution 4.0",
+      "licenseURL": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "City of Ballarat",
+      "sourceURL": "https://data.ballarat.vic.gov.au/explore/dataset/realtime0/"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "bendigo-hargreaves-multistorey",
+      "licenseName": "Official council facility page",
+      "licenseURL": null,
+      "name": "City of Greater Bendigo",
+      "sourceURL": "https://www.bendigo.vic.gov.au/community-services/parking/where-park/hargreaves-street-multi-storey-car-park"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "boroondara-public-carparks",
+      "licenseName": "Official council public JSON",
+      "licenseURL": null,
+      "name": "City of Boroondara",
+      "sourceURL": "https://www.boroondara.vic.gov.au/services/streets-roads-and-parking/parking-boroondara/find-car-park"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "casey-parking-zones",
+      "licenseName": "Creative Commons Attribution 4.0",
+      "licenseURL": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "City of Casey",
+      "sourceURL": "https://data.casey.vic.gov.au/explore/dataset/city-of-casey-parking-zones/"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": "2024-09-13T00:00:00Z",
+      "id": "casey-station-carparks-2024",
+      "licenseName": "Creative Commons Attribution 4.0",
+      "licenseURL": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "City of Casey / PTV 2024 snapshot",
+      "sourceURL": "https://data.casey.vic.gov.au/explore/dataset/railway-station-carparks-ptv/"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "colac-otway-carparks",
+      "licenseName": "Public contractor-hosted ArcGIS service",
+      "licenseURL": null,
+      "name": "Shepherd Services / Colac Otway carparks",
+      "sourceURL": "https://services1.arcgis.com/bLsSwu2wpv4JvxHE/arcgis/rest/services/Colac_Otway_Carparks/FeatureServer/0"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "frankston-waterfront-parking",
+      "licenseName": "Official council parking table",
+      "licenseURL": null,
+      "name": "Frankston City Council",
+      "sourceURL": "https://www.frankston.vic.gov.au/Things-To-Do/Frankston-Waterfront-Your-Ultimate-Summer-Destination"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": "2026-02-25T00:00:00+11:00",
+      "id": "geelong-central-2p",
+      "licenseName": "Official council parking notice",
+      "licenseURL": null,
+      "name": "City of Greater Geelong",
+      "sourceURL": "https://yoursay.geelongaustralia.com.au/digital-parking/central-geelong-moving-100-cent-digital-parking"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": "2025-06-25T00:00:00+10:00",
+      "id": "horsham-cbd-free-2p",
+      "licenseName": "Official council parking decision",
+      "licenseURL": null,
+      "name": "Horsham Rural City Council",
+      "sourceURL": "https://www.hrcc.vic.gov.au/Our-Council/News-and-Media/Latest-News/council-removing-parking-maters"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "latrobe-accessible-parking",
+      "licenseName": "Latrobe City Council public ArcGIS service",
+      "licenseURL": null,
+      "name": "Latrobe City accessible parking",
+      "sourceURL": "https://services-ap1.arcgis.com/AtixmNNZDz8cwc9l/arcgis/rest/services/Accessible_Parking%20View/FeatureServer/0"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "manningham-council-carparks",
+      "licenseName": "Manningham Council public ArcGIS service",
+      "licenseURL": null,
+      "name": "Manningham Council car parks",
+      "sourceURL": "https://services5.arcgis.com/DRwxVzcV3wgNIuSu/arcgis/rest/services/ManninghamCarparks/FeatureServer/0"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": "2026-05-07T02:39:43.747Z",
+      "id": "maribyrnong-parking-explorer",
+      "licenseName": "City of Maribyrnong public ArcGIS service",
+      "licenseURL": null,
+      "name": "City of Maribyrnong Parking Explorer",
+      "sourceURL": "https://maribyrnong.maps.arcgis.com/apps/instant/sidebar/index.html?appid=88ed6673549e415086b220dc6f321e3e"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": "2025-03-03T00:00:00Z",
+      "id": "mildura-accessible-parking",
+      "licenseName": "Creative Commons Attribution 3.0 Australia",
+      "licenseURL": "https://creativecommons.org/licenses/by/3.0/au/",
+      "name": "Mildura Rural City Council",
+      "sourceURL": "https://data.gov.au/data/dataset/mildura-rural-city-council-disabled-carparks"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "monash-wga-parking-review",
+      "licenseName": "Public consultant-hosted ArcGIS study layer",
+      "licenseURL": null,
+      "name": "WGA / City of Monash parking review",
+      "sourceURL": "https://services8.arcgis.com/GAZiuYWXmnwzoGFY/arcgis/rest/services/WGA240930_City_of_Monash_Parking_Layer/FeatureServer"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "moorabool-carparks",
+      "licenseName": "Moorabool Shire Council public ArcGIS service",
+      "licenseURL": null,
+      "name": "Moorabool Shire car parks",
+      "sourceURL": "https://services8.arcgis.com/LhxDRRTcDHsigpYl/arcgis/rest/services/Carpark/FeatureServer/0"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": "2026-09-19T01:16:49Z",
+      "id": "openstreetmap-victoria-parking",
+      "licenseName": "Open Database License 1.0",
+      "licenseURL": "https://opendatacommons.org/licenses/odbl/1-0/",
+      "name": "OpenStreetMap contributors",
+      "sourceURL": "https://www.openstreetmap.org/copyright"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "shepparton-parking-costs",
+      "licenseName": "Official council parking table",
+      "licenseURL": null,
+      "name": "Greater Shepparton City Council",
+      "sourceURL": "https://greatershepparton.com.au/bpi/parking-enforcement/types-of-parking"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": "2024-12-31T00:00:00Z",
+      "id": "southern-grampians-carpark-inspection-2024",
+      "licenseName": "Public contractor-hosted ArcGIS inspection layer",
+      "licenseURL": null,
+      "name": "Shepherd Services / Southern Grampians carpark inspection 2024",
+      "sourceURL": "https://services1.arcgis.com/bLsSwu2wpv4JvxHE/arcgis/rest/services/southern_grampians_carpark_inspection_2024/FeatureServer/0"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "stonnington-carparks",
+      "licenseName": "Official council parking table",
+      "licenseURL": null,
+      "name": "City of Stonnington",
+      "sourceURL": "https://www.stonnington.vic.gov.au/Services/Parking/Car-parks-in-Stonnington"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": "2025-11-21T02:31:17Z",
+      "id": "swan-hill-accessible-parking",
+      "licenseName": "Creative Commons Attribution 3.0 Australia",
+      "licenseURL": "https://creativecommons.org/licenses/by/3.0/au/",
+      "name": "Swan Hill Rural City Council",
+      "sourceURL": "https://data.gov.au/data/dataset/swan-hill-rural-city-council-disabled-parking"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "swan-hill-curlewis-ticketed",
+      "licenseName": "Official council parking notice",
+      "licenseURL": null,
+      "name": "Swan Hill Rural City Council",
+      "sourceURL": "https://www.swanhill.vic.gov.au/Our-Council/News-and-publications/News-and-public-notices/Council-Leases-Curlewis-Street-Carpark-to-Boost-CBD-Parking-Options"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": "2026-09-12T18:16:54Z",
+      "id": "vicmap-features-of-interest-parking",
+      "licenseName": "Creative Commons Attribution 4.0",
+      "licenseURL": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "Vicmap Features of Interest",
+      "sourceURL": "https://services-ap1.arcgis.com/P744lA0wf4LlBZ84/arcgis/rest/services/Vicmap_Features_of_Interest/FeatureServer/4"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "wangaratta-cbd-paid",
+      "licenseName": "Official council parking FAQ",
+      "licenseURL": null,
+      "name": "Rural City of Wangaratta",
+      "sourceURL": "https://www.wangaratta.vic.gov.au/Services/Parking/Parking-FAQs"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "whitehorse-harrow-street",
+      "licenseName": "Official council facility page",
+      "licenseURL": null,
+      "name": "Whitehorse City Council",
+      "sourceURL": "https://whitehorse.vic.gov.au/living-working/parking/where-you-can-park-your-vehicle-whitehorse/harrow-street-car-park"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "wodonga-parking-lot",
+      "licenseName": "Wodonga Council public ArcGIS service",
+      "licenseURL": null,
+      "name": "Wodonga Council parking lot",
+      "sourceURL": "https://services-ap1.arcgis.com/w6r4LlwgJu8O0neQ/arcgis/rest/services/parking_lot_edit_view/FeatureServer/0"
+    },
+    {
+      "checkedAt": "2026-09-19T01:17:47Z",
+      "datasetUpdatedAt": null,
+      "id": "wyndham-hunter-werribee",
+      "licenseName": "Official council facility page",
+      "licenseURL": null,
+      "name": "Wyndham City",
+      "sourceURL": "https://www.wyndham.vic.gov.au/services/roads-parking-transport/hunter-werribee-public-car-park"
+    }
+  ],
+  "sourceCount": 26,
   "sourceCounts": {
     "ballarat": 746,
     "boroondara": 155,
-    "casey": 668,
+    "casey": 671,
     "colacOtway": 165,
     "curatedOfficial": 24,
     "latrobe": 273,
     "manningham": 385,
-    "maribyrnong": 477,
+    "maribyrnong": 481,
+    "milduraAccessible": 368,
     "monash": 1440,
     "moorabool": 178,
-    "openStreetMap": 28825,
+    "openStreetMap": 28921,
     "southernGrampians": 15,
-    "wodonga": 672
+    "swanHillAccessible": 45,
+    "vicmapParking": 464,
+    "wodonga": 673
   }
 }

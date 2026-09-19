@@ -8,6 +8,8 @@ parking geometry. Network errors and ambiguous records fail closed.
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import json
 import urllib.parse
 import urllib.request
@@ -16,6 +18,10 @@ from typing import Any
 
 
 USER_AGENT = "ParkAlong-Victoria-Source-Probe/1.0"
+OVERPASS_ENDPOINTS = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+)
 
 
 def _parse_timestamp(value: Any) -> datetime | None:
@@ -100,6 +106,12 @@ def _request_json(
     request = urllib.request.Request(url, data=data, headers=headers)
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.load(response)
+
+
+def _request_text(url: str, *, timeout: int) -> str:
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/csv,text/plain,*/*"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return response.read().decode("utf-8-sig")
 
 
 def probe_melbourne(timeout: int) -> dict[str, Any]:
@@ -320,20 +332,98 @@ def probe_casey(timeout: int) -> dict[str, Any]:
     }
 
 
+def probe_mildura_accessible(timeout: int) -> dict[str, Any]:
+    payload = _request_json(
+        "https://data.gov.au/data/dataset/6951b015-3f53-4e23-9e11-e863861c9a53/"
+        "resource/f736ca9b-e82e-45df-97f6-ea1cbfddf139/download/disabled-parking-points.json",
+        timeout=timeout,
+    )
+    features = payload.get("features", [])
+    updated = sorted(
+        str((feature.get("properties") or {}).get("Updated") or "")
+        for feature in features
+        if str((feature.get("properties") or {}).get("Updated") or "")
+    )
+    return {
+        "classification": "static_locations_or_restrictions",
+        "source": "Mildura Rural City Council accessible parking",
+        "parkingFeatures": len(features),
+        "newestRecordDate": updated[-1] if updated else None,
+        "license": "Creative Commons Attribution 3.0 Australia",
+        "occupancy": "not present; the Sensor field is descriptive and rows do not contain bay state or event time",
+    }
+
+
+def probe_swan_hill_accessible(timeout: int) -> dict[str, Any]:
+    text = _request_text(
+        "https://data.gov.au/data/dataset/52c7294f-dfdc-410e-ba83-539b0bf83931/"
+        "resource/1e8b32d0-7038-44b8-8f1c-a70504eda408/download/shrccdisabledparking.csv",
+        timeout=timeout,
+    )
+    rows = list(csv.DictReader(io.StringIO(text)))
+    valid = [row for row in rows if row.get("lat") and row.get("lon")]
+    return {
+        "classification": "static_locations_or_restrictions",
+        "source": "Swan Hill Rural City Council accessible parking",
+        "parkingFeatures": len(valid),
+        "datasetUpdatedAt": "2025-11-21T02:31:17Z",
+        "license": "Creative Commons Attribution 3.0 Australia",
+        "occupancy": "not present",
+    }
+
+
+def probe_vicmap_parking(timeout: int) -> dict[str, Any]:
+    layer = (
+        "https://services-ap1.arcgis.com/P744lA0wf4LlBZ84/arcgis/rest/services/"
+        "Vicmap_Features_of_Interest/FeatureServer/4"
+    )
+    metadata = _request_json(layer, timeout=timeout, query={"f": "json"})
+    count = _request_json(
+        f"{layer}/query", timeout=timeout,
+        query={
+            "where": "feature_subtype='parking area'", "returnCountOnly": "true", "f": "json",
+        },
+    ).get("count")
+    milliseconds = (metadata.get("editingInfo") or {}).get("dataLastEditDate")
+    try:
+        dataset_updated_at = datetime.fromtimestamp(float(milliseconds) / 1000, timezone.utc).isoformat()
+    except (TypeError, ValueError, OSError):
+        dataset_updated_at = None
+    return {
+        "classification": "static_locations_or_restrictions",
+        "source": "Vicmap Features of Interest",
+        "parkingFeatures": count,
+        "datasetUpdatedAt": dataset_updated_at,
+        "license": "Creative Commons Attribution 4.0",
+        "occupancy": "not present",
+    }
+
+
 def probe_osm(timeout: int) -> dict[str, Any]:
     query = (
         '[out:json][timeout:90];area["boundary"="administrative"]'
         '["ISO3166-2"="AU-VIC"]->.a;nwr["amenity"="parking"](area.a);out count;'
     )
-    payload = _request_json(
-        "https://overpass-api.de/api/interpreter",
-        timeout=max(timeout, 100),
-        body=urllib.parse.urlencode({"data": query}),
-    )
+    errors: list[str] = []
+    payload: dict[str, Any] | None = None
+    endpoint_used: str | None = None
+    for endpoint in OVERPASS_ENDPOINTS:
+        try:
+            payload = _request_json(
+                endpoint, timeout=max(timeout, 100),
+                body=urllib.parse.urlencode({"data": query}),
+            )
+            endpoint_used = endpoint
+            break
+        except Exception as error:
+            errors.append(f"{endpoint}: {type(error).__name__}: {error}")
+    if payload is None:
+        raise RuntimeError("All Overpass endpoints failed: " + " | ".join(errors))
     tags = (payload.get("elements") or [{}])[0].get("tags", {})
     return {
         "classification": "static_locations_or_restrictions",
         "source": "OpenStreetMap Overpass",
+        "endpoint": endpoint_used,
         "parkingFeatures": int(tags.get("total", 0)),
         "osmBaseTimestamp": payload.get("osm3s", {}).get("timestamp_osm_base"),
         "occupancy": "not part of the parking feature model",
@@ -346,6 +436,9 @@ PROBES = {
     "maribyrnong": probe_maribyrnong,
     "ballarat": probe_ballarat,
     "casey": probe_casey,
+    "mildura_accessible": probe_mildura_accessible,
+    "swan_hill_accessible": probe_swan_hill_accessible,
+    "vicmap_parking": probe_vicmap_parking,
     "osm": probe_osm,
 }
 

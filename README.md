@@ -40,7 +40,7 @@ ParkAlong normalizes those pieces into a single `ParkingOption` model and a sing
 
 - Live on-street availability from City of Melbourne parking-bay sensors.
 - Green, amber, and red count pins: 3+ spaces, 1–2 spaces, or no currently vacant spaces.
-- Statewide parking discovery from 34,023 integrity-manifested public records, with explicitly restricted OpenStreetMap parking removed and authority/approved contractor records preferred over nearby duplicates.
+- Statewide parking discovery from 35,004 integrity-manifested public records, with explicitly restricted OpenStreetMap parking removed and authority/approved contractor records preferred over nearby duplicates.
 - Deep-plum `~N` pins for validated predictions and red `P` pins for location-only results; every non-live pin carries a small amber warning.
 - Current restriction and price resolution from effective-dated schedules and tariffs when a public source supplies enough information.
 - Completion-first destination search plus relevant ParkAlong catalog results, ranked around the visible map rather than a Melbourne-only rectangle.
@@ -82,7 +82,7 @@ flowchart LR
     Sensors["City live sensors"] --> Repository
     Signs["Current zone restrictions"] --> Repository
     History["Historical buckets + held-out validation"] --> Repository
-    Catalog["34,023 statewide static records"] --> Normalizer
+    Catalog["35,004 statewide static records"] --> Normalizer
     MapKit["Apple MapKit facilities"] --> Normalizer["ParkingOption normalizer"]
     Repository --> Engines["Availability, restriction, prediction and ranking engines"]
     Engines --> Normalizer
@@ -232,7 +232,7 @@ Rebuild the anonymous statewide static catalog and its manifest:
 python3 Scripts/generate_victoria_static_catalog.py
 ```
 
-The generator combines public council data from Maribyrnong, Ballarat, Casey, Boroondara, Wodonga, Manningham, Latrobe and Moorabool; approved attributed layers for Colac Otway, Monash and Southern Grampians; official parking/rate pages for selected named facilities and regional parking areas; and OpenStreetMap's statewide layer. It records fetch time, per-source retained counts, byte size and SHA-256, clusters dense bay geometry, and never converts transactions or old surveys into live availability.
+The generator combines public council data from Maribyrnong, Ballarat, Casey, Boroondara, Wodonga, Manningham, Latrobe, Moorabool, Mildura and Swan Hill; the CC BY Vicmap parking-area layer; approved attributed layers for Colac Otway, Monash and Southern Grampians; official parking/rate pages for selected named facilities and regional parking areas; and OpenStreetMap's statewide layer. It records fetch time, complete source attribution, per-source retained counts, municipality/source/accessibility counts, byte size and SHA-256, clusters dense bay geometry, and never converts transactions or old surveys into live availability. See the [19 September source expansion checkpoint](docs/victoria-parking-source-expansion-2026-09-19.md) for the priority method, measured bundle impact, and blocked candidates, and the [fresh 87-area geographic audit](docs/victoria-parking-geographic-coverage-2026-09-19.md) for council-level evidence gaps.
 
 Optional remote deltas use the same bounding-box/arrival/duration/zoom contract. Set the `PARKALONG_REMOTE_BASE_URL` Xcode build setting for a production build, or the environment variable with the same name for local development. It is empty and disabled by default; bundled records remain the offline fallback.
 
@@ -247,7 +247,7 @@ Live and historical parking data is provided by the City of Melbourne and licens
 
 Off-street place discovery and destination search use Apple MapKit. Provider availability, opening hours, and prices remain controlled by each provider.
 
-The bundled static catalog retains source-level attribution and source links in every record. It includes council open data under each catalog's published terms and OpenStreetMap data under the [Open Database License](https://www.openstreetmap.org/copyright).
+The bundled static catalog retains source-level attribution and source links in every record and in its manifest. It includes council and Vicmap open data under each catalogue's published terms and OpenStreetMap data under the [Open Database License](https://www.openstreetmap.org/copyright).
 
 ## Privacy
 
