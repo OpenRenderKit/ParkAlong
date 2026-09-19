@@ -62,6 +62,7 @@ final class ParkingMapViewModel {
     var isSearching = false
     var navigationWasIntercepted = false
     var mapFocusRequest: ParkingViewport?
+    var canRecoverLocationFromSettings = false
     var isLocating: Bool { destination.id == "locating" }
 
     /// Keeps useful live/predicted results ahead of location-only warnings and protects map gestures.
@@ -120,12 +121,17 @@ final class ParkingMapViewModel {
         let plan = self.plan
         let now = Date.now
         let viewport = self.viewport.padded(by: Self.viewportQueryPaddingFraction)
+        let proximityReference = ParkingProximityReference(
+            coordinate: destination.coordinate,
+            label: destination.name
+        )
         state = .loading
         let task = Task { [weak self] in
             guard let self else { return }
             await self.performRefresh(
                 generation: generation,
                 viewport: viewport,
+                proximityReference: proximityReference,
                 plan: plan,
                 now: now,
                 force: force
@@ -143,14 +149,28 @@ final class ParkingMapViewModel {
     private func performRefresh(
         generation: Int,
         viewport: ParkingViewport,
+        proximityReference: ParkingProximityReference,
         plan: ParkingPlan,
         now: Date,
         force: Bool
     ) async {
-        async let nearbyFacilities = offStreetService.options(in: viewport)
-        async let mappedParking = staticParkingService.options(in: viewport, plan: plan)
+        async let nearbyFacilities = offStreetService.options(
+            in: viewport,
+            relativeTo: proximityReference
+        )
+        async let mappedParking = staticParkingService.options(
+            in: viewport,
+            relativeTo: proximityReference,
+            plan: plan
+        )
         do {
-            let result = try await repository.refresh(viewport: viewport, plan: plan, now: now, force: force)
+            let result = try await repository.refresh(
+                viewport: viewport,
+                proximityReference: proximityReference,
+                plan: plan,
+                now: now,
+                force: force
+            )
             let facilities = await nearbyFacilities
             let staticLocations = await mappedParking
             guard !Task.isCancelled, generation == refreshGeneration else { return }
@@ -258,6 +278,7 @@ final class ParkingMapViewModel {
     private func noteMapInteraction(at coordinate: Coordinate) {
         guard destination.id == "locating" else { return }
         invalidatePendingLocationRequest()
+        searchGeneration += 1
         destination = .init(
             id: "map-area",
             name: "Map area",
@@ -269,6 +290,10 @@ final class ParkingMapViewModel {
     func useCurrentLocation() async {
         locationRequestTask?.cancel()
         locationRequestGeneration += 1
+        searchGeneration += 1
+        viewportRefreshTask?.cancel()
+        viewportRefreshTask = nil
+        canRecoverLocationFromSettings = false
         let generation = locationRequestGeneration
         destination = .init(
             id: "locating",
@@ -289,14 +314,16 @@ final class ParkingMapViewModel {
 
         switch result {
         case let .success(coordinate):
+            canRecoverLocationFromSettings = false
             destination = .init(id: "current", name: "Current location", subtitle: "Near you", coordinate: coordinate)
             viewport = Self.viewport(centeredAt: coordinate)
             mapFocusRequest = viewport
             await refresh(force: true)
         case .denied:
+            canRecoverLocationFromSettings = true
             await applyLocationFallback(
-                subtitle: "Location permission denied",
-                notice: "Location permission denied · showing Melbourne CBD"
+                subtitle: "Location is off",
+                notice: "Showing Melbourne CBD because ParkAlong can’t use your location."
             )
         case .restricted:
             await applyLocationFallback(
@@ -338,7 +365,17 @@ final class ParkingMapViewModel {
         searchGeneration += 1
         let generation = searchGeneration
         searchState = .loading
-        async let parkingMatches = staticParkingService.search(trimmed, near: viewport, plan: plan, limit: 20)
+        let proximityReference = ParkingProximityReference(
+            coordinate: destination.coordinate,
+            label: destination.name
+        )
+        async let parkingMatches = staticParkingService.search(
+            trimmed,
+            near: viewport,
+            relativeTo: proximityReference,
+            plan: plan,
+            limit: 20
+        )
         do {
             let places = try await destinationSearch.search(trimmed, in: viewport)
             let parking = await parkingMatches
@@ -374,13 +411,19 @@ final class ParkingMapViewModel {
 
     func chooseDestination(_ value: ParkingDestination) async {
         invalidatePendingLocationRequest()
+        viewportRefreshTask?.cancel()
+        viewportRefreshTask = nil
         if let optionID = value.parkingOptionID, let option = searchParkingOptions[optionID] {
+            searchGeneration += 1
+            canRecoverLocationFromSettings = false
             isSearching = false
             searchResults = []
             searchState = .idle
             selectStatic(option)
             return
         }
+        searchGeneration += 1
+        canRecoverLocationFromSettings = false
         destination = value
         invalidatePendingVacantBayRequest()
         viewport = Self.viewport(centeredAt: value.coordinate)

@@ -136,10 +136,65 @@ final class PredictionRankingCacheTests: XCTestCase {
 
     func testRankingMakesAvailabilityDominateProximity() {
         let candidates = [
-            RankingCandidate(zoneNumber: 1, predictedAvailable: 5, walkingMetres: 850, probabilityAtLeastOne: 0.95),
-            RankingCandidate(zoneNumber: 2, predictedAvailable: 1, walkingMetres: 50, probabilityAtLeastOne: 0.55)
+            RankingCandidate(zoneNumber: 1, predictedAvailable: 5, straightLineMetres: 850, probabilityAtLeastOne: 0.95),
+            RankingCandidate(zoneNumber: 2, predictedAvailable: 1, straightLineMetres: 50, probabilityAtLeastOne: 0.55)
         ]
-        XCTAssertEqual(RankingEngine.rank(candidates).first?.zoneNumber, 1)
+        let ranked = RankingEngine.rank(candidates)
+        let top = ranked[0]
+        let reconstructedScore = top.contributions.predictedAvailability
+            + top.contributions.straightLineProximity
+            + top.contributions.probabilityAtLeastOne
+
+        XCTAssertEqual(top.zoneNumber, 1)
+        XCTAssertEqual(top.policyVersion, "availability-proximity-v1")
+        XCTAssertEqual(top.score, reconstructedScore, accuracy: 0.000_001)
+        XCTAssertEqual(
+            RankingEngine.rank(Array(candidates.reversed())).map(\.zoneNumber),
+            ranked.map(\.zoneNumber)
+        )
+    }
+
+    func testRankingBreaksScoreTiesByZoneNumber() {
+        let candidates = [
+            RankingCandidate(zoneNumber: 9, predictedAvailable: 2, straightLineMetres: 100, probabilityAtLeastOne: 0.5),
+            RankingCandidate(zoneNumber: 3, predictedAvailable: 2, straightLineMetres: 100, probabilityAtLeastOne: 0.5)
+        ]
+
+        let ranked = RankingEngine.rank(candidates)
+
+        XCTAssertEqual(ranked.map(\.zoneNumber), [3, 9])
+    }
+
+    func testRankingExplanationNamesTheDestinationWithoutAScore() {
+        let explanation = RankingEngine.explanation(relativeTo: "Flinders Street Station")
+
+        XCTAssertEqual(
+            explanation,
+            "We compare street parking found in this map area. Expected available spaces matter most, followed by straight-line distance to Flinders Street Station, then the chance of finding a space."
+        )
+        XCTAssertFalse(explanation.contains("%"))
+        XCTAssertFalse(explanation.localizedCaseInsensitiveContains("score"))
+        XCTAssertFalse(explanation.localizedCaseInsensitiveContains("guarantee"))
+        XCTAssertFalse(explanation.localizedCaseInsensitiveContains("walk"))
+    }
+
+    func testRankingDropsNonfiniteInputsInsteadOfFabricatingAScore() {
+        let candidates = [
+            RankingCandidate(
+                zoneNumber: 1,
+                predictedAvailable: .nan,
+                straightLineMetres: 100,
+                probabilityAtLeastOne: 0.9
+            ),
+            RankingCandidate(
+                zoneNumber: 2,
+                predictedAvailable: 2,
+                straightLineMetres: .infinity,
+                probabilityAtLeastOne: 0.8
+            )
+        ]
+
+        XCTAssertTrue(RankingEngine.rank(candidates).isEmpty)
     }
 
     func testCacheExpiresAtTTLBoundary() {

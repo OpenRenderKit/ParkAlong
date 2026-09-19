@@ -61,14 +61,23 @@ struct ZoneDetailView: View {
 
     private func title(_ option: ParkingOption) -> some View {
         VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 8) {
-                Text(option.kind.rawValue.uppercased())
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
-                if option.isBestBet {
-                    Text("BEST BET")
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(option.kind.rawValue.uppercased())
                         .font(.caption2.weight(.bold))
-                        .foregroundStyle(AvailabilityStyle.color(for: option.available ?? 0))
+                        .foregroundStyle(.secondary)
+                    if option.isSuggested {
+                        suggestedBadge
+                    }
+                }
+            } else {
+                HStack(spacing: 8) {
+                    Text(option.kind.rawValue.uppercased())
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.secondary)
+                    if option.isSuggested {
+                        suggestedBadge
+                    }
                 }
             }
             Text(option.title)
@@ -78,6 +87,35 @@ struct ZoneDetailView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            suggestionReason(option)
+        }
+    }
+
+    private var suggestedBadge: some View {
+        Text("Suggested")
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(.tint)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityLabel("Suggested street parking")
+    }
+
+    @ViewBuilder
+    private func suggestionReason(_ option: ParkingOption) -> some View {
+        if option.isSuggested, let explanation = option.recommendationExplanation {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Why this suggestion?")
+                    .font(.subheadline.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(explanation)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.top, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Why this suggestion? \(explanation)")
+            .accessibilityIdentifier("suggestion-explanation")
         }
     }
 
@@ -180,8 +218,24 @@ struct ZoneDetailView: View {
 
     @ViewBuilder
     private func secondary(_ option: ParkingOption) -> some View {
-        Label(walk(option.walkingMetres), systemImage: "figure.walk")
-            .font(.subheadline)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(option.proximity.rowLabel)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(option.proximity.displayValue)
+                .font(.title3.weight(.bold))
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(option.proximity.caveat)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(option.proximity.accessibilityLabel)
+        .accessibilityIdentifier("straight-line-proximity")
     }
 
     @ViewBuilder
@@ -232,15 +286,30 @@ struct ZoneDetailView: View {
     }
 
     private var navigation: some View {
-        VStack(spacing: 8) {
+        let locationName = viewModel.selectedOption?.title ?? "this parking"
+        return VStack(spacing: 8) {
             Button { viewModel.navigate() } label: {
-                Label("Navigate", systemImage: "arrow.triangle.turn.up.right.diamond.fill")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 44)
+                Label {
+                    Text("Drive with Apple Maps")
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
+                }
+                .font(.headline)
+                .frame(maxWidth: .infinity, minHeight: 44)
             }
             .adaptiveProminentAction()
             .controlSize(.large)
+            .accessibilityLabel("Drive to \(locationName) with Apple Maps")
+            .accessibilityHint("Directions use the parking pin, which may not mark the entrance.")
             .accessibilityIdentifier("navigate-button")
+            Text("Directions use the parking pin, which may not mark the entrance.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("navigation-pin-caveat")
             if viewModel.navigationWasIntercepted {
                 Text("Navigation handoff ready")
                     .font(.footnote.weight(.semibold))
@@ -273,10 +342,6 @@ struct ZoneDetailView: View {
 
     private func priceLabel(_ price: ParkingPriceInformation) -> String {
         price.detail.isEmpty ? price.primaryText : "\(price.primaryText). \(price.detail)"
-    }
-
-    private func walk(_ metres: Double) -> String {
-        metres < 1_000 ? "\(Int(metres.rounded())) m walk" : String(format: "%.1f km walk", metres / 1_000)
     }
 }
 

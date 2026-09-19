@@ -19,6 +19,7 @@ final class ParkingMapViewModelTests: XCTestCase {
         await viewModel.start()
 
         XCTAssertEqual(viewModel.destination.id, "current")
+        XCTAssertFalse(viewModel.canRecoverLocationFromSettings)
         XCTAssertEqual(viewModel.viewport.center.latitude, current.latitude, accuracy: 0.000_001)
         XCTAssertEqual(viewModel.viewport.center.longitude, current.longitude, accuracy: 0.000_001)
         let lastViewport = await repository.lastViewport
@@ -171,10 +172,71 @@ final class ParkingMapViewModelTests: XCTestCase {
         await viewModel.start()
 
         XCTAssertEqual(viewModel.destination.id, "cbd")
-        XCTAssertEqual(viewModel.destination.subtitle, "Location permission denied")
-        XCTAssertTrue(viewModel.notice.localizedCaseInsensitiveContains("Melbourne CBD"))
+        XCTAssertEqual(viewModel.destination.subtitle, "Location is off")
+        XCTAssertTrue(viewModel.canRecoverLocationFromSettings)
+        XCTAssertEqual(
+            viewModel.notice,
+            "Showing Melbourne CBD because ParkAlong can’t use your location."
+        )
         let requestedViewport = await repository.lastViewport
         XCTAssertEqual(requestedViewport?.center, Coordinate.melbourneCBD)
+    }
+
+    func testLocationSettingsRecoveryClearsWhenANewRequestStartsAndOnSuccess() async {
+        let location = ControllableLocationService()
+        let current = Coordinate(latitude: -37.736, longitude: 145.001)
+        let viewModel = ParkingMapViewModel(
+            repository: FixtureParkingRepository(mode: .live),
+            locationService: location,
+            destinationSearch: FixtureDestinationSearchService(),
+            navigator: AppleMapsNavigator(intercept: true),
+            offStreetService: FixtureOffStreetParkingService(includeResult: false),
+            staticParkingService: StaticParkingRepository(locations: [])
+        )
+
+        let start = Task { await viewModel.start() }
+        await location.waitUntilRequested()
+        location.complete(.denied)
+        await start.value
+
+        XCTAssertTrue(viewModel.canRecoverLocationFromSettings)
+        XCTAssertEqual(viewModel.destination.id, "cbd")
+
+        let retry = Task { await viewModel.useCurrentLocation() }
+        await location.waitUntilRequested()
+        XCTAssertFalse(viewModel.canRecoverLocationFromSettings)
+
+        location.complete(.success(current))
+        await retry.value
+
+        XCTAssertFalse(viewModel.canRecoverLocationFromSettings)
+        XCTAssertEqual(viewModel.destination.id, "current")
+        XCTAssertEqual(viewModel.destination.coordinate, current)
+    }
+
+    func testChoosingADestinationClearsStaleLocationSettingsRecovery() async {
+        let viewModel = ParkingMapViewModel(
+            repository: FixtureParkingRepository(mode: .live),
+            locationService: ResultLocationService(result: .denied),
+            destinationSearch: FixtureDestinationSearchService(),
+            navigator: AppleMapsNavigator(intercept: true),
+            offStreetService: FixtureOffStreetParkingService(includeResult: false),
+            staticParkingService: StaticParkingRepository(locations: [])
+        )
+        await viewModel.start()
+        XCTAssertTrue(viewModel.canRecoverLocationFromSettings)
+
+        await viewModel.chooseDestination(
+            ParkingDestination(
+                id: "flinders",
+                name: "Flinders Street Station",
+                subtitle: "Melbourne",
+                coordinate: .init(latitude: -37.8183, longitude: 144.9671)
+            )
+        )
+
+        XCTAssertFalse(viewModel.canRecoverLocationFromSettings)
+        XCTAssertEqual(viewModel.destination.id, "flinders")
     }
 
     func testRestrictedStartupUsesClearMelbourneFallback() async {
@@ -191,6 +253,7 @@ final class ParkingMapViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.destination.subtitle, "Location access restricted")
         XCTAssertEqual(viewModel.viewport.center, Coordinate.melbourneCBD)
+        XCTAssertFalse(viewModel.canRecoverLocationFromSettings)
     }
 
     func testLocationTimeoutFallsBackWithoutHanging() async {
@@ -207,6 +270,7 @@ final class ParkingMapViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.destination.subtitle, "Current location timed out")
         XCTAssertEqual(viewModel.state, .loaded)
+        XCTAssertFalse(viewModel.canRecoverLocationFromSettings)
     }
 
     func testUnavailableSimulatorLocationFallsBackWithoutRepeatedSnapping() async {
@@ -228,6 +292,7 @@ final class ParkingMapViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.destination.subtitle, "Current location unavailable")
         XCTAssertEqual(viewModel.viewport, userViewport)
         XCTAssertEqual(location.requestCount, 1)
+        XCTAssertFalse(viewModel.canRecoverLocationFromSettings)
     }
 
     func testNewRefreshCancelsInFlightRefreshAndOnlyAppliesNewestResult() async {
@@ -377,8 +442,8 @@ final class ParkingMapViewModelTests: XCTestCase {
             coordinate: updated.coordinate, availabilityState: updated.availabilityState,
             available: updated.available, total: updated.total, restrictionLabel: updated.restrictionLabel,
             restrictionWindow: updated.restrictionWindow, activeNow: updated.activeNow, price: updated.price,
-            provider: updated.provider, sourceTimestamp: updated.sourceTimestamp, walkingMetres: updated.walkingMetres,
-            prediction: updated.prediction, isBestBet: updated.isBestBet, zoneNumber: updated.zoneNumber,
+            provider: updated.provider, sourceTimestamp: updated.sourceTimestamp, proximity: updated.proximity,
+            prediction: updated.prediction, isSuggested: updated.isSuggested, zoneNumber: updated.zoneNumber,
             classification: updated.classification, warningText: updated.warningText,
             sourceDatasetAt: updated.sourceDatasetAt, sourceCheckedAt: updated.sourceCheckedAt,
             schedule: updated.schedule, clusterCount: updated.clusterCount, clusterViewport: updated.clusterViewport
@@ -411,8 +476,8 @@ final class ParkingMapViewModelTests: XCTestCase {
             coordinate: old.coordinate, availabilityState: old.availabilityState, available: old.available,
             total: old.total, restrictionLabel: old.restrictionLabel, restrictionWindow: old.restrictionWindow,
             activeNow: old.activeNow, price: old.price, provider: old.provider,
-            sourceTimestamp: old.sourceTimestamp, walkingMetres: old.walkingMetres, prediction: old.prediction,
-            isBestBet: old.isBestBet, zoneNumber: old.zoneNumber, classification: old.classification,
+            sourceTimestamp: old.sourceTimestamp, proximity: old.proximity, prediction: old.prediction,
+            isSuggested: old.isSuggested, zoneNumber: old.zoneNumber, classification: old.classification,
             warningText: old.warningText, sourceDatasetAt: old.sourceDatasetAt,
             sourceCheckedAt: old.sourceCheckedAt, schedule: old.schedule,
             clusterCount: old.clusterCount, clusterViewport: old.clusterViewport
@@ -543,6 +608,116 @@ final class ParkingMapViewModelTests: XCTestCase {
         XCTAssertLessThan(viewModel.viewport.latitudeSpan, 0.01)
         XCTAssertLessThan(viewModel.viewport.longitudeSpan, 0.015)
         XCTAssertEqual(viewModel.mapFocusRequest, viewModel.viewport)
+    }
+
+    func testPanningKeepsEverySourceRelativeToTheSelectedDestination() async {
+        let repository = RefreshCountingParkingRepository()
+        let staticParking = ProximityCapturingStaticParkingService()
+        let offStreet = ViewportCapturingOffStreetService()
+        let viewModel = ParkingMapViewModel(
+            repository: repository,
+            locationService: FixtureLocationService(denied: true),
+            destinationSearch: FixtureDestinationSearchService(),
+            navigator: AppleMapsNavigator(intercept: true),
+            offStreetService: offStreet,
+            staticParkingService: staticParking
+        )
+        let destination = ParkingDestination(
+            id: "flinders",
+            name: "Flinders Street Station",
+            subtitle: "Melbourne",
+            coordinate: .init(latitude: -37.8183, longitude: 144.9671)
+        )
+        viewModel.destination = destination
+        viewModel.viewport = ParkingViewport(
+            south: destination.coordinate.latitude - 0.004,
+            west: destination.coordinate.longitude - 0.005,
+            north: destination.coordinate.latitude + 0.004,
+            east: destination.coordinate.longitude + 0.005,
+            zoomLevel: 15
+        )
+
+        await viewModel.refresh(force: true)
+
+        let panned = ParkingViewport(
+            south: -37.75, west: 144.80, north: -37.65, east: 144.95, zoomLevel: 12
+        )
+        viewModel.viewport = panned
+        await viewModel.refresh(force: true)
+
+        let expected = ParkingProximityReference(
+            coordinate: destination.coordinate,
+            label: destination.name
+        )
+        let repositoryReference = await repository.lastProximityReference
+        let staticReference = await staticParking.lastProximityReference
+        let offStreetReference = await offStreet.lastProximityReference
+        XCTAssertEqual(repositoryReference, expected)
+        XCTAssertEqual(staticReference, expected)
+        XCTAssertEqual(offStreetReference, expected)
+        XCTAssertNotEqual(viewModel.viewport.center, destination.coordinate)
+    }
+
+    func testChangingDestinationReanchorsProximityWithoutAPan() async {
+        let repository = RefreshCountingParkingRepository()
+        let staticParking = ProximityCapturingStaticParkingService()
+        let viewModel = ParkingMapViewModel(
+            repository: repository,
+            locationService: FixtureLocationService(denied: true),
+            destinationSearch: FixtureDestinationSearchService(),
+            navigator: AppleMapsNavigator(intercept: true),
+            offStreetService: FixtureOffStreetParkingService(includeResult: false),
+            staticParkingService: staticParking
+        )
+        let first = ParkingDestination(
+            id: "flinders", name: "Flinders Street Station", subtitle: "Melbourne",
+            coordinate: .init(latitude: -37.8183, longitude: 144.9671)
+        )
+        let second = ParkingDestination(
+            id: "bendigo", name: "Bendigo", subtitle: "Victoria",
+            coordinate: .init(latitude: -36.757, longitude: 144.279)
+        )
+
+        await viewModel.chooseDestination(first)
+        let firstReference = await repository.lastProximityReference
+        await viewModel.chooseDestination(second)
+        let secondReference = await repository.lastProximityReference
+        let staticReference = await staticParking.lastProximityReference
+
+        XCTAssertEqual(firstReference?.label, "Flinders Street Station")
+        XCTAssertEqual(secondReference?.label, "Bendigo")
+        XCTAssertEqual(secondReference?.coordinate, second.coordinate)
+        XCTAssertEqual(staticReference, secondReference)
+        XCTAssertNotEqual(firstReference, secondReference)
+    }
+
+    func testSearchUsesTheCapturedDestinationInsteadOfTheMapCentre() async {
+        let staticParking = ProximityCapturingStaticParkingService()
+        let viewModel = ParkingMapViewModel(
+            repository: FixtureParkingRepository(mode: .live),
+            locationService: FixtureLocationService(denied: true),
+            destinationSearch: FixtureDestinationSearchService(),
+            navigator: AppleMapsNavigator(intercept: true),
+            offStreetService: FixtureOffStreetParkingService(includeResult: false),
+            staticParkingService: staticParking
+        )
+        let destination = ParkingDestination(
+            id: "flinders",
+            name: "Flinders Street Station",
+            subtitle: "Melbourne",
+            coordinate: .init(latitude: -37.8183, longitude: 144.9671)
+        )
+        viewModel.destination = destination
+        viewModel.viewport = ParkingViewport(
+            south: -37.75, west: 144.80, north: -37.65, east: 144.95, zoomLevel: 12
+        )
+
+        await viewModel.search(query: "parking")
+
+        let searchReference = await staticParking.lastSearchProximityReference
+        XCTAssertEqual(searchReference?.coordinate, destination.coordinate)
+        XCTAssertEqual(searchReference?.label, destination.name)
+        XCTAssertNotEqual(searchReference?.coordinate, viewModel.viewport.center)
     }
 
     func testSelectingDurationUpdatesTheVisibleChoiceImmediately() {
@@ -686,8 +861,13 @@ final class ParkingMapViewModelTests: XCTestCase {
             availabilityState: .unknown, available: nil, total: nil,
             restrictionLabel: "Fixture", restrictionWindow: "Fixture", activeNow: true,
             price: .init(primaryText: "Fixture", detail: "Fixture", provider: "Fixture", actionLabel: nil, actionURL: nil),
-            provider: "Fixture", sourceTimestamp: nil, walkingMetres: 0, prediction: nil,
-            isBestBet: false, zoneNumber: nil, classification: .staticOnly,
+            provider: "Fixture", sourceTimestamp: nil,
+            proximity: ParkingProximity(
+                straightLineMetres: 0,
+                reference: .init(coordinate: .melbourneCBD, label: "Test destination")
+            ),
+            prediction: nil,
+            isSuggested: false, zoneNumber: nil, classification: .staticOnly,
             warningText: "Not live", sourceDatasetAt: nil, sourceCheckedAt: nil,
             schedule: [], clusterCount: nil, clusterViewport: nil
         )
@@ -700,7 +880,7 @@ final class ParkingMapViewModelTests: XCTestCase {
             coordinate: target.center, availabilityState: base.availabilityState, available: nil, total: nil,
             restrictionLabel: base.restrictionLabel, restrictionWindow: base.restrictionWindow,
             activeNow: true, price: base.price, provider: base.provider, sourceTimestamp: nil,
-            walkingMetres: 0, prediction: nil, isBestBet: false, zoneNumber: nil,
+            proximity: base.proximity, prediction: nil, isSuggested: false, zoneNumber: nil,
             classification: .staticOnly, warningText: base.warningText, sourceDatasetAt: nil,
             sourceCheckedAt: nil, schedule: [], clusterCount: 8, clusterViewport: target
         )
@@ -730,11 +910,14 @@ final class ParkingMapViewModelTests: XCTestCase {
                 validation: nil,
                 forecastDate: .now
             ),
-            walkingMetres: 100,
+            proximity: ParkingProximity(
+                straightLineMetres: 100,
+                reference: .init(coordinate: .melbourneCBD, label: "Test destination")
+            ),
             newestTimestamp: .now,
             mode: .live,
             schedule: [],
-            isBestBet: false
+            isSuggested: false
         )
     }
 }
@@ -835,14 +1018,22 @@ private actor ControllableParkingRepository: ParkingRepositoryProviding {
     private var cancellationWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
     private(set) var cancelledRequestCount = 0
     private(set) var lastStartedViewport: ParkingViewport?
+    private(set) var lastProximityReference: ParkingProximityReference?
 
     var totalStartedCount: Int { totalStartedRequestCount }
 
-    func refresh(viewport: ParkingViewport, plan: ParkingPlan, now: Date, force: Bool) async throws -> ParkingRepositoryResult {
+    func refresh(
+        viewport: ParkingViewport,
+        proximityReference: ParkingProximityReference,
+        plan: ParkingPlan,
+        now: Date,
+        force: Bool
+    ) async throws -> ParkingRepositoryResult {
         let id = nextID
         nextID += 1
         totalStartedRequestCount += 1
         lastStartedViewport = viewport
+        lastProximityReference = proximityReference
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 pending.append(Pending(id: id, continuation: continuation))
@@ -913,6 +1104,7 @@ private actor ControllableVacantBayRepository: ParkingRepositoryProviding {
 
     func refresh(
         viewport: ParkingViewport,
+        proximityReference: ParkingProximityReference,
         plan: ParkingPlan,
         now: Date,
         force: Bool
@@ -971,7 +1163,11 @@ private actor ControllableVacantBayRepository: ParkingRepositoryProviding {
 private actor ControllableStaticParkingService: StaticParkingProviding {
     private var pending: [CheckedContinuation<[ParkingOption], Never>] = []
 
-    func options(in viewport: ParkingViewport, plan: ParkingPlan) async -> [ParkingOption] {
+    func options(
+        in viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference,
+        plan: ParkingPlan
+    ) async -> [ParkingOption] {
         await withCheckedContinuation { pending.append($0) }
     }
 
@@ -983,15 +1179,18 @@ private actor ControllableStaticParkingService: StaticParkingProviding {
 private actor RefreshCountingParkingRepository: ParkingRepositoryProviding {
     private(set) var refreshCount = 0
     private(set) var lastViewport: ParkingViewport?
+    private(set) var lastProximityReference: ParkingProximityReference?
 
     func refresh(
         viewport: ParkingViewport,
+        proximityReference: ParkingProximityReference,
         plan: ParkingPlan,
         now: Date,
         force: Bool
     ) async throws -> ParkingRepositoryResult {
         refreshCount += 1
         lastViewport = viewport
+        lastProximityReference = proximityReference
         return .init(zones: [], mode: .typical, checkedAt: now, notice: "")
     }
 
@@ -1000,9 +1199,39 @@ private actor RefreshCountingParkingRepository: ParkingRepositoryProviding {
 
 private actor ViewportCapturingOffStreetService: OffStreetParkingProviding {
     private(set) var lastViewport: ParkingViewport?
+    private(set) var lastProximityReference: ParkingProximityReference?
 
-    func options(in viewport: ParkingViewport) async -> [ParkingOption] {
+    func options(
+        in viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference
+    ) async -> [ParkingOption] {
         lastViewport = viewport
+        lastProximityReference = proximityReference
+        return []
+    }
+}
+
+private actor ProximityCapturingStaticParkingService: StaticParkingProviding {
+    private(set) var lastProximityReference: ParkingProximityReference?
+    private(set) var lastSearchProximityReference: ParkingProximityReference?
+
+    func options(
+        in viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference,
+        plan: ParkingPlan
+    ) async -> [ParkingOption] {
+        lastProximityReference = proximityReference
+        return []
+    }
+
+    func search(
+        _ query: String,
+        near viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference,
+        plan: ParkingPlan,
+        limit: Int
+    ) async -> [ParkingOption] {
+        lastSearchProximityReference = proximityReference
         return []
     }
 }
@@ -1010,7 +1239,11 @@ private actor ViewportCapturingOffStreetService: OffStreetParkingProviding {
 private actor ViewportCapturingStaticParkingService: StaticParkingProviding {
     private(set) var lastViewport: ParkingViewport?
 
-    func options(in viewport: ParkingViewport, plan: ParkingPlan) async -> [ParkingOption] {
+    func options(
+        in viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference,
+        plan: ParkingPlan
+    ) async -> [ParkingOption] {
         lastViewport = viewport
         return []
     }

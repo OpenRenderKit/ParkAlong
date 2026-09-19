@@ -64,8 +64,10 @@ enum ParkingMarkerSelector {
         let lhsRank = priority(of: lhs)
         let rhsRank = priority(of: rhs)
         if lhsRank != rhsRank { return lhsRank < rhsRank }
-        if lhs.isBestBet != rhs.isBestBet { return lhs.isBestBet }
-        if lhs.walkingMetres != rhs.walkingMetres { return lhs.walkingMetres < rhs.walkingMetres }
+        if lhs.isSuggested != rhs.isSuggested { return lhs.isSuggested }
+        if lhs.proximity.straightLineMetres != rhs.proximity.straightLineMetres {
+            return lhs.proximity.straightLineMetres < rhs.proximity.straightLineMetres
+        }
         return lhs.id < rhs.id
     }
 

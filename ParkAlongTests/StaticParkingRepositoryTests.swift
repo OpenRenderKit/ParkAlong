@@ -88,7 +88,11 @@ final class StaticParkingRepositoryTests: XCTestCase {
 
         let elapsed = await clock.measure {
             for viewport in viewports {
-                visibleCounts.append(await repository.options(in: viewport, plan: plan(.twoHours)).count)
+                visibleCounts.append(await repository.options(
+                    in: viewport,
+                    relativeTo: reference(coordinate: viewport.center),
+                    plan: plan(.twoHours)
+                ).count)
             }
         }
 
@@ -113,7 +117,11 @@ final class StaticParkingRepositoryTests: XCTestCase {
         let location = fixture(id: "lazy", name: "Lazy catalog", coordinate: .melbourneCBD)
         let repository = StaticParkingRepository(loader: { [location] })
 
-        let options = await repository.options(in: viewport(center: .melbourneCBD), plan: plan(.oneHour))
+        let options = await repository.options(
+            in: viewport(center: .melbourneCBD),
+            relativeTo: reference(),
+            plan: plan(.oneHour)
+        )
 
         XCTAssertEqual(options.map(\.title), ["Lazy catalog"])
     }
@@ -123,10 +131,10 @@ final class StaticParkingRepositoryTests: XCTestCase {
         let repository = StaticParkingRepository(locations: [location])
         let queryViewport = viewport(center: .melbourneCBD)
 
-        let first = await repository.options(in: queryViewport, plan: plan(.oneHour))
-        let second = await repository.options(in: queryViewport, plan: plan(.oneHour))
+        let first = await repository.options(in: queryViewport, relativeTo: reference(), plan: plan(.oneHour))
+        let second = await repository.options(in: queryViewport, relativeTo: reference(), plan: plan(.oneHour))
         let cachedMetrics = await repository.cacheMetrics()
-        _ = await repository.options(in: queryViewport, plan: plan(.twoHours))
+        _ = await repository.options(in: queryViewport, relativeTo: reference(), plan: plan(.twoHours))
         let invalidatedMetrics = await repository.cacheMetrics()
 
         XCTAssertEqual(first, second)
@@ -146,7 +154,12 @@ final class StaticParkingRepositoryTests: XCTestCase {
         )
         let repository = StaticParkingRepository(locations: [location])
 
-        let options = await repository.options(in: viewport(center: .init(latitude: -37.5622, longitude: 143.8581)), plan: plan(.twoHours))
+        let destination = Coordinate(latitude: -37.5622, longitude: 143.8581)
+        let options = await repository.options(
+            in: viewport(center: destination),
+            relativeTo: reference(coordinate: destination),
+            plan: plan(.twoHours)
+        )
 
         XCTAssertEqual(options.count, 1)
         XCTAssertEqual(options[0].classification, .staticOnly)
@@ -154,6 +167,26 @@ final class StaticParkingRepositoryTests: XCTestCase {
         XCTAssertEqual(options[0].restrictionLabel, "3P until 12:00 am")
         XCTAssertEqual(options[0].price.primaryText, "$3.60 for 2 hours")
         XCTAssertEqual(options[0].sourceCheckedAt, location.source.checkedAt)
+    }
+
+    func testStaticProximityUsesDestinationInsteadOfViewportCentre() async throws {
+        let location = fixture(id: "destination-distance", name: "Destination distance", coordinate: .melbourneCBD)
+        let repository = StaticParkingRepository(locations: [location])
+        let mapCentre = Coordinate(latitude: -37.81, longitude: 144.96)
+        let destination = Coordinate(latitude: -37.79, longitude: 144.93)
+        let queryViewport = viewport(center: mapCentre)
+
+        let options = await repository.options(
+            in: queryViewport,
+            relativeTo: reference(coordinate: destination, label: "Selected destination"),
+            plan: plan(.oneHour)
+        )
+        let option = try XCTUnwrap(options.first)
+
+        let expected = ParkingRepository.distance(from: location.coordinate, to: destination)
+        XCTAssertEqual(option.proximity.straightLineMetres, expected, accuracy: 0.01)
+        XCTAssertEqual(option.proximity.reference.label, "Selected destination")
+        XCTAssertNotEqual(option.proximity.straightLineMetres, ParkingRepository.distance(from: location.coordinate, to: mapCentre))
     }
 
     func testExcludesLocationsOutsideRadiusAndRulesShorterThanRequestedStay() async {
@@ -165,7 +198,9 @@ final class StaticParkingRepositoryTests: XCTestCase {
         let far = fixture(id: "far", name: "Far away", coordinate: .init(latitude: -36.7, longitude: 144.3))
         let repository = StaticParkingRepository(locations: [nearbyShort, far])
 
-        let options = await repository.options(in: viewport(center: .melbourneCBD), plan: plan(.twoHours))
+        let options = await repository.options(
+            in: viewport(center: .melbourneCBD), relativeTo: reference(), plan: plan(.twoHours)
+        )
 
         XCTAssertTrue(options.isEmpty)
     }
@@ -179,7 +214,9 @@ final class StaticParkingRepositoryTests: XCTestCase {
         )
         let repository = StaticParkingRepository(locations: [osm, official])
 
-        let options = await repository.options(in: viewport(center: .melbourneCBD), plan: plan(.oneHour))
+        let options = await repository.options(
+            in: viewport(center: .melbourneCBD), relativeTo: reference(), plan: plan(.oneHour)
+        )
 
         XCTAssertEqual(options.map(\.id), ["static-official"])
     }
@@ -193,7 +230,9 @@ final class StaticParkingRepositoryTests: XCTestCase {
         }
         let repository = StaticParkingRepository(locations: locations, resultLimit: 24)
 
-        let options = await repository.options(in: viewport(center: .melbourneCBD), plan: plan(.oneHour))
+        let options = await repository.options(
+            in: viewport(center: .melbourneCBD), relativeTo: reference(), plan: plan(.oneHour)
+        )
 
         XCTAssertEqual(options.count, 24)
     }
@@ -212,7 +251,9 @@ final class StaticParkingRepositoryTests: XCTestCase {
         )
         let repository = StaticParkingRepository(locations: [location])
 
-        let option = await repository.options(in: viewport(center: .melbourneCBD), plan: plan(.oneHour)).first
+        let option = await repository.options(
+            in: viewport(center: .melbourneCBD), relativeTo: reference(), plan: plan(.oneHour)
+        ).first
 
         XCTAssertEqual(option?.classification, .predicted)
         XCTAssertNotNil(option?.available)
@@ -239,8 +280,12 @@ final class StaticParkingRepositoryTests: XCTestCase {
         let ordinary = ParkingPlan(arrival: now, duration: .oneHour)
         let holiday = ParkingPlan(arrival: now, duration: .oneHour, isPublicHoliday: true)
 
-        let ordinaryExpected = await repository.options(in: viewport(center: .melbourneCBD), plan: ordinary).first?.prediction?.expectedAvailable
-        let holidayExpected = await repository.options(in: viewport(center: .melbourneCBD), plan: holiday).first?.prediction?.expectedAvailable
+        let ordinaryExpected = await repository.options(
+            in: viewport(center: .melbourneCBD), relativeTo: reference(), plan: ordinary
+        ).first?.prediction?.expectedAvailable
+        let holidayExpected = await repository.options(
+            in: viewport(center: .melbourneCBD), relativeTo: reference(), plan: holiday
+        ).first?.prediction?.expectedAvailable
 
         XCTAssertNotNil(ordinaryExpected)
         XCTAssertNotNil(holidayExpected)
@@ -254,7 +299,9 @@ final class StaticParkingRepositoryTests: XCTestCase {
         let repository = StaticParkingRepository(locations: [west, east, outside], resultLimit: 20)
         let visible = ParkingViewport(south: -37.90, west: 144.85, north: -37.75, east: 145.05, zoomLevel: 12)
 
-        let options = await repository.options(in: visible, plan: plan(.oneHour))
+        let options = await repository.options(
+            in: visible, relativeTo: reference(coordinate: visible.center), plan: plan(.oneHour)
+        )
 
         XCTAssertEqual(Set(options.map(\.title)), ["Visible west", "Visible east"])
     }
@@ -272,7 +319,9 @@ final class StaticParkingRepositoryTests: XCTestCase {
         let repository = StaticParkingRepository(locations: locations, resultLimit: 80)
         let wide = ParkingViewport(south: -38.0, west: 144.7, north: -37.6, east: 145.1, zoomLevel: 9)
 
-        let options = await repository.options(in: wide, plan: plan(.oneHour))
+        let options = await repository.options(
+            in: wide, relativeTo: reference(coordinate: wide.center), plan: plan(.oneHour)
+        )
 
         XCTAssertEqual(options.count, 1)
         XCTAssertEqual(options[0].clusterCount, 30)
@@ -293,11 +342,11 @@ final class StaticParkingRepositoryTests: XCTestCase {
         }
         let repository = StaticParkingRepository(locations: locations, resultLimit: 80)
         let wide = ParkingViewport(south: -38.0, west: 144.7, north: -37.6, east: 145.1, zoomLevel: 9)
-        let clustered = await repository.options(in: wide, plan: plan(.oneHour))
+        let clustered = await repository.options(in: wide, relativeTo: reference(coordinate: wide.center), plan: plan(.oneHour))
         let cluster = try XCTUnwrap(clustered.first)
         let target = try XCTUnwrap(cluster.clusterViewport)
 
-        let expanded = await repository.options(in: target, plan: plan(.oneHour))
+        let expanded = await repository.options(in: target, relativeTo: reference(coordinate: target.center), plan: plan(.oneHour))
 
         XCTAssertEqual(expanded.count, 30)
         XCTAssertTrue(expanded.allSatisfy { $0.clusterCount == nil })
@@ -317,14 +366,34 @@ final class StaticParkingRepositoryTests: XCTestCase {
         }
         let repository = StaticParkingRepository(locations: locations, resultLimit: 80)
         let wide = ParkingViewport(south: -38.0, west: 144.8, north: -37.8, east: 145.0, zoomLevel: 10)
-        let clustered: [ParkingOption] = await repository.options(in: wide, plan: plan(.oneHour))
+        let clustered: [ParkingOption] = await repository.options(in: wide, relativeTo: reference(coordinate: wide.center), plan: plan(.oneHour))
         let cluster: ParkingOption = try XCTUnwrap(clustered.first(where: { $0.clusterCount != nil }))
         let target: ParkingViewport = try XCTUnwrap(cluster.clusterViewport)
 
-        let expanded = await repository.options(in: target, plan: plan(.oneHour))
+        let expanded = await repository.options(in: target, relativeTo: reference(coordinate: target.center), plan: plan(.oneHour))
 
         XCTAssertEqual(expanded.count, locations.count)
         XCTAssertTrue(expanded.allSatisfy { $0.clusterCount == nil && target.contains($0.coordinate) })
+    }
+
+    func testQueryCacheDoesNotReuseProximityFromAnotherDestination() async {
+        let location = fixture(id: "cache-proximity", name: "Cached proximity", coordinate: .melbourneCBD)
+        let repository = StaticParkingRepository(locations: [location])
+        let queryViewport = viewport(center: .melbourneCBD)
+
+        let first = await repository.options(
+            in: queryViewport, relativeTo: reference(label: "First destination"), plan: plan(.oneHour)
+        )
+        let second = await repository.options(
+            in: queryViewport, relativeTo: reference(label: "Second destination"), plan: plan(.oneHour)
+        )
+        let metrics = await repository.cacheMetrics()
+
+        XCTAssertEqual(first.first?.proximity.reference.label, "First destination")
+        XCTAssertEqual(second.first?.proximity.reference.label, "Second destination")
+        XCTAssertEqual(metrics.hits, 0)
+        XCTAssertEqual(metrics.misses, 2)
+        XCTAssertEqual(metrics.entries, 2)
     }
 
     func testWideViewportClustersEveryVisibleRecordInsteadOfTruncatingAroundTheCentre() async {
@@ -342,7 +411,9 @@ final class StaticParkingRepositoryTests: XCTestCase {
         let repository = StaticParkingRepository(locations: locations, resultLimit: 24)
         let victoria = ParkingViewport(south: -39.0, west: 140.9, north: -33.8, east: 149.8, zoomLevel: 6)
 
-        let options = await repository.options(in: victoria, plan: plan(.oneHour))
+        let options = await repository.options(
+            in: victoria, relativeTo: reference(coordinate: victoria.center), plan: plan(.oneHour)
+        )
 
         XCTAssertEqual(options.map { $0.clusterCount ?? 1 }.reduce(0, +), 900)
         XCTAssertTrue(options.count > 24)
@@ -380,6 +451,13 @@ final class StaticParkingRepositoryTests: XCTestCase {
 
     private func plan(_ duration: StayDuration) -> ParkingPlan {
         ParkingPlan(arrival: now, duration: duration)
+    }
+
+    private func reference(
+        coordinate: Coordinate = .melbourneCBD,
+        label: String = "Test destination"
+    ) -> ParkingProximityReference {
+        .init(coordinate: coordinate, label: label)
     }
 
     private func viewport(center: Coordinate) -> ParkingViewport {

@@ -49,9 +49,9 @@ ParkAlong normalizes those pieces into a single `ParkingOption` model and a sing
 - Paid/free labelling where the active parking code makes it clear.
 - Provider links when a trustworthy reusable price is not available.
 - Nearby off-street facilities from MapKit, normalized alongside on-street zones.
-- Availability-first Best bet ranking.
+- A destination-anchored street-parking suggestion based on availability and straight-line proximity.
 - Individual vacant-bay markers fetched only after selecting a zone.
-- Apple Maps driving handoff—ParkAlong does not recreate turn-by-turn navigation.
+- Apple Maps driving handoff to the representative parking pin, which may not be the vehicle entrance. ParkAlong does not recreate turn-by-turn navigation.
 - Two-minute refresh, foreground refresh, manual refresh, and checked-at timestamps.
 - Versioned historical buckets and held-out validation metadata; the shipped 2019 model abstains from 2026 arrival forecasts because it exceeds the two-year recency gate.
 - Viewport-driven loading, low-zoom clustering, generation ordering and short bounded caches so zooming or panning recalculates the parking actually on screen.
@@ -78,7 +78,7 @@ Changing the plan retains the previous markers while a generation-safe refresh f
 
 ```mermaid
 flowchart LR
-    Destination["Visible map + arrival + stay"] --> Repository["ParkingRepository"]
+    Destination["Selected destination + visible map + arrival + stay"] --> Repository["ParkingRepository"]
     Sensors["City live sensors"] --> Repository
     Signs["Current zone restrictions"] --> Repository
     History["Historical buckets + held-out validation"] --> Repository
@@ -97,13 +97,15 @@ Sensor rows are accepted only when they have a recognized occupancy state, usabl
 
 ### Ranking
 
-Results are ranked deterministically with availability dominating distance:
+Eligible on-street results shown are ranked deterministically with availability dominating proximity:
 
 - 70% predicted available-space count;
-- 20% walking distance;
+- 20% straight-line proximity to the selected destination;
 - 10% capacity-aware modelled chance of at least one space.
 
-Only options with a numeric observed/validated availability state participate in Best bet. A future plan with an abstained forecast never reuses the current live count for ranking.
+The selected destination anchors straight-line proximity and suggestion ranking, while the visible viewport controls discovery. This proximity is straight-line distance, not walking-route distance.
+
+Only options with a positive numeric observed or validated availability state participate in the suggestion. The suggestion compares the eligible on-street results shown and is withheld when only one result is eligible or when availability evidence is missing or zero. A future plan with an abstained forecast never reuses the current live count for ranking.
 
 The map renders the top 24 ranked on-street options to remain responsive while zooming and panning.
 

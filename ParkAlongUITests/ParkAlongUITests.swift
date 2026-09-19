@@ -83,7 +83,26 @@ final class ParkAlongUITests: XCTestCase {
         let app = launch(["-fixture-live", "-location-denied"])
         XCTAssertTrue(app.staticTexts["destination-title"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.staticTexts["destination-title"].label, "Melbourne CBD")
-        XCTAssertTrue(app.buttons["best-bet-button"].exists)
+        XCTAssertTrue(app.buttons["suggested-on-street-area-button"].exists)
+
+        let recovery = element("location-settings-recovery", in: app)
+        XCTAssertTrue(recovery.waitForExistence(timeout: 3))
+        let message = element("location-denied-status", in: app)
+        XCTAssertTrue(message.waitForExistence(timeout: 2))
+        XCTAssertTrue(
+            message.label.localizedCaseInsensitiveContains("Melbourne CBD"),
+            message.label
+        )
+        XCTAssertTrue(
+            message.label.localizedCaseInsensitiveContains("can’t use your location")
+                || message.label.localizedCaseInsensitiveContains("can't use your location"),
+            message.label
+        )
+        let openSettings = app.buttons["open-location-settings-button"]
+        XCTAssertTrue(openSettings.waitForExistence(timeout: 2))
+        XCTAssertTrue(openSettings.isHittable)
+        XCTAssertEqual(openSettings.label, "Open Settings")
+        XCTAssertTrue(app.buttons["current-location-button"].exists)
     }
 
     func testAuthorizedStartupCentersOnCurrentLocation() {
@@ -91,6 +110,7 @@ final class ParkAlongUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["destination-title"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.staticTexts["destination-title"].label, "Current location")
         waitForValue("selected", on: app.buttons["current-location-button"])
+        XCTAssertTrue(element("map-compass-scale", in: app).waitForExistence(timeout: 3))
     }
 
     func testRestrictedLocationFallsBackWithoutHanging() {
@@ -98,6 +118,7 @@ final class ParkAlongUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["destination-title"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.staticTexts["destination-title"].label, "Melbourne CBD")
         XCTAssertTrue(app.staticTexts["Location access restricted"].exists)
+        XCTAssertFalse(app.buttons["open-location-settings-button"].exists)
     }
 
     func testLocationTimeoutFallsBackWithoutHanging() {
@@ -105,6 +126,7 @@ final class ParkAlongUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["destination-title"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.staticTexts["destination-title"].label, "Melbourne CBD")
         XCTAssertTrue(app.staticTexts["Current location timed out"].exists)
+        XCTAssertFalse(app.buttons["open-location-settings-button"].exists)
     }
 
     func testUnavailableLocationFallsBackWithoutHanging() {
@@ -112,6 +134,7 @@ final class ParkAlongUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["destination-title"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.staticTexts["destination-title"].label, "Melbourne CBD")
         XCTAssertTrue(app.staticTexts["Current location unavailable"].exists)
+        XCTAssertFalse(app.buttons["open-location-settings-button"].exists)
     }
 
     func testDenseMarkerMapAcceptsPinchAndRemainsInteractive() {
@@ -349,11 +372,16 @@ final class ParkAlongUITests: XCTestCase {
         let app = launch()
         app.buttons["duration-2h"].tap()
         waitForValue("selected", on: app.buttons["duration-2h"])
-        app.buttons["best-bet-button"].tap()
+        app.buttons["suggested-on-street-area-button"].tap()
         XCTAssertTrue(app.otherElements["zone-detail-sheet"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["zone-availability"].label.contains("available"))
-        XCTAssertTrue(app.buttons["navigate-button"].isHittable)
-        app.buttons["navigate-button"].tap()
+        let navigate = app.buttons["navigate-button"]
+        XCTAssertTrue(navigate.isHittable)
+        XCTAssertTrue(navigate.label.localizedCaseInsensitiveContains("Drive"))
+        XCTAssertTrue(navigate.label.localizedCaseInsensitiveContains("Apple Maps"))
+        XCTAssertTrue(navigate.label.localizedCaseInsensitiveContains("Little Collins"))
+        XCTAssertTrue(element("navigation-pin-caveat", in: app).waitForExistence(timeout: 2))
+        navigate.tap()
         XCTAssertTrue(app.staticTexts["navigation-intercepted"].waitForExistence(timeout: 2))
     }
 
@@ -375,7 +403,7 @@ final class ParkAlongUITests: XCTestCase {
 
     func testTimeLimitExplorerShowsWeeklySchedule() {
         let app = launch()
-        app.buttons["best-bet-button"].tap()
+        app.buttons["suggested-on-street-area-button"].tap()
         XCTAssertTrue(app.otherElements["zone-detail-sheet"].waitForExistence(timeout: 2))
 
         let timeLimitRow = app.buttons["zone-time-limit-row"]
@@ -444,7 +472,10 @@ final class ParkAlongUITests: XCTestCase {
 
     func testLiveZoneDetailOmitsDataQualityWarning() {
         let app = launch()
-        app.buttons["best-bet-button"].tap()
+        let suggested = app.buttons["suggested-on-street-area-button"]
+        XCTAssertTrue(suggested.waitForExistence(timeout: 3))
+        XCTAssertTrue(suggested.label.localizedCaseInsensitiveContains("Suggested street parking"))
+        suggested.tap()
         XCTAssertTrue(app.otherElements["zone-detail-sheet"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.staticTexts["data-quality-warning"].exists)
         XCTAssertTrue(app.staticTexts["zone-availability"].label.contains("available"))
@@ -455,6 +486,41 @@ final class ParkAlongUITests: XCTestCase {
         if probability.exists {
             XCTAssertTrue(probability.label.localizedCaseInsensitiveContains("Modelled chance"))
         }
-        XCTAssertTrue(app.buttons["navigate-button"].isHittable)
+
+        let explanation = element("suggestion-explanation", in: app)
+        XCTAssertTrue(explanation.waitForExistence(timeout: 2))
+        XCTAssertTrue(explanation.label.localizedCaseInsensitiveContains("Why this suggestion"), explanation.label)
+        XCTAssertTrue(explanation.label.localizedCaseInsensitiveContains("street parking"), explanation.label)
+        XCTAssertTrue(explanation.label.localizedCaseInsensitiveContains("straight-line"), explanation.label)
+        XCTAssertTrue(
+            explanation.label.localizedCaseInsensitiveContains("Current location")
+                || explanation.label.localizedCaseInsensitiveContains("Melbourne CBD"),
+            explanation.label
+        )
+        XCTAssertFalse(explanation.label.contains("%"), explanation.label)
+        XCTAssertFalse(explanation.label.localizedCaseInsensitiveContains("score"), explanation.label)
+        XCTAssertFalse(explanation.label.localizedCaseInsensitiveContains("guarantee"), explanation.label)
+        XCTAssertFalse(explanation.label.localizedCaseInsensitiveContains("walk"), explanation.label)
+
+        let proximity = element("straight-line-proximity", in: app)
+        XCTAssertTrue(proximity.waitForExistence(timeout: 2))
+        XCTAssertTrue(proximity.label.localizedCaseInsensitiveContains("Distance to"), proximity.label)
+        XCTAssertTrue(proximity.label.localizedCaseInsensitiveContains("straight-line"), proximity.label)
+        XCTAssertTrue(proximity.label.localizedCaseInsensitiveContains("walking route"), proximity.label)
+        XCTAssertFalse(proximity.label.localizedCaseInsensitiveContains(" m walk"))
+        XCTAssertFalse(proximity.label.localizedCaseInsensitiveContains("km walk"))
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", " m walk")).firstMatch.exists)
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", "km walk")).firstMatch.exists)
+
+        let navigate = app.buttons["navigate-button"]
+        XCTAssertTrue(navigate.isHittable)
+        XCTAssertTrue(navigate.label.localizedCaseInsensitiveContains("Drive to"))
+        XCTAssertTrue(navigate.label.localizedCaseInsensitiveContains("Apple Maps"))
+        XCTAssertTrue(navigate.label.localizedCaseInsensitiveContains("Little Collins"))
+        let pinCaveat = element("navigation-pin-caveat", in: app)
+        XCTAssertTrue(pinCaveat.waitForExistence(timeout: 2))
+        XCTAssertTrue(pinCaveat.label.localizedCaseInsensitiveContains("parking pin"))
+        XCTAssertTrue(pinCaveat.label.localizedCaseInsensitiveContains("entrance"))
+        XCTAssertFalse(pinCaveat.label.localizedCaseInsensitiveContains("walking"))
     }
 }

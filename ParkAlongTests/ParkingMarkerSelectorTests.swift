@@ -100,9 +100,12 @@ final class ParkingMarkerSelectorTests: XCTestCase {
             price: .init(primaryText: "Fixture", detail: "Fixture", provider: "Fixture", actionLabel: nil, actionURL: nil),
             provider: "Fixture",
             sourceTimestamp: classification == .verifiedLive ? Date(timeIntervalSince1970: 1_777_000_000) : nil,
-            walkingMetres: Double(row * 100 + column),
+            proximity: ParkingProximity(
+                straightLineMetres: Double(row * 100 + column),
+                reference: .init(coordinate: .melbourneCBD, label: "Test destination")
+            ),
             prediction: nil,
-            isBestBet: id == "live-0",
+            isSuggested: id == "live-0",
             zoneNumber: nil,
             classification: classification,
             warningText: classification.needsWarning ? "Not live" : nil,

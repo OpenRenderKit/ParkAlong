@@ -76,7 +76,11 @@ struct FixtureStaticParkingService: StaticParkingProviding {
     var includeResult = true
     var resultCount = 1
 
-    func options(in viewport: ParkingViewport, plan: ParkingPlan) async -> [ParkingOption] {
+    func options(
+        in viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference,
+        plan: ParkingPlan
+    ) async -> [ParkingOption] {
         guard includeResult else { return [] }
         let date = plan.arrival
         let destination = viewport.center
@@ -105,14 +109,22 @@ struct FixtureStaticParkingService: StaticParkingProviding {
                 source: source, classification: .staticOnly, predictionEvidence: nil
             )
         }
-        return await StaticParkingRepository(locations: locations).options(in: viewport, plan: plan)
+        return await StaticParkingRepository(locations: locations).options(
+            in: viewport,
+            relativeTo: proximityReference,
+            plan: plan
+        )
     }
 }
 
 /// Exercises the production cluster-to-detail transition in UI tests without
 /// relying on the bundled statewide catalog or network services.
 struct FixtureClusterParkingService: StaticParkingProviding {
-    func options(in viewport: ParkingViewport, plan: ParkingPlan) async -> [ParkingOption] {
+    func options(
+        in viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference,
+        plan: ParkingPlan
+    ) async -> [ParkingOption] {
         let source = ParkingSourceAttribution(
             id: "fixture-cluster", name: "Fixture Council",
             sourceURL: URL(string: "https://example.com/parking")!,
@@ -136,7 +148,7 @@ struct FixtureClusterParkingService: StaticParkingProviding {
             zoomLevel: viewport.longitudeSpan > 0.01 ? 9 : viewport.zoomLevel
         )
         return await StaticParkingRepository(locations: locations, resultLimit: 80)
-            .options(in: queryViewport, plan: plan)
+            .options(in: queryViewport, relativeTo: proximityReference, plan: plan)
     }
 }
 
@@ -145,7 +157,13 @@ actor FixtureParkingRepository: ParkingRepositoryProviding {
     private let mode: Mode
     init(mode: Mode) { self.mode = mode }
 
-    func refresh(viewport: ParkingViewport, plan: ParkingPlan, now: Date, force: Bool) async throws -> ParkingRepositoryResult {
+    func refresh(
+        viewport: ParkingViewport,
+        proximityReference: ParkingProximityReference,
+        plan: ParkingPlan,
+        now: Date,
+        force: Bool
+    ) async throws -> ParkingRepositoryResult {
         if mode == .loading { try await Task.sleep(for: .seconds(30)) }
         if mode == .error { throw ParkingAPIError.httpStatus(503) }
         let center = viewport.center
@@ -174,7 +192,10 @@ actor FixtureParkingRepository: ParkingRepositoryProviding {
                     historicalOccupiedRatio: 0.45, etaMinutes: 0,
                     validation: nil, forecastDate: now
                 ),
-                walkingMetres: Double(170 + index * 110),
+                proximity: ParkingProximity(
+                    straightLineMetres: Double(170 + index * 110),
+                    reference: proximityReference
+                ),
                 newestTimestamp: now.addingTimeInterval(-Double(45 + index * 20)),
                 mode: .live,
                 schedule: RestrictionEngine().weeklySchedule([
@@ -183,7 +204,7 @@ actor FixtureParkingRepository: ParkingRepositoryProviding {
                         finish: "19:00:00", display: plan.durationMinutes <= 120 ? "MP2P" : "MP4P"
                     ),
                 ], plan: plan),
-                isBestBet: index == 0
+                isSuggested: index == 0
             )
         }
         return .init(zones: zones, mode: .live, checkedAt: now, notice: "\(plan.selectionDescription) stay · live availability · checked just now")

@@ -72,13 +72,14 @@ struct MapTopChrome: View {
 struct MapBottomChrome: View {
     @Bindable var viewModel: ParkingMapViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(spacing: 10) {
             statusIsland
-            if viewModel.selectedOption == nil, let best = viewModel.zones.first(where: \.isBestBet) {
-                BestBetButton(zone: best) {
-                    Task { await viewModel.selectZone(best) }
+            if viewModel.selectedOption == nil, let suggested = viewModel.zones.first(where: \.isSuggested) {
+                SuggestedOnStreetAreaButton(option: .onStreet(suggested, plan: viewModel.plan)) {
+                    Task { await viewModel.selectZone(suggested) }
                 }
             }
             if viewModel.selectedOption == nil {
@@ -89,6 +90,7 @@ struct MapBottomChrome: View {
         .accessibilityIdentifier("parking-action-dock")
         .animation(reduceMotion ? nil : .smooth(duration: 0.28), value: viewModel.state)
         .animation(reduceMotion ? nil : .smooth(duration: 0.28), value: viewModel.selectedZone?.zoneNumber)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.28), value: viewModel.canRecoverLocationFromSettings)
     }
 
     @ViewBuilder
@@ -133,7 +135,9 @@ struct MapBottomChrome: View {
             .padding(.vertical, 10)
             .adaptiveGlassSurface(cornerRadius: 18)
         case .loaded:
-            if viewModel.selectedZone == nil {
+            if viewModel.canRecoverLocationFromSettings, viewModel.selectedZone == nil {
+                locationSettingsRecovery
+            } else if viewModel.selectedZone == nil {
                 Text(statusText)
                     .font(.footnote.weight(.medium))
                     .foregroundStyle(.secondary)
@@ -147,6 +151,56 @@ struct MapBottomChrome: View {
                     .accessibilityIdentifier("availability-status")
             }
         }
+    }
+
+    private var locationSettingsRecovery: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 10) {
+                    locationDeniedMessage
+                    openSettingsButton
+                        .frame(maxWidth: .infinity)
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    locationDeniedMessage
+                    openSettingsButton
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .adaptiveGlassSurface(cornerRadius: 18)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("location-settings-recovery")
+    }
+
+    private var locationDeniedMessage: some View {
+        Text("Showing Melbourne CBD because ParkAlong can’t use your location.")
+            .font(.footnote)
+            .foregroundStyle(.primary)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityIdentifier("location-denied-status")
+    }
+
+    private var openSettingsButton: some View {
+        Button("Open Settings") {
+            openParkAlongSettings()
+        }
+        .font(.subheadline.weight(.semibold))
+        .adaptiveProminentAction()
+        .controlSize(.regular)
+        .frame(minHeight: 44)
+        .accessibilityLabel("Open Settings")
+        .accessibilityHint("Opens ParkAlong settings so you can allow location.")
+        .accessibilityIdentifier("open-location-settings-button")
+    }
+
+    private func openParkAlongSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 
     private var hasVisiblePins: Bool {
@@ -168,8 +222,8 @@ struct MapBottomChrome: View {
     }
 }
 
-struct BestBetButton: View {
-    let zone: ParkingZone
+struct SuggestedOnStreetAreaButton: View {
+    let option: ParkingOption
     var action: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -178,19 +232,17 @@ struct BestBetButton: View {
             Group {
                 if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Label("Best bet", systemImage: "star.fill")
+                        HStack(alignment: .firstTextBaseline) {
+                            Label("Suggested street parking", systemImage: "star.fill")
                                 .font(.headline.weight(.semibold))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.75)
+                                .fixedSize(horizontal: false, vertical: true)
                             Spacer()
-                            Text("\(zone.available)")
+                            Text(option.pinLabel)
                                 .font(.title2.weight(.bold).monospacedDigit())
                         }
-                        Text(zone.metadata.streetName)
+                        Text(option.title)
                             .font(.headline.weight(.semibold))
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.8)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 } else {
                     HStack(spacing: 10) {
@@ -198,14 +250,17 @@ struct BestBetButton: View {
                             .font(.footnote.weight(.bold))
                             .symbolRenderingMode(.monochrome)
                         VStack(alignment: .leading, spacing: 1) {
-                            Text("Best bet")
+                            Text("Suggested street parking")
                                 .font(.caption.weight(.semibold))
-                            Text(zone.metadata.streetName)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.8)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(option.title)
                                 .font(.subheadline.weight(.semibold))
                                 .lineLimit(2)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        Text("\(zone.available)")
+                        Text(option.pinLabel)
                             .font(.title3.weight(.bold).monospacedDigit())
                             .frame(minWidth: 28)
                     }
@@ -219,10 +274,15 @@ struct BestBetButton: View {
         .adaptiveProminentAction()
         .buttonBorderShape(.roundedRectangle)
         .controlSize(.large)
-        .tint(AvailabilityStyle.color(for: zone.available))
-        .accessibilityLabel("Best bet, \(zone.metadata.streetName), \(zone.available) of \(zone.total) available")
-        .accessibilityIdentifier("best-bet-button")
-        .sensoryFeedback(.selection, trigger: zone.zoneNumber)
+        .tint(ParkingPinPresentation(option: option).palette.color)
+        .accessibilityLabel(Self.accessibilityText(for: option))
+        .accessibilityHint("Opens details for this suggested street parking. This is not a guarantee.")
+        .accessibilityIdentifier("suggested-on-street-area-button")
+        .sensoryFeedback(.selection, trigger: option.zoneNumber ?? 0)
+    }
+
+    static func accessibilityText(for option: ParkingOption) -> String {
+        "Suggested street parking, \(option.title), \(option.availabilityLabel). This is a suggestion, not a guarantee."
     }
 }
 

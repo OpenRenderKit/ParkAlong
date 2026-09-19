@@ -101,29 +101,163 @@ final class ParkingOptionTests: XCTestCase {
         XCTAssertNil(option.sourceTimestamp)
     }
 
+    func testProximityCopyIsHonestAboutStraightLineDistanceAndDestination() {
+        let proximity = ParkingProximity(
+            straightLineMetres: 174,
+            reference: .init(coordinate: .melbourneCBD, label: "Flinders Street Station")
+        )
+
+        XCTAssertEqual(proximity.rowLabel, "Distance to Flinders Street Station")
+        XCTAssertEqual(proximity.displayValue, "About 150 m straight-line")
+        XCTAssertEqual(proximity.caveat, "This isn’t a walking route.")
+        XCTAssertEqual(
+            proximity.accessibilityLabel,
+            "Distance to Flinders Street Station, about 150 metres straight-line. This isn’t a walking route."
+        )
+        XCTAssertFalse(proximity.displayValue.localizedCaseInsensitiveContains("walk"))
+        XCTAssertFalse(proximity.accessibilityLabel.localizedCaseInsensitiveContains("walking distance"))
+    }
+
+    func testProximityCopyRoundsWithoutImplyingAWalkingRoute() {
+        let nearby = ParkingProximity(
+            straightLineMetres: 12,
+            reference: .init(coordinate: .melbourneCBD, label: "Current location")
+        )
+        let farther = ParkingProximity(
+            straightLineMetres: 1_240,
+            reference: .init(coordinate: .melbourneCBD, label: "Current location")
+        )
+
+        XCTAssertEqual(nearby.displayValue, "Under 50 m straight-line")
+        XCTAssertEqual(farther.displayValue, "About 1.2 km straight-line")
+        XCTAssertEqual(ParkingProximityReference(coordinate: .melbourneCBD, label: "  ").label, "destination")
+    }
+
+    func testSuggestionExplainsTheRankingInputsWithoutExposingAScore() {
+        var best = zone(prediction: PredictionEngine.estimate(
+            liveAvailable: 4,
+            trustedBayCount: 10,
+            historicalOccupiedRatio: 0.5,
+            etaMinutes: 0,
+            validation: nil,
+            forecastDate: .now
+        ))
+        best.isSuggested = true
+
+        let option = ParkingOption.onStreet(best, plan: ParkingPlan(arrival: .now, duration: .oneHour))
+
+        XCTAssertEqual(
+            option.recommendationExplanation,
+            "We compare street parking found in this map area. Expected available spaces matter most, followed by straight-line distance to Test destination, then the chance of finding a space."
+        )
+        XCTAssertFalse(option.recommendationExplanation?.contains("%") == true)
+        XCTAssertFalse(option.recommendationExplanation?.localizedCaseInsensitiveContains("score") == true)
+        XCTAssertFalse(option.recommendationExplanation?.localizedCaseInsensitiveContains("guarantee") == true)
+        XCTAssertFalse(option.recommendationExplanation?.localizedCaseInsensitiveContains("walk") == true)
+    }
+
+    @MainActor
+    func testSuggestedStreetParkingCardUsesLiveCountOnlyForImmediateObservation() {
+        var live = zone(
+            prediction: PredictionEngine.estimate(
+                liveAvailable: 4,
+                trustedBayCount: 7,
+                historicalOccupiedRatio: 0.5,
+                etaMinutes: 0,
+                validation: nil,
+                forecastDate: .now
+            ),
+            available: 4,
+            total: 7
+        )
+        live.isSuggested = true
+
+        let option = ParkingOption.onStreet(live, plan: ParkingPlan(arrival: .now, duration: .oneHour))
+        let spoken = SuggestedOnStreetAreaButton.accessibilityText(for: option)
+
+        XCTAssertEqual(option.classification, .verifiedLive)
+        XCTAssertEqual(option.pinLabel, "4")
+        XCTAssertEqual(option.availabilityLabel, "4 of 7 available now")
+        XCTAssertEqual(
+            spoken,
+            "Suggested street parking, Collins Street, 4 of 7 available now. This is a suggestion, not a guarantee."
+        )
+    }
+
+    @MainActor
+    func testSuggestedStreetParkingCardDoesNotShowLiveCountForAValidatedFutureArrival() {
+        let validation = ForecastValidation(
+            sampleCount: 2_000, normalizedMAE: 0.08, brierScore: 0.12,
+            intervalCoverage: 0.9, observedThrough: .now, modelVersion: "fresh-v2"
+        )
+        var future = zone(
+            prediction: AvailabilityPrediction(
+                expectedAvailable: 2.4, lowerBound: 1, upperBound: 4, probabilityAtLeastOne: 0.91,
+                liveWeight: 0.4, evidenceTier: .liveInformed, horizonMinutes: 60, modelVersion: "fresh-v2",
+                validation: validation, abstentionReason: nil
+            ),
+            available: 4,
+            total: 7
+        )
+        future.isSuggested = true
+
+        let option = ParkingOption.onStreet(
+            future,
+            plan: ParkingPlan(arrival: .now.addingTimeInterval(3_600), duration: .oneHour)
+        )
+        let spoken = SuggestedOnStreetAreaButton.accessibilityText(for: option)
+
+        XCTAssertEqual(future.available, 4)
+        XCTAssertEqual(option.classification, .predicted)
+        XCTAssertEqual(option.available, 2)
+        XCTAssertEqual(option.pinLabel, "~2")
+        XCTAssertEqual(option.availabilityLabel, "About 2 of 7 typically available")
+        XCTAssertNotEqual(option.pinLabel, "\(future.available)")
+        XCTAssertFalse(option.availabilityLabel.contains("available now"))
+        XCTAssertFalse(spoken.contains("4 of 7"))
+        XCTAssertEqual(
+            spoken,
+            "Suggested street parking, Collins Street, About 2 of 7 typically available. This is a suggestion, not a guarantee."
+        )
+    }
+
     private func option(classification: ParkingDataClassification, available: Int?, total: Int?) -> ParkingOption {
         ParkingOption(
             id: "fixture", kind: .offStreet, title: "Fixture parking", locationLabel: "Fixture Council",
             coordinate: .melbourneCBD, availabilityState: .unknown, available: available, total: total,
             restrictionLabel: "2P until 5:30 pm", restrictionWindow: "Active now", activeNow: true,
             price: .init(primaryText: "$3.60/hr", detail: "Official tariff", provider: "Fixture Council", actionLabel: nil, actionURL: nil),
-            provider: "Fixture Council", sourceTimestamp: nil, walkingMetres: 100, prediction: nil,
-            isBestBet: false, zoneNumber: nil, classification: classification,
+            provider: "Fixture Council", sourceTimestamp: nil,
+            proximity: ParkingProximity(
+                straightLineMetres: 100,
+                reference: .init(coordinate: .melbourneCBD, label: "Test destination")
+            ),
+            prediction: nil,
+            isSuggested: false, zoneNumber: nil, classification: classification,
             warningText: classification == .verifiedLive ? nil : "Not live",
             sourceDatasetAt: nil, sourceCheckedAt: nil, schedule: [], clusterCount: nil, clusterViewport: nil
         )
     }
 
-    private func zone(prediction: AvailabilityPrediction) -> ParkingZone {
+    private func zone(
+        prediction: AvailabilityPrediction,
+        available: Int = 7,
+        total: Int = 10
+    ) -> ParkingZone {
         ParkingZone(
             zoneNumber: 7001,
             metadata: ZoneMetadata(
                 zoneNumber: 7001, streetName: "Collins Street", fromStreet: "Swanston Street",
                 toStreet: "Russell Street", coordinate: .melbourneCBD, sensorCount: 10
             ),
-            available: 7, total: 10, restrictionLabel: "Up to 2 hours", payment: .paid,
-            prediction: prediction, walkingMetres: 120, newestTimestamp: .now, mode: .live,
-            schedule: [], isBestBet: false
+            available: available, total: total, restrictionLabel: "Up to 2 hours", payment: .paid,
+            prediction: prediction,
+            proximity: ParkingProximity(
+                straightLineMetres: 120,
+                reference: .init(coordinate: .melbourneCBD, label: "Test destination")
+            ),
+            newestTimestamp: .now, mode: .live,
+            schedule: [], isSuggested: false
         )
     }
 

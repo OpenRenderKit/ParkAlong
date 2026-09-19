@@ -32,13 +32,16 @@ final class ParkingRepositoryTests: XCTestCase {
             .init(zoneNumber: 7002, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "MP3P")
         ], history: [])
 
-        let result = try await repository.refresh(viewport: viewport, plan: plan(.twoHours), now: now, force: true)
+        let result = try await repository.refresh(
+            viewport: viewport, proximityReference: reference(),
+            plan: plan(.twoHours), now: now, force: true
+        )
 
         XCTAssertEqual(result.mode, .live)
         XCTAssertEqual(result.zones.map(\.zoneNumber), [7002])
         XCTAssertEqual(result.zones.first?.available, 2)
         XCTAssertEqual(result.zones.first?.payment, .paid)
-        XCTAssertTrue(result.zones.first?.isBestBet == true)
+        XCTAssertFalse(result.zones.first?.isSuggested == true)
     }
 
     func testRefreshUsesShortCacheButExpiresAtTwoMinutes() async throws {
@@ -47,11 +50,19 @@ final class ParkingRepositoryTests: XCTestCase {
             .init(zoneNumber: 7002, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "3P")
         ], history: [], cacheTTL: 120)
 
-        _ = try await repository.refresh(viewport: viewport, plan: plan(.oneHour), now: now)
-        _ = try await repository.refresh(viewport: viewport, plan: plan(.oneHour), now: now.addingTimeInterval(119))
+        _ = try await repository.refresh(
+            viewport: viewport, proximityReference: reference(), plan: plan(.oneHour), now: now
+        )
+        _ = try await repository.refresh(
+            viewport: viewport, proximityReference: reference(),
+            plan: plan(.oneHour), now: now.addingTimeInterval(119)
+        )
         let countBeforeExpiry = await api.fetchCount
         XCTAssertEqual(countBeforeExpiry, 1)
-        _ = try await repository.refresh(viewport: viewport, plan: plan(.oneHour), now: now.addingTimeInterval(120))
+        _ = try await repository.refresh(
+            viewport: viewport, proximityReference: reference(),
+            plan: plan(.oneHour), now: now.addingTimeInterval(120)
+        )
         let countAfterExpiry = await api.fetchCount
         XCTAssertEqual(countAfterExpiry, 2)
     }
@@ -88,6 +99,7 @@ final class ParkingRepositoryTests: XCTestCase {
         let refresh = Task {
             try await repository.refresh(
                 viewport: requestViewport,
+                proximityReference: reference(),
                 plan: requestPlan,
                 now: requestNow,
                 force: true
@@ -130,9 +142,15 @@ final class ParkingRepositoryTests: XCTestCase {
                 east: first.east + offset,
                 zoomLevel: first.zoomLevel
             )
-            _ = try await repository.refresh(viewport: moved, plan: plan(.oneHour), now: now)
+            _ = try await repository.refresh(
+                viewport: moved, proximityReference: reference(),
+                plan: plan(.oneHour), now: now
+            )
         }
-        _ = try await repository.refresh(viewport: first, plan: plan(.oneHour), now: now)
+        _ = try await repository.refresh(
+            viewport: first, proximityReference: reference(),
+            plan: plan(.oneHour), now: now
+        )
 
         let fetchCount = await api.fetchCount
         print("PARKALONG_PERF bounded_cache_requests_after_40_viewports=\(fetchCount)")
@@ -165,14 +183,112 @@ final class ParkingRepositoryTests: XCTestCase {
         let second = moved(0.01)
         let third = moved(0.02)
 
-        _ = try await repository.refresh(viewport: first, plan: plan(.oneHour), now: now)
-        _ = try await repository.refresh(viewport: second, plan: plan(.oneHour), now: now)
-        _ = try await repository.refresh(viewport: first, plan: plan(.oneHour), now: now)
-        _ = try await repository.refresh(viewport: third, plan: plan(.oneHour), now: now)
-        _ = try await repository.refresh(viewport: second, plan: plan(.oneHour), now: now)
+        _ = try await repository.refresh(viewport: first, proximityReference: reference(), plan: plan(.oneHour), now: now)
+        _ = try await repository.refresh(viewport: second, proximityReference: reference(), plan: plan(.oneHour), now: now)
+        _ = try await repository.refresh(viewport: first, proximityReference: reference(), plan: plan(.oneHour), now: now)
+        _ = try await repository.refresh(viewport: third, proximityReference: reference(), plan: plan(.oneHour), now: now)
+        _ = try await repository.refresh(viewport: second, proximityReference: reference(), plan: plan(.oneHour), now: now)
 
         let fetchCount = await api.fetchCount
         XCTAssertEqual(fetchCount, 4, "Reading the first viewport should keep it newer than the second viewport")
+    }
+
+    func testSuggestionRequiresARealComparisonSet() async throws {
+        let api = FixtureParkingAPI(rows: [
+            .init(zoneNumber: 7001, status: .unoccupied, bayCount: 5, newestTimestamp: now),
+            .init(zoneNumber: 7002, status: .unoccupied, bayCount: 2, newestTimestamp: now)
+        ])
+        let repository = ParkingRepository(api: api, metadata: metadata, restrictions: [
+            .init(zoneNumber: 7001, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "3P"),
+            .init(zoneNumber: 7002, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "3P")
+        ], history: [])
+
+        let result = try await repository.refresh(
+            viewport: viewport, proximityReference: reference(),
+            plan: plan(.oneHour), now: now, force: true
+        )
+
+        XCTAssertEqual(result.zones.count, 2)
+        XCTAssertEqual(result.zones.filter(\.isSuggested).count, 1)
+        XCTAssertEqual(
+            result.zones.first(where: \.isSuggested)?.recommendationExplanation,
+            "We compare street parking found in this map area. Expected available spaces matter most, followed by straight-line distance to Test destination, then the chance of finding a space."
+        )
+    }
+
+    func testAllZeroLiveCountsAreNotSuggested() async throws {
+        let api = FixtureParkingAPI(rows: [
+            .init(zoneNumber: 7001, status: .present, bayCount: 6, newestTimestamp: now),
+            .init(zoneNumber: 7002, status: .present, bayCount: 5, newestTimestamp: now)
+        ])
+        let repository = ParkingRepository(api: api, metadata: metadata, restrictions: [
+            .init(zoneNumber: 7001, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "3P"),
+            .init(zoneNumber: 7002, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "3P")
+        ], history: [])
+
+        let result = try await repository.refresh(
+            viewport: viewport, proximityReference: reference(),
+            plan: plan(.oneHour), now: now, force: true
+        )
+
+        XCTAssertEqual(result.zones.count, 2)
+        XCTAssertEqual(result.zones.filter(\.isSuggested).count, 0)
+        XCTAssertTrue(result.zones.allSatisfy { $0.recommendationExplanation == nil })
+    }
+
+    func testRefreshCacheAndDistanceUseTheStableDestinationReference() async throws {
+        let api = FixtureParkingAPI(rows: [
+            .init(zoneNumber: 7002, status: .unoccupied, bayCount: 2, newestTimestamp: now)
+        ])
+        let repository = ParkingRepository(api: api, metadata: metadata, restrictions: [
+            .init(zoneNumber: 7002, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "3P")
+        ], history: [], cacheTTL: 120)
+        let firstReference = reference(coordinate: .melbourneCBD, label: "First destination")
+        let secondReference = reference(
+            coordinate: .init(latitude: -37.800, longitude: 144.940),
+            label: "Second destination"
+        )
+
+        let first = try await repository.refresh(
+            viewport: viewport, proximityReference: firstReference,
+            plan: plan(.oneHour), now: now
+        )
+        let second = try await repository.refresh(
+            viewport: viewport, proximityReference: secondReference,
+            plan: plan(.oneHour), now: now.addingTimeInterval(1)
+        )
+
+        let fetchCount = await api.fetchCount
+        XCTAssertEqual(fetchCount, 2)
+        XCTAssertEqual(first.zones.first?.proximity.reference, firstReference)
+        XCTAssertEqual(second.zones.first?.proximity.reference, secondReference)
+        XCTAssertNotEqual(
+            first.zones.first?.proximity.straightLineMetres,
+            second.zones.first?.proximity.straightLineMetres
+        )
+    }
+
+    func testCacheDoesNotReuseProximityWhenOnlyTheDestinationLabelChanges() async throws {
+        let api = FixtureParkingAPI(rows: [
+            .init(zoneNumber: 7002, status: .unoccupied, bayCount: 2, newestTimestamp: now)
+        ])
+        let repository = ParkingRepository(api: api, metadata: metadata, restrictions: [
+            .init(zoneNumber: 7002, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "3P")
+        ], history: [], cacheTTL: 120)
+
+        let first = try await repository.refresh(
+            viewport: viewport, proximityReference: reference(label: "First name"),
+            plan: plan(.oneHour), now: now
+        )
+        let second = try await repository.refresh(
+            viewport: viewport, proximityReference: reference(label: "Second name"),
+            plan: plan(.oneHour), now: now.addingTimeInterval(1)
+        )
+
+        let fetchCount = await api.fetchCount
+        XCTAssertEqual(fetchCount, 2)
+        XCTAssertEqual(first.zones.first?.proximity.reference.label, "First name")
+        XCTAssertEqual(second.zones.first?.proximity.reference.label, "Second name")
     }
 
     func testNetworkFailureReturnsTypicalHistoryWithoutCallingItLive() async throws {
@@ -188,7 +304,10 @@ final class ParkingRepositoryTests: XCTestCase {
             )
         ])
 
-        let result = try await repository.refresh(viewport: viewport, plan: plan(.oneHour), now: now, force: true)
+        let result = try await repository.refresh(
+            viewport: viewport, proximityReference: reference(),
+            plan: plan(.oneHour), now: now, force: true
+        )
 
         XCTAssertEqual(result.mode, .typical)
         XCTAssertNil(result.checkedAt)
@@ -206,7 +325,10 @@ final class ParkingRepositoryTests: XCTestCase {
             .init(zoneNumber: 7002, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "MP3P")
         ], history: [])
 
-        let result = try await repository.refresh(viewport: viewport, plan: plan(.threeHours), now: now, force: true)
+        let result = try await repository.refresh(
+            viewport: viewport, proximityReference: reference(),
+            plan: plan(.threeHours), now: now, force: true
+        )
 
         XCTAssertEqual(result.zones.map(\.zoneNumber), [7002])
         XCTAssertEqual(result.zones.first?.restrictionLabel, "Up to 3 hours, meter required")
@@ -220,7 +342,10 @@ final class ParkingRepositoryTests: XCTestCase {
             .init(zoneNumber: 7001, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "1P")
         ], history: [])
 
-        let result = try await repository.refresh(viewport: viewport, plan: plan(.threeHours), now: now, force: true)
+        let result = try await repository.refresh(
+            viewport: viewport, proximityReference: reference(),
+            plan: plan(.threeHours), now: now, force: true
+        )
 
         XCTAssertEqual(result.mode, .live)
         XCTAssertTrue(result.zones.isEmpty)
@@ -250,14 +375,17 @@ final class ParkingRepositoryTests: XCTestCase {
         )
 
         do {
-            _ = try await repository.refresh(viewport: viewport, plan: plan(.oneHour), now: now, force: true)
+            _ = try await repository.refresh(
+                viewport: viewport, proximityReference: reference(),
+                plan: plan(.oneHour), now: now, force: true
+            )
             XCTFail("A missing 10:00 bucket must abstain instead of borrowing the 9:45 bucket")
         } catch {
             XCTAssertEqual(error as? ParkingAPIError, .invalidResponse)
         }
     }
 
-    func testFuturePlanWithoutNumericForecastDoesNotReuseLiveCountForBestBet() async throws {
+    func testFuturePlanWithoutNumericForecastDoesNotReuseLiveCountForSuggestion() async throws {
         let api = FixtureParkingAPI(rows: [
             .init(zoneNumber: 7002, status: .unoccupied, bayCount: 4, newestTimestamp: now)
         ])
@@ -271,12 +399,15 @@ final class ParkingRepositoryTests: XCTestCase {
         )
         let futurePlan = ParkingPlan(arrival: now.addingTimeInterval(60 * 60), duration: .oneHour)
 
-        let result = try await repository.refresh(viewport: viewport, plan: futurePlan, now: now, force: true)
+        let result = try await repository.refresh(
+            viewport: viewport, proximityReference: reference(),
+            plan: futurePlan, now: now, force: true
+        )
 
         XCTAssertEqual(result.mode, .live)
         XCTAssertEqual(result.zones.count, 1)
         XCTAssertEqual(result.zones.first?.prediction.abstentionReason, .missingHistory)
-        XCTAssertFalse(result.zones.first?.isBestBet == true)
+        XCTAssertFalse(result.zones.first?.isSuggested == true)
         XCTAssertTrue(result.notice.localizedCaseInsensitiveContains("not a forecast"))
     }
 
@@ -289,6 +420,13 @@ final class ParkingRepositoryTests: XCTestCase {
 
     private func plan(_ duration: StayDuration) -> ParkingPlan {
         ParkingPlan(arrival: now, duration: duration)
+    }
+
+    private func reference(
+        coordinate: Coordinate = .melbourneCBD,
+        label: String = "Test destination"
+    ) -> ParkingProximityReference {
+        .init(coordinate: coordinate, label: label)
     }
 
     private var viewport: ParkingViewport {

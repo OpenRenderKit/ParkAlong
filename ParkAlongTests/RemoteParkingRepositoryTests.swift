@@ -221,7 +221,11 @@ final class RemoteParkingRepositoryTests: XCTestCase {
         let viewport = ParkingViewport(south: -38, west: 144, north: -37, east: 145, zoomLevel: 14)
         let plan = ParkingPlan(arrival: arrival, durationMinutes: 60)
 
-        let options = await repository.options(in: viewport, plan: plan)
+        let options = await repository.options(
+            in: viewport,
+            relativeTo: .init(coordinate: viewport.center, label: "Test destination"),
+            plan: plan
+        )
 
         XCTAssertEqual(options.map(\.id), ["static-bundled"])
     }
@@ -234,8 +238,16 @@ final class RemoteParkingRepositoryTests: XCTestCase {
         let viewport = ParkingViewport(south: -38, west: 144, north: -37, east: 145, zoomLevel: 14)
         let plan = ParkingPlan(arrival: arrival, durationMinutes: 60)
 
-        let firstOptions = await repository.options(in: viewport, plan: plan)
-        let secondOptions = await repository.options(in: viewport, plan: plan)
+        let firstOptions = await repository.options(
+            in: viewport,
+            relativeTo: .init(coordinate: viewport.center, label: "Test destination"),
+            plan: plan
+        )
+        let secondOptions = await repository.options(
+            in: viewport,
+            relativeTo: .init(coordinate: viewport.center, label: "Test destination"),
+            plan: plan
+        )
         let requestCount = await remote.requestCount
 
         XCTAssertEqual(firstOptions.first?.total, 10)

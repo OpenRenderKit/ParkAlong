@@ -43,17 +43,39 @@ enum BundleDataLoader {
 }
 
 protocol ParkingRepositoryProviding: Sendable {
-    func refresh(viewport: ParkingViewport, plan: ParkingPlan, now: Date, force: Bool) async throws -> ParkingRepositoryResult
+    func refresh(
+        viewport: ParkingViewport,
+        proximityReference: ParkingProximityReference,
+        plan: ParkingPlan,
+        now: Date,
+        force: Bool
+    ) async throws -> ParkingRepositoryResult
     func vacantBays(zoneNumber: Int, now: Date) async throws -> [Coordinate]
 }
 
 extension ParkingRepository: ParkingRepositoryProviding {}
 
 protocol StaticParkingProviding: Sendable {
-    func options(in viewport: ParkingViewport, plan: ParkingPlan) async -> [ParkingOption]
-    func search(_ query: String, near viewport: ParkingViewport, plan: ParkingPlan, limit: Int) async -> [ParkingOption]
+    func options(
+        in viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference,
+        plan: ParkingPlan
+    ) async -> [ParkingOption]
+    func search(
+        _ query: String,
+        near viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference,
+        plan: ParkingPlan,
+        limit: Int
+    ) async -> [ParkingOption]
 }
 
 extension StaticParkingProviding {
-    func search(_ query: String, near viewport: ParkingViewport, plan: ParkingPlan, limit: Int = 20) async -> [ParkingOption] { [] }
+    func search(
+        _ query: String,
+        near viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference,
+        plan: ParkingPlan,
+        limit: Int = 20
+    ) async -> [ParkingOption] { [] }
 }

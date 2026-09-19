@@ -8,6 +8,7 @@ struct ParkingMapView: View {
     @State private var cameraPosition: MapCameraPosition = .automatic
     @State private var selectedMarkerID: String?
     @State private var showingAbout = false
+    @Namespace private var mapScope
 
     var body: some View {
         map
@@ -64,7 +65,7 @@ struct ParkingMapView: View {
     }
 
     private var map: some View {
-        Map(position: $cameraPosition, selection: $selectedMarkerID) {
+        Map(position: $cameraPosition, selection: $selectedMarkerID, scope: mapScope) {
             UserAnnotation()
 
             if viewModel.destination.id != "current", viewModel.destination.id != "locating" {
@@ -102,10 +103,15 @@ struct ParkingMapView: View {
             applyVisibleRegion(context.region, userInitiated: cameraPosition.positionedByUser)
         }
         .overlay(alignment: .top) {
-            MapTopChrome(viewModel: viewModel, showingAbout: $showingAbout)
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .safeAreaPadding(.top)
+            VStack(alignment: .trailing, spacing: 8) {
+                MapTopChrome(viewModel: viewModel, showingAbout: $showingAbout)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .safeAreaPadding(.top)
+                    .frame(maxWidth: .infinity, alignment: .top)
+
+                nativeOrientationControls
+            }
         }
         .overlay(alignment: .bottom) {
             MapBottomChrome(viewModel: viewModel)
@@ -113,6 +119,19 @@ struct ParkingMapView: View {
                 .padding(.bottom, 8)
                 .safeAreaPadding(.bottom)
         }
+        .mapScope(mapScope)
+    }
+
+    private var nativeOrientationControls: some View {
+        VStack(alignment: .trailing, spacing: 8) {
+            MapCompass(scope: mapScope)
+                .mapControlVisibility(.visible)
+            MapScaleView(anchorEdge: .trailing, scope: mapScope)
+                .mapControlVisibility(.visible)
+        }
+        .padding(.trailing, 12)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("map-compass-scale")
     }
 
     private var zoneSheetPresented: Binding<Bool> {

@@ -12,6 +12,9 @@ actor ParkingRepository {
         let north: Int
         let east: Int
         let zoomBucket: Int
+        let proximityLatitude: Int
+        let proximityLongitude: Int
+        let proximityLabel: String
         let arrivalBucket: Int
         let durationMinutes: Int
     }
@@ -56,6 +59,7 @@ actor ParkingRepository {
 
     func refresh(
         viewport: ParkingViewport,
+        proximityReference: ParkingProximityReference,
         plan: ParkingPlan,
         now: Date = .now,
         force: Bool = false
@@ -67,6 +71,9 @@ actor ParkingRepository {
             north: Int((queryViewport.north * 1_000).rounded()),
             east: Int((queryViewport.east * 1_000).rounded()),
             zoomBucket: Int(viewport.zoomLevel.rounded(.down)),
+            proximityLatitude: Int((proximityReference.coordinate.latitude * 100_000).rounded()),
+            proximityLongitude: Int((proximityReference.coordinate.longitude * 100_000).rounded()),
+            proximityLabel: proximityReference.label,
             arrivalBucket: Int(plan.arrival.timeIntervalSince1970) / (15 * 60),
             durationMinutes: plan.durationMinutes
         )
@@ -83,11 +90,22 @@ actor ParkingRepository {
                 try Task.checkCancellation()
                 try loadHistoryIfNeeded()
                 try Task.checkCancellation()
-                return try typicalResult(viewport: queryViewport, plan: plan, now: now)
+                return try typicalResult(
+                    viewport: queryViewport,
+                    proximityReference: proximityReference,
+                    plan: plan,
+                    now: now
+                )
             }
-            let zones = makeLiveZones(stats: stats, viewport: queryViewport, plan: plan, now: now)
+            let zones = makeLiveZones(
+                stats: stats,
+                viewport: queryViewport,
+                proximityReference: proximityReference,
+                plan: plan,
+                now: now
+            )
             let result = ParkingRepositoryResult(
-                zones: markBestBet(zones),
+                zones: markSuggested(zones),
                 mode: .live,
                 checkedAt: now,
                 notice: notice(for: zones, plan: plan, now: now)
@@ -100,7 +118,12 @@ actor ParkingRepository {
             try Task.checkCancellation()
             try loadHistoryIfNeeded()
             try Task.checkCancellation()
-            return try typicalResult(viewport: queryViewport, plan: plan, now: now)
+            return try typicalResult(
+                viewport: queryViewport,
+                proximityReference: proximityReference,
+                plan: plan,
+                now: now
+            )
         }
     }
 
@@ -110,11 +133,20 @@ actor ParkingRepository {
             .map(\.coordinate)
     }
 
-    private func makeLiveZones(stats: [Int: AvailabilityStats], viewport: ParkingViewport, plan: ParkingPlan, now: Date) -> [ParkingZone] {
+    private func makeLiveZones(
+        stats: [Int: AvailabilityStats],
+        viewport: ParkingViewport,
+        proximityReference: ParkingProximityReference,
+        plan: ParkingPlan,
+        now: Date
+    ) -> [ParkingZone] {
         stats.compactMap { zoneNumber, availability in
             guard let metadata = metadata[zoneNumber], viewport.contains(metadata.coordinate), availability.total > 0,
                   let legality = legalDetails(zoneNumber: zoneNumber, plan: plan) else { return nil }
-            let walking = Self.distance(from: metadata.coordinate, to: viewport.center)
+            let proximity = ParkingProximity(
+                straightLineMetres: Self.distance(from: metadata.coordinate, to: proximityReference.coordinate),
+                reference: proximityReference
+            )
             let profile = historicalProfile(for: metadata, at: plan.arrival)
             let horizonMinutes = max(0, Int(plan.arrival.timeIntervalSince(now) / 60))
             let prediction = PredictionEngine.estimate(
@@ -133,18 +165,26 @@ actor ParkingRepository {
                 restrictionLabel: legality.label,
                 payment: legality.payment,
                 prediction: prediction,
-                walkingMetres: walking,
+                proximity: proximity,
                 newestTimestamp: availability.newestTimestamp,
                 mode: .live,
                 schedule: restrictionEngine.weeklySchedule(restrictions[zoneNumber] ?? [], plan: plan),
-                isBestBet: false
+                isSuggested: false
             )
         }
     }
 
-    private func typicalResult(viewport: ParkingViewport, plan: ParkingPlan, now: Date) throws -> ParkingRepositoryResult {
+    private func typicalResult(
+        viewport: ParkingViewport,
+        proximityReference: ParkingProximityReference,
+        plan: ParkingPlan,
+        now: Date
+    ) throws -> ParkingRepositoryResult {
         let zones: [ParkingZone] = metadata.values.compactMap { metadata in
-            let walking = Self.distance(from: metadata.coordinate, to: viewport.center)
+            let proximity = ParkingProximity(
+                straightLineMetres: Self.distance(from: metadata.coordinate, to: proximityReference.coordinate),
+                reference: proximityReference
+            )
             guard viewport.contains(metadata.coordinate),
                   let legality = legalDetails(zoneNumber: metadata.zoneNumber, plan: plan),
                   let profile = historicalProfile(for: metadata, at: plan.arrival) else { return nil }
@@ -162,16 +202,16 @@ actor ParkingRepository {
                 restrictionLabel: legality.label,
                 payment: legality.payment,
                 prediction: prediction,
-                walkingMetres: walking,
+                proximity: proximity,
                 newestTimestamp: nil,
                 mode: .typical,
                 schedule: restrictionEngine.weeklySchedule(restrictions[metadata.zoneNumber] ?? [], plan: plan),
-                isBestBet: false
+                isSuggested: false
             )
         }
         guard !zones.isEmpty else { throw ParkingAPIError.invalidResponse }
         return ParkingRepositoryResult(
-            zones: markBestBet(zones),
+            zones: markSuggested(zones),
             mode: .typical,
             checkedAt: nil,
             notice: "Typical availability · live sensors are unavailable or stale"
@@ -225,18 +265,20 @@ actor ParkingRepository {
         }
     }
 
-    private func markBestBet(_ zones: [ParkingZone]) -> [ParkingZone] {
+    private func markSuggested(_ zones: [ParkingZone]) -> [ParkingZone] {
         let candidates = zones.compactMap { zone -> RankingCandidate? in
             guard zone.prediction.hasNumericForecast,
-                  let expected = zone.prediction.expectedAvailable else { return nil }
+                  let expected = zone.prediction.expectedAvailable,
+                  expected > 0 else { return nil }
             return RankingCandidate(
                 zoneNumber: zone.zoneNumber, predictedAvailable: expected,
-                walkingMetres: zone.walkingMetres, probabilityAtLeastOne: zone.prediction.probabilityAtLeastOne
+                straightLineMetres: zone.proximity.straightLineMetres,
+                probabilityAtLeastOne: zone.prediction.probabilityAtLeastOne
             )
         }
         let ranked = RankingEngine.rank(candidates)
-        guard let best = ranked.first?.zoneNumber else {
-            return zones.sorted { $0.walkingMetres < $1.walkingMetres }
+        guard ranked.count > 1, let best = ranked.first?.zoneNumber else {
+            return zones.sorted { $0.proximity.straightLineMetres < $1.proximity.straightLineMetres }
         }
         let rank = Dictionary(uniqueKeysWithValues: ranked.enumerated().map { ($0.element.zoneNumber, $0.offset) })
         return zones.map { zone in
@@ -248,11 +290,11 @@ actor ParkingRepository {
                 restrictionLabel: zone.restrictionLabel,
                 payment: zone.payment,
                 prediction: zone.prediction,
-                walkingMetres: zone.walkingMetres,
+                proximity: zone.proximity,
                 newestTimestamp: zone.newestTimestamp,
                 mode: zone.mode,
                 schedule: zone.schedule,
-                isBestBet: zone.zoneNumber == best
+                isSuggested: zone.zoneNumber == best
             )
         }.sorted { (rank[$0.zoneNumber] ?? .max) < (rank[$1.zoneNumber] ?? .max) }
     }

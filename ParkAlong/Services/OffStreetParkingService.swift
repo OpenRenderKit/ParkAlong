@@ -2,11 +2,17 @@
 import Foundation
 
 protocol OffStreetParkingProviding: Sendable {
-    func options(in viewport: ParkingViewport) async -> [ParkingOption]
+    func options(
+        in viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference
+    ) async -> [ParkingOption]
 }
 
 final class OffStreetParkingService: OffStreetParkingProviding, @unchecked Sendable {
-    func options(in viewport: ParkingViewport) async -> [ParkingOption] {
+    func options(
+        in viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference
+    ) async -> [ParkingOption] {
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = "parking garage"
         request.resultTypes = .pointOfInterest
@@ -30,7 +36,14 @@ final class OffStreetParkingService: OffStreetParkingProviding, @unchecked Senda
                 locationLabel: item.placemark.title ?? name, coordinate: coordinate, availabilityState: .unknown,
                 available: nil, total: nil, restrictionLabel: "Check facility stay terms", restrictionWindow: "Provider hours apply", activeNow: true,
                 price: price, provider: provider.provider, sourceTimestamp: nil,
-                walkingMetres: ParkingRepository.distance(from: coordinate, to: viewport.center), prediction: nil, isBestBet: false, zoneNumber: nil,
+                proximity: ParkingProximity(
+                    straightLineMetres: ParkingRepository.distance(
+                        from: coordinate,
+                        to: proximityReference.coordinate
+                    ),
+                    reference: proximityReference
+                ),
+                prediction: nil, isSuggested: false, zoneNumber: nil,
                 classification: .staticOnly, warningText: "Location only · availability is not live",
                 sourceDatasetAt: nil, sourceCheckedAt: nil, schedule: [], clusterCount: nil, clusterViewport: nil
             )
@@ -41,7 +54,10 @@ final class OffStreetParkingService: OffStreetParkingProviding, @unchecked Senda
 struct FixtureOffStreetParkingService: OffStreetParkingProviding {
     var includeResult = true
 
-    func options(in viewport: ParkingViewport) async -> [ParkingOption] {
+    func options(
+        in viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference
+    ) async -> [ParkingOption] {
         guard includeResult else { return [] }
         let destination = viewport.center
         let coordinate = Coordinate(latitude: destination.latitude + 0.0028, longitude: destination.longitude - 0.001)
@@ -51,7 +67,9 @@ struct FixtureOffStreetParkingService: OffStreetParkingProviding {
             locationLabel: "180 Russell Street, Melbourne", coordinate: coordinate, availabilityState: .unknown,
             available: nil, total: nil, restrictionLabel: "Facility terms apply", restrictionWindow: "Open now · verify with provider", activeNow: true,
             price: .init(primaryText: "Check current price", detail: "Dynamic facility pricing", provider: "Wilson Parking", actionLabel: "Check price / Book with provider", actionURL: url),
-            provider: "Wilson Parking", sourceTimestamp: nil, walkingMetres: 420, prediction: nil, isBestBet: false, zoneNumber: nil,
+            provider: "Wilson Parking", sourceTimestamp: nil,
+            proximity: ParkingProximity(straightLineMetres: 420, reference: proximityReference),
+            prediction: nil, isSuggested: false, zoneNumber: nil,
             classification: .staticOnly, warningText: "Location only · availability is not live",
             sourceDatasetAt: nil, sourceCheckedAt: nil, schedule: [], clusterCount: nil, clusterViewport: nil
         )]

@@ -7,6 +7,86 @@ struct Coordinate: Codable, Hashable, Sendable {
     static let melbourneCBD = Coordinate(latitude: -37.8136, longitude: 144.9631)
 }
 
+struct ParkingProximityReference: Codable, Hashable, Sendable {
+    let coordinate: Coordinate
+    let label: String
+
+    init(coordinate: Coordinate, label: String) {
+        self.coordinate = coordinate
+        let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.label = trimmed.isEmpty ? "destination" : trimmed
+    }
+}
+
+struct ParkingProximity: Equatable, Sendable {
+    let straightLineMetres: Double
+    let reference: ParkingProximityReference
+
+    init(straightLineMetres: Double, reference: ParkingProximityReference) {
+        precondition(straightLineMetres.isFinite && straightLineMetres >= 0, "Proximity must be finite and nonnegative")
+        self.straightLineMetres = straightLineMetres
+        self.reference = reference
+    }
+
+    var rowLabel: String {
+        "Distance to \(reference.label)"
+    }
+
+    var displayValue: String {
+        "\(formattedDistance) straight-line"
+    }
+
+    var caveat: String {
+        "This isn’t a walking route."
+    }
+
+    var displayLabel: String {
+        "\(rowLabel), \(displayValue)"
+    }
+
+    var accessibilityLabel: String {
+        "\(rowLabel), \(spokenDistance) straight-line. \(caveat)"
+    }
+
+    private var formattedDistance: String {
+        switch roundedDistance {
+        case .underFiftyMetres:
+            return "Under 50 m"
+        case .metres(let metres):
+            return "About \(metres) m"
+        case .kilometres(let kilometres):
+            return String(format: "About %.1f km", kilometres)
+        }
+    }
+
+    private var spokenDistance: String {
+        switch roundedDistance {
+        case .underFiftyMetres:
+            return "under 50 metres"
+        case .metres(let metres):
+            return "about \(metres) metres"
+        case .kilometres(let kilometres):
+            return String(format: "about %.1f kilometres", kilometres)
+        }
+    }
+
+    private enum RoundedDistance {
+        case underFiftyMetres
+        case metres(Int)
+        case kilometres(Double)
+    }
+
+    private var roundedDistance: RoundedDistance {
+        guard straightLineMetres >= 50 else { return .underFiftyMetres }
+        if straightLineMetres < 1_000 {
+            let rounded = Int((straightLineMetres / 50).rounded()) * 50
+            if rounded >= 1_000 { return .kilometres(1.0) }
+            return .metres(max(50, rounded))
+        }
+        return .kilometres(straightLineMetres / 1_000)
+    }
+}
+
 struct ParkingViewport: Codable, Hashable, Sendable {
     let south: Double
     let west: Double
@@ -417,13 +497,21 @@ struct AvailabilityPrediction: Equatable, Sendable {
 struct RankingCandidate: Equatable, Sendable {
     let zoneNumber: Int
     let predictedAvailable: Double
-    let walkingMetres: Double
+    let straightLineMetres: Double
     let probabilityAtLeastOne: Double?
 }
 
 struct RankedCandidate: Equatable, Sendable {
     let zoneNumber: Int
     let score: Double
+    let contributions: RankingFactorContributions
+    let policyVersion: String
+}
+
+struct RankingFactorContributions: Equatable, Sendable {
+    let predictedAvailability: Double
+    let straightLineProximity: Double
+    let probabilityAtLeastOne: Double
 }
 
 enum ParkingDataMode: String, Equatable, Sendable {
@@ -440,13 +528,18 @@ struct ParkingZone: Identifiable, Equatable, Sendable {
     let restrictionLabel: String
     let payment: ParkingPaymentStatus
     let prediction: AvailabilityPrediction
-    let walkingMetres: Double
+    let proximity: ParkingProximity
     let newestTimestamp: Date?
     let mode: ParkingDataMode
     let schedule: [ParkingScheduleDay]
-    var isBestBet: Bool
+    var isSuggested: Bool
 
     var coordinate: Coordinate { metadata.coordinate }
+
+    var recommendationExplanation: String? {
+        guard isSuggested else { return nil }
+        return RankingEngine.explanation(relativeTo: proximity.reference.label)
+    }
 }
 
 struct ParkingRepositoryResult: Equatable, Sendable {

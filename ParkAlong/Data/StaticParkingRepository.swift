@@ -59,9 +59,13 @@ actor StaticParkingRepository: StaticParkingProviding {
         self.catalogVersion = catalogVersion
     }
 
-    func options(in viewport: ParkingViewport, plan: ParkingPlan) async -> [ParkingOption] {
+    func options(
+        in viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference,
+        plan: ParkingPlan
+    ) async -> [ParkingOption] {
         guard !Task.isCancelled else { return [] }
-        let cacheKey = QueryKey(viewport: viewport, plan: plan)
+        let cacheKey = QueryKey(viewport: viewport, proximityReference: proximityReference, plan: plan)
         if remote == nil, let cached = queryCache[cacheKey] {
             queryCacheHits += 1
             return cached
@@ -76,17 +80,23 @@ actor StaticParkingRepository: StaticParkingProviding {
         for (offset, location) in availableLocations.enumerated() {
             if offset.isMultiple(of: 64), Task.isCancelled { return [] }
             guard queryViewport.contains(location.coordinate) else { continue }
-            let distance = ParkingRepository.distance(from: location.coordinate, to: viewport.center)
+            let proximity = ParkingProximity(
+                straightLineMetres: ParkingRepository.distance(
+                    from: location.coordinate,
+                    to: proximityReference.coordinate
+                ),
+                reference: proximityReference
+            )
             guard case .eligible(let rule, let prediction) = resolution(
                 for: location,
                 plan: plan,
                 cacheAllowed: remote == nil
             ) else { continue }
-            candidates.append(Candidate(location: location, rule: rule, distance: distance, prediction: prediction))
+            candidates.append(Candidate(location: location, rule: rule, proximity: proximity, prediction: prediction))
         }
         candidates.sort {
             if $0.isOpenStreetMap != $1.isOpenStreetMap { return !$0.isOpenStreetMap }
-            return $0.distance < $1.distance
+            return $0.proximity.straightLineMetres < $1.proximity.straightLineMetres
         }
 
         let officialIndex = Dictionary(
@@ -110,7 +120,13 @@ actor StaticParkingRepository: StaticParkingProviding {
         StaticParkingCacheMetrics(hits: queryCacheHits, misses: queryCacheMisses, entries: queryCache.count)
     }
 
-    func search(_ query: String, near viewport: ParkingViewport, plan: ParkingPlan, limit: Int = 20) async -> [ParkingOption] {
+    func search(
+        _ query: String,
+        near viewport: ParkingViewport,
+        relativeTo proximityReference: ParkingProximityReference,
+        plan: ParkingPlan,
+        limit: Int = 20
+    ) async -> [ParkingOption] {
         let normalized = Self.normalizedSearchText(query)
         let tokens = Set(normalized.split(separator: " ").map(String.init))
         guard !tokens.isEmpty, !Task.isCancelled else { return [] }
@@ -126,11 +142,15 @@ actor StaticParkingRepository: StaticParkingProviding {
             let location = entry.location
             guard textScore >= 0.45,
                   case .eligible(let rule, let prediction) = resolution(for: location, plan: plan) else { continue }
-            let distance = ParkingRepository.distance(from: location.coordinate, to: viewport.center)
+            let distance = ParkingRepository.distance(from: location.coordinate, to: proximityReference.coordinate)
+            let proximityResult = ParkingProximity(
+                straightLineMetres: distance,
+                reference: proximityReference
+            )
             let sourceBoost = location.source.id == "openstreetmap-victoria-parking" ? 0 : 0.08
             let proximity = max(0, 1 - min(distance, 100_000) / 100_000)
             candidates.append((
-                Candidate(location: location, rule: rule, distance: distance, prediction: prediction),
+                Candidate(location: location, rule: rule, proximity: proximityResult, prediction: prediction),
                 textScore * 0.8 + proximity * 0.12 + sourceBoost
             ))
         }
@@ -242,8 +262,8 @@ actor StaticParkingRepository: StaticParkingProviding {
             restrictionLabel: candidate.rule.timeLimitText,
             restrictionWindow: candidate.rule.restrictionWindow,
             activeNow: true, price: candidate.rule.price, provider: location.source.name,
-            sourceTimestamp: nil, walkingMetres: candidate.distance, prediction: candidate.prediction,
-            isBestBet: false, zoneNumber: nil, classification: classification,
+            sourceTimestamp: nil, proximity: candidate.proximity, prediction: candidate.prediction,
+            isSuggested: false, zoneNumber: nil, classification: classification,
             warningText: candidate.prediction == nil ? sourceAgeWarning : "Prediction based on validated historical evidence · not live",
             sourceDatasetAt: location.source.datasetUpdatedAt,
             sourceCheckedAt: location.source.checkedAt,
@@ -305,8 +325,12 @@ actor StaticParkingRepository: StaticParkingProviding {
                 price: .init(primaryText: "Multiple prices", detail: "Zoom in for exact facility and street rates",
                              provider: "ParkAlong", actionLabel: nil, actionURL: nil),
                 provider: "ParkAlong", sourceTimestamp: nil,
-                walkingMetres: members.map(\.walkingMetres).min() ?? 0, prediction: nil,
-                isBestBet: false, zoneNumber: nil, classification: .staticOnly,
+                proximity: ParkingProximity(
+                    straightLineMetres: members.map(\.proximity.straightLineMetres).min() ?? 0,
+                    reference: members[0].proximity.reference
+                ),
+                prediction: nil,
+                isSuggested: false, zoneNumber: nil, classification: .staticOnly,
                 warningText: "Grouped mapped locations · zoom in for source details",
                 sourceDatasetAt: nil, sourceCheckedAt: nil, schedule: [],
                 clusterCount: members.count, clusterViewport: target
@@ -352,7 +376,7 @@ actor StaticParkingRepository: StaticParkingProviding {
     private struct Candidate {
         let location: StaticParkingLocation
         let rule: ResolvedParkingRule
-        let distance: Double
+        let proximity: ParkingProximity
         let prediction: AvailabilityPrediction?
 
         var isOpenStreetMap: Bool {
@@ -389,16 +413,26 @@ actor StaticParkingRepository: StaticParkingProviding {
         let north: Int
         let east: Int
         let zoom: Int
+        let proximityLatitude: Int
+        let proximityLongitude: Int
+        let proximityLabel: String
         let arrivalMinute: Int
         let durationMinutes: Int
         let isPublicHoliday: Bool
 
-        init(viewport: ParkingViewport, plan: ParkingPlan) {
+        init(
+            viewport: ParkingViewport,
+            proximityReference: ParkingProximityReference,
+            plan: ParkingPlan
+        ) {
             south = Int((viewport.south * 100_000).rounded())
             west = Int((viewport.west * 100_000).rounded())
             north = Int((viewport.north * 100_000).rounded())
             east = Int((viewport.east * 100_000).rounded())
             zoom = Int((viewport.zoomLevel * 10).rounded())
+            proximityLatitude = Int((proximityReference.coordinate.latitude * 100_000).rounded())
+            proximityLongitude = Int((proximityReference.coordinate.longitude * 100_000).rounded())
+            proximityLabel = proximityReference.label
             arrivalMinute = Int(plan.arrival.timeIntervalSince1970) / 60
             durationMinutes = plan.durationMinutes
             isPublicHoliday = plan.isPublicHoliday

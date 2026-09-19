@@ -34,9 +34,9 @@ struct ParkingOption: Identifiable, Equatable, Sendable {
     let price: ParkingPriceInformation
     let provider: String
     let sourceTimestamp: Date?
-    let walkingMetres: Double
+    let proximity: ParkingProximity
     let prediction: AvailabilityPrediction?
-    let isBestBet: Bool
+    let isSuggested: Bool
     let zoneNumber: Int?
     let classification: ParkingDataClassification
     let warningText: String?
@@ -71,6 +71,11 @@ struct ParkingOption: Identifiable, Equatable, Sendable {
 
     var hasNonLiveWarning: Bool { classification.needsWarning }
 
+    var recommendationExplanation: String? {
+        guard isSuggested else { return nil }
+        return RankingEngine.explanation(relativeTo: proximity.reference.label)
+    }
+
     static func onStreet(_ zone: ParkingZone, plan: ParkingPlan) -> ParkingOption {
         let price = ParkingPriceEngine.price(payment: zone.payment, plan: plan, coordinate: zone.coordinate)
         let classification: ParkingDataClassification
@@ -101,7 +106,7 @@ struct ParkingOption: Identifiable, Equatable, Sendable {
             activeNow: isImmediate,
             price: price, provider: price.provider,
             sourceTimestamp: classification == .verifiedLive ? zone.newestTimestamp : nil,
-            walkingMetres: zone.walkingMetres, prediction: zone.prediction, isBestBet: zone.isBestBet, zoneNumber: zone.zoneNumber,
+            proximity: zone.proximity, prediction: zone.prediction, isSuggested: zone.isSuggested, zoneNumber: zone.zoneNumber,
             classification: classification, warningText: warning,
             sourceDatasetAt: nil, sourceCheckedAt: nil, schedule: zone.schedule,
             clusterCount: nil, clusterViewport: nil
