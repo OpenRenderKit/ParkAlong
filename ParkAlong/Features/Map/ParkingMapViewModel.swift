@@ -30,11 +30,13 @@ final class ParkingMapViewModel {
     private var refreshGeneration = 0
     private var searchGeneration = 0
     private var locationRequestGeneration = 0
+    private var vacantBayRequestGeneration = 0
     private var searchParkingOptions: [String: ParkingOption] = [:]
     private var hasStarted = false
     @ObservationIgnored private var viewportRefreshTask: Task<Void, Never>?
     @ObservationIgnored private var activeRefreshTask: Task<Void, Never>?
     @ObservationIgnored private var locationRequestTask: Task<LocationRequestResult, Never>?
+    @ObservationIgnored private var vacantBayRequestTask: Task<[Coordinate], Never>?
 
     var destination = ParkingDestination(
         id: "locating",
@@ -158,7 +160,15 @@ final class ParkingMapViewModel {
             mode = result.mode
             notice = result.notice
             checkedAt = result.checkedAt
-            if let selected = selectedZone { selectedZone = zones.first(where: { $0.zoneNumber == selected.zoneNumber }) }
+            if let selected = selectedZone {
+                if let updated = zones.first(where: { $0.zoneNumber == selected.zoneNumber }) {
+                    selectedZone = updated
+                } else {
+                    invalidatePendingVacantBayRequest()
+                    selectedZone = nil
+                    vacantBays = []
+                }
+            }
             rebindSelectedOption(facilities: facilities, staticLocations: staticLocations)
             state = .loaded
         } catch is CancellationError {
@@ -208,8 +218,10 @@ final class ParkingMapViewModel {
         activeRefreshTask?.cancel()
         viewportRefreshTask?.cancel()
         refreshGeneration += 1
+        invalidatePendingVacantBayRequest()
         selectedZone = nil
         selectedOffStreetOption = nil
+        vacantBays = []
         notice = "Finding parking for a \(value.selectionDescription) stay"
         return true
     }
@@ -370,6 +382,7 @@ final class ParkingMapViewModel {
             return
         }
         destination = value
+        invalidatePendingVacantBayRequest()
         viewport = Self.viewport(centeredAt: value.coordinate)
         mapFocusRequest = viewport
         isSearching = false
@@ -382,12 +395,32 @@ final class ParkingMapViewModel {
     }
 
     func selectZone(_ zone: ParkingZone) async {
+        invalidatePendingVacantBayRequest()
+        let generation = vacantBayRequestGeneration
         selectedOffStreetOption = nil
         selectedZone = zone
-        vacantBays = (try? await repository.vacantBays(zoneNumber: zone.zoneNumber, now: .now)) ?? []
+        vacantBays = []
+        let repository = self.repository
+        let task = Task {
+            (try? await repository.vacantBays(zoneNumber: zone.zoneNumber, now: .now)) ?? []
+        }
+        vacantBayRequestTask = task
+        let bays = await withTaskCancellationHandler {
+            await task.value
+        } onCancel: {
+            task.cancel()
+        }
+        if generation == vacantBayRequestGeneration {
+            vacantBayRequestTask = nil
+        }
+        guard !Task.isCancelled,
+              generation == vacantBayRequestGeneration,
+              selectedZone?.zoneNumber == zone.zoneNumber else { return }
+        vacantBays = bays
     }
 
     func selectOffStreet(_ option: ParkingOption) {
+        invalidatePendingVacantBayRequest()
         selectedZone = nil
         vacantBays = []
         selectedOffStreetOption = option
@@ -395,6 +428,7 @@ final class ParkingMapViewModel {
 
     func selectStatic(_ option: ParkingOption) {
         if let target = option.clusterViewport {
+            invalidatePendingVacantBayRequest()
             selectedZone = nil
             selectedOffStreetOption = nil
             vacantBays = []
@@ -429,9 +463,11 @@ final class ParkingMapViewModel {
         viewportRefreshTask = nil
         activeRefreshTask?.cancel()
         activeRefreshTask = nil
+        invalidatePendingVacantBayRequest()
     }
 
     func dismissZone() {
+        invalidatePendingVacantBayRequest()
         selectedZone = nil
         selectedOffStreetOption = nil
         vacantBays = []
@@ -467,6 +503,12 @@ final class ParkingMapViewModel {
         locationRequestGeneration += 1
         locationRequestTask?.cancel()
         locationRequestTask = nil
+    }
+
+    private func invalidatePendingVacantBayRequest() {
+        vacantBayRequestGeneration += 1
+        vacantBayRequestTask?.cancel()
+        vacantBayRequestTask = nil
     }
 
     private func rebindSelectedOption(

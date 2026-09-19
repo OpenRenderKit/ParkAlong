@@ -280,6 +280,60 @@ final class ParkingMapViewModelTests: XCTestCase {
         XCTAssertEqual(cancellationCount, 1)
     }
 
+    func testNewZoneSelectionRejectsVacantBaysFromOlderSelection() async {
+        let repository = ControllableVacantBayRepository()
+        let viewModel = ParkingMapViewModel(
+            repository: repository,
+            locationService: FixtureLocationService(denied: true),
+            destinationSearch: FixtureDestinationSearchService(),
+            navigator: AppleMapsNavigator(intercept: true),
+            offStreetService: FixtureOffStreetParkingService(includeResult: false),
+            staticParkingService: StaticParkingRepository(locations: [])
+        )
+        let firstZone = makeZone(number: 7001)
+        let secondZone = makeZone(number: 7002)
+        let staleBay = Coordinate(latitude: -37.815, longitude: 144.965)
+        let newestBay = Coordinate(latitude: -37.814, longitude: 144.964)
+
+        let firstSelection = Task { await viewModel.selectZone(firstZone) }
+        await repository.waitForStartedRequestCount(1)
+        let secondSelection = Task { await viewModel.selectZone(secondZone) }
+        await repository.waitForStartedRequestCount(2)
+        await repository.waitForCancellationCount(1)
+        await repository.complete(zoneNumber: 7002, with: [newestBay])
+        await secondSelection.value
+        await repository.complete(zoneNumber: 7001, with: [staleBay])
+        await firstSelection.value
+
+        XCTAssertEqual(viewModel.selectedZone?.zoneNumber, 7002)
+        XCTAssertEqual(viewModel.vacantBays, [newestBay])
+        let cancellationCount = await repository.cancelledRequestCount
+        XCTAssertEqual(cancellationCount, 1)
+    }
+
+    func testRefreshClearsVacantBaysWhenSelectedZoneLeavesViewport() async {
+        let repository = ControllableVacantBayRepository()
+        let viewModel = ParkingMapViewModel(
+            repository: repository,
+            locationService: FixtureLocationService(denied: true),
+            destinationSearch: FixtureDestinationSearchService(),
+            navigator: AppleMapsNavigator(intercept: true),
+            offStreetService: FixtureOffStreetParkingService(includeResult: false),
+            staticParkingService: StaticParkingRepository(locations: [])
+        )
+        let zone = makeZone(number: 7001)
+        let bay = Coordinate(latitude: -37.815, longitude: 144.965)
+        let selection = Task { await viewModel.selectZone(zone) }
+        await repository.waitForStartedRequestCount(1)
+        await repository.complete(zoneNumber: 7001, with: [bay])
+        await selection.value
+
+        await viewModel.refresh(force: false)
+
+        XCTAssertNil(viewModel.selectedZone)
+        XCTAssertTrue(viewModel.vacantBays.isEmpty)
+    }
+
     func testRefreshKeepsPreviouslyVisibleMarkersWhileNewDataIsLoading() async {
         let repository = ControllableParkingRepository()
         let staticService = ControllableStaticParkingService()
@@ -604,6 +658,38 @@ final class ParkingMapViewModelTests: XCTestCase {
             schedule: [], clusterCount: nil, clusterViewport: nil
         )
     }
+
+    private func makeZone(number: Int) -> ParkingZone {
+        let metadata = ZoneMetadata(
+            zoneNumber: number,
+            streetName: "Fixture Street",
+            fromStreet: nil,
+            toStreet: nil,
+            coordinate: .melbourneCBD,
+            sensorCount: 2
+        )
+        return ParkingZone(
+            zoneNumber: number,
+            metadata: metadata,
+            available: 1,
+            total: 2,
+            restrictionLabel: "Up to 2 hours",
+            payment: .paid,
+            prediction: PredictionEngine.estimate(
+                liveAvailable: 1,
+                trustedBayCount: 2,
+                historicalOccupiedRatio: nil,
+                etaMinutes: 0,
+                validation: nil,
+                forecastDate: .now
+            ),
+            walkingMetres: 100,
+            newestTimestamp: .now,
+            mode: .live,
+            schedule: [],
+            isBestBet: false
+        )
+    }
 }
 
 @MainActor
@@ -759,6 +845,78 @@ private actor ControllableParkingRepository: ParkingRepositoryProviding {
     private func resumeStartedWaiters() {
         let ready = startedWaiters.filter { totalStartedRequestCount >= $0.count }
         startedWaiters.removeAll { totalStartedRequestCount >= $0.count }
+        ready.forEach { $0.continuation.resume() }
+    }
+}
+
+private actor ControllableVacantBayRepository: ParkingRepositoryProviding {
+    private struct Pending {
+        let id: Int
+        let zoneNumber: Int
+        let continuation: CheckedContinuation<[Coordinate], Error>
+    }
+
+    private var nextID = 0
+    private var pending: [Pending] = []
+    private var startedRequestCount = 0
+    private var startedWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+    private var cancellationWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+    private var cancelledRequestIDs: Set<Int> = []
+    private(set) var cancelledRequestCount = 0
+
+    func refresh(
+        viewport: ParkingViewport,
+        plan: ParkingPlan,
+        now: Date,
+        force: Bool
+    ) async throws -> ParkingRepositoryResult {
+        .init(zones: [], mode: .live, checkedAt: now, notice: "")
+    }
+
+    func vacantBays(zoneNumber: Int, now: Date) async throws -> [Coordinate] {
+        let id = nextID
+        nextID += 1
+        startedRequestCount += 1
+        resumeStartedWaiters()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                pending.append(.init(id: id, zoneNumber: zoneNumber, continuation: continuation))
+            }
+        } onCancel: {
+            Task { await self.cancel(id: id) }
+        }
+    }
+
+    func waitForStartedRequestCount(_ count: Int) async {
+        guard startedRequestCount < count else { return }
+        await withCheckedContinuation { continuation in
+            startedWaiters.append((count, continuation))
+        }
+    }
+
+    func waitForCancellationCount(_ count: Int) async {
+        guard cancelledRequestCount < count else { return }
+        await withCheckedContinuation { continuation in
+            cancellationWaiters.append((count, continuation))
+        }
+    }
+
+    func complete(zoneNumber: Int, with coordinates: [Coordinate]) {
+        guard let index = pending.firstIndex(where: { $0.zoneNumber == zoneNumber }) else { return }
+        pending.remove(at: index).continuation.resume(returning: coordinates)
+    }
+
+    private func cancel(id: Int) {
+        guard pending.contains(where: { $0.id == id }), cancelledRequestIDs.insert(id).inserted else { return }
+        cancelledRequestCount += 1
+        let ready = cancellationWaiters.filter { cancelledRequestCount >= $0.count }
+        cancellationWaiters.removeAll { cancelledRequestCount >= $0.count }
+        ready.forEach { $0.continuation.resume() }
+    }
+
+    private func resumeStartedWaiters() {
+        let ready = startedWaiters.filter { startedRequestCount >= $0.count }
+        startedWaiters.removeAll { startedRequestCount >= $0.count }
         ready.forEach { $0.continuation.resume() }
     }
 }

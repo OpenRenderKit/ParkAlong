@@ -101,48 +101,73 @@ actor RemoteParkingClient: RemoteParkingProviding {
     private let baseURL: URL
     private let session: URLSession
     private let now: @Sendable () -> Date
+    private let cacheLimit: Int
     private var cache: [RemoteParkingQuery: CacheEntry] = [:]
+    private var cacheOrder: [RemoteParkingQuery] = []
 
     init(
         baseURL: URL,
         session: URLSession = .shared,
-        now: @escaping @Sendable () -> Date = { .now }
+        now: @escaping @Sendable () -> Date = { .now },
+        cacheLimit: Int = 16
     ) throws {
         guard baseURL.scheme?.lowercased() == "https" else { throw RemoteParkingError.insecureBaseURL }
+        precondition(cacheLimit > 0, "The remote parking cache must retain at least one viewport")
         self.baseURL = baseURL
         self.session = session
         self.now = now
+        self.cacheLimit = cacheLimit
     }
 
     func locations(for query: RemoteParkingQuery) async throws -> [StaticParkingLocation] {
         let now = now()
-        if let cached = cache[query], cached.expiresAt > now { return cached.locations }
+        if let cached = cache[query], cached.expiresAt > now {
+            touch(query)
+            return cached.locations
+        }
 
         var request = URLRequest(url: try query.url(baseURL: baseURL))
         request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let etag = cache[query]?.etag { request.setValue(etag, forHTTPHeaderField: "If-None-Match") }
 
+        try Task.checkCancellation()
         let (data, response) = try await session.data(for: request)
+        try Task.checkCancellation()
         guard let http = response as? HTTPURLResponse else { throw RemoteParkingError.invalidResponse }
         if http.statusCode == 304, let cached = cache[query] {
             let refreshed = CacheEntry(locations: cached.locations, etag: cached.etag, expiresAt: now.addingTimeInterval(120))
-            cache[query] = refreshed
+            store(refreshed, for: query)
             return refreshed.locations
         }
         guard http.statusCode == 200 else { throw RemoteParkingError.invalidResponse }
         guard data.count <= 15_000_000 else { throw RemoteParkingError.oversizedResponse }
 
+        try Task.checkCancellation()
         let envelope = try BundleDataLoader.decoder().decode(RemoteParkingEnvelope.self, from: data)
         guard envelope.schemaVersion == 1 else { throw RemoteParkingError.incompatibleSchema }
         try RemoteParkingEnvelope.validate(envelope.locations, in: query.viewport)
+        try Task.checkCancellation()
         let ttl = min(3_600, max(30, envelope.cacheTTLSeconds))
         let entry = CacheEntry(
             locations: envelope.locations,
             etag: http.value(forHTTPHeaderField: "ETag"),
             expiresAt: now.addingTimeInterval(TimeInterval(ttl))
         )
-        cache[query] = entry
+        store(entry, for: query)
         return entry.locations
+    }
+
+    private func touch(_ query: RemoteParkingQuery) {
+        cacheOrder.removeAll { $0 == query }
+        cacheOrder.append(query)
+    }
+
+    private func store(_ entry: CacheEntry, for query: RemoteParkingQuery) {
+        cache[query] = entry
+        touch(query)
+        while cacheOrder.count > cacheLimit {
+            cache.removeValue(forKey: cacheOrder.removeFirst())
+        }
     }
 }

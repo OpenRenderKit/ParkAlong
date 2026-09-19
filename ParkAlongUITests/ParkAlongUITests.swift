@@ -3,17 +3,7 @@ import XCTest
 @MainActor
 final class ParkAlongUITests: XCTestCase {
     private func launch(_ arguments: [String] = ["-fixture-live"]) -> XCUIApplication {
-        let app = XCUIApplication()
-        var launchArguments = ["-ui-testing", "-intercept-navigation"] + arguments
-        if !arguments.contains("-UIPreferredContentSizeCategoryName") {
-            // The simulator retains this preference between processes. Reset it
-            // so the dedicated accessibility test cannot leak into later cases.
-            launchArguments += [
-                "-UIPreferredContentSizeCategoryName",
-                "UICTContentSizeCategoryL"
-            ]
-        }
-        app.launchArguments = launchArguments
+        let app = makeApp(arguments)
         app.launch()
         return app
     }
@@ -28,6 +18,65 @@ final class ParkAlongUITests: XCTestCase {
 
     private func element(_ identifier: String, in app: XCUIApplication) -> XCUIElement {
         app.descendants(matching: .any)[identifier]
+    }
+
+    private func makeApp(_ arguments: [String] = ["-fixture-live"]) -> XCUIApplication {
+        let app = XCUIApplication()
+        var launchArguments = ["-ui-testing", "-intercept-navigation"] + arguments
+        if !arguments.contains("-UIPreferredContentSizeCategoryName") {
+            // The simulator retains this preference between processes. Reset it
+            // so the dedicated accessibility test cannot leak into later cases.
+            launchArguments += [
+                "-UIPreferredContentSizeCategoryName",
+                "UICTContentSizeCategoryL"
+            ]
+        }
+        app.launchArguments = launchArguments
+        return app
+    }
+
+    private func staticMarkers(in app: XCUIApplication) -> XCUIElementQuery {
+        app.descendants(matching: .any).matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "static-pin-")
+        )
+    }
+
+    private func waitForDenseMapReady(_ app: XCUIApplication) -> XCUIElementQuery {
+        let map = app.maps.firstMatch
+        XCTAssertTrue(map.waitForExistence(timeout: 5))
+        let markers = staticMarkers(in: app)
+        XCTAssertTrue(markers.firstMatch.waitForExistence(timeout: 5))
+        return markers
+    }
+
+    private func waitUntilGone(_ element: XCUIElement, timeout: TimeInterval = 2) {
+        let predicate = NSPredicate { _, _ in
+            !element.exists
+        }
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: timeout), .completed)
+    }
+
+    private func milliseconds(from duration: Duration) -> Double {
+        let components = duration.components
+        return Double(components.seconds) * 1000 + Double(components.attoseconds) / 1e15
+    }
+
+    private func printTapToZoneDetailSheetSamples(_ samples: [Duration]) {
+        let values = samples.map(milliseconds(from:))
+        let sorted = values.sorted()
+        let mean = values.reduce(0, +) / Double(values.count)
+        let median = sorted[sorted.count / 2]
+        let summary = values.map { String(format: "%.1f", $0) }.joined(separator: ",")
+        print(
+            "tap-to-zone-detail-sheet-ms samples=[\(summary)] mean=\(String(format: "%.1f", mean)) median=\(String(format: "%.1f", median)) min=\(String(format: "%.1f", sorted.first ?? 0)) max=\(String(format: "%.1f", sorted.last ?? 0))"
+        )
+    }
+
+    private func performanceMeasureOptions(iterations: Int) -> XCTMeasureOptions {
+        let options = XCTMeasureOptions()
+        options.iterationCount = iterations
+        return options
     }
 
     func testPermissionDeniedKeepsDefaultCBDUsable() {
@@ -74,22 +123,78 @@ final class ParkAlongUITests: XCTestCase {
 
         XCTAssertTrue(map.exists)
         XCTAssertTrue(map.isHittable)
-        let staticMarkers = app.descendants(matching: .any).matching(
-            NSPredicate(format: "identifier BEGINSWITH %@", "static-pin-")
-        )
-        XCTAssertTrue(staticMarkers.firstMatch.waitForExistence(timeout: 3))
-        XCTAssertGreaterThan(staticMarkers.count, 0)
-        XCTAssertLessThanOrEqual(staticMarkers.count, 48)
-        XCTAssertTrue(staticMarkers.firstMatch.isHittable)
-        staticMarkers.firstMatch.tap()
+        let markers = staticMarkers(in: app)
+        XCTAssertTrue(markers.firstMatch.waitForExistence(timeout: 3))
+        XCTAssertGreaterThan(markers.count, 0)
+        XCTAssertLessThanOrEqual(markers.count, 48)
+        XCTAssertTrue(markers.firstMatch.isHittable)
+        markers.firstMatch.tap()
         let detailSheet = app.otherElements["zone-detail-sheet"]
         XCTAssertTrue(detailSheet.waitForExistence(timeout: 2))
         detailSheet.swipeDown()
-        XCTAssertFalse(detailSheet.waitForExistence(timeout: 1))
+        waitUntilGone(detailSheet)
         let twoHours = app.buttons["duration-2h"]
         XCTAssertTrue(twoHours.isHittable)
         twoHours.tap()
         waitForValue("selected", on: twoHours)
+    }
+
+    func testDenseMapLaunchToMarkerReadinessPerformance() {
+        let app = makeApp(["-fixture-live", "-fixture-dense"])
+        measure(
+            metrics: [XCTClockMetric(), XCTCPUMetric(application: app), XCTMemoryMetric(application: app)],
+            options: performanceMeasureOptions(iterations: 3)
+        ) {
+            app.launch()
+            _ = waitForDenseMapReady(app)
+            app.terminate()
+        }
+    }
+
+    func testDenseMapPinchResponsivenessPerformance() {
+        let app = launch(["-fixture-live", "-fixture-dense"])
+        let map = app.maps.firstMatch
+        _ = waitForDenseMapReady(app)
+
+        measure(
+            metrics: [XCTClockMetric(), XCTCPUMetric(application: app), XCTMemoryMetric(application: app)],
+            options: performanceMeasureOptions(iterations: 3)
+        ) {
+            map.pinch(withScale: 0.55, velocity: -2)
+            map.pinch(withScale: 1.8, velocity: 2)
+            XCTAssertTrue(map.exists)
+            XCTAssertTrue(map.isHittable)
+        }
+    }
+
+    func testDenseMarkerSelectionWorkflowPerformance() {
+        let app = launch(["-fixture-live", "-fixture-dense"])
+        let markers = waitForDenseMapReady(app)
+        let detailSheet = app.otherElements["zone-detail-sheet"]
+        let clock = ContinuousClock()
+        var tapToSheetSamples: [Duration] = []
+
+        for _ in 0..<3 {
+            XCTAssertTrue(markers.firstMatch.isHittable)
+            let started = clock.now
+            markers.firstMatch.tap()
+            XCTAssertTrue(detailSheet.waitForExistence(timeout: 2))
+            tapToSheetSamples.append(clock.now - started)
+            detailSheet.swipeDown()
+            waitUntilGone(detailSheet)
+        }
+        printTapToZoneDetailSheetSamples(tapToSheetSamples)
+
+        measure(
+            metrics: [XCTCPUMetric(application: app), XCTMemoryMetric(application: app)],
+            options: performanceMeasureOptions(iterations: 3)
+        ) {
+            XCTAssertTrue(markers.firstMatch.isHittable)
+            markers.firstMatch.tap()
+            XCTAssertTrue(detailSheet.waitForExistence(timeout: 2))
+            detailSheet.swipeDown()
+            waitUntilGone(detailSheet)
+        }
     }
 
     func testStayTrackRemainsUsableAtAccessibilityTextSize() {

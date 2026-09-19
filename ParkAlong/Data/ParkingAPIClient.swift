@@ -57,6 +57,7 @@ struct ParkingAPIClient: ParkingAPIProviding, Sendable {
         var rows: [SensorAggregateRow] = []
         var offset = 0
         while true {
+            try Task.checkCancellation()
             let select = "zone_number, status_description, count(*) as bay_count, max(status_timestamp) as newest_timestamp"
             let whereClause = "within_distance(location, geom'POINT(\(coordinate.longitude) \(coordinate.latitude))', \(radiusMetres)m) AND status_timestamp >= date'\(Self.apiDate(since))' AND zone_number is not null"
             let request = try makeRequest(items: [
@@ -68,6 +69,7 @@ struct ParkingAPIClient: ParkingAPIProviding, Sendable {
                 .init(name: "offset", value: String(offset))
             ])
             let data = try await validatedData(for: request)
+            try Task.checkCancellation()
             let page = try Self.decodeAggregatePage(data)
             rows.append(contentsOf: page)
             guard page.count == pageSize else { break }
@@ -80,6 +82,7 @@ struct ParkingAPIClient: ParkingAPIProviding, Sendable {
         var rows: [SensorReading] = []
         var offset = 0
         while true {
+            try Task.checkCancellation()
             let whereClause = "zone_number = \(zoneNumber) AND status_description = 'Unoccupied' AND status_timestamp >= date'\(Self.apiDate(since))'"
             let request = try makeRequest(items: [
                 .init(name: "where", value: whereClause),
@@ -87,6 +90,7 @@ struct ParkingAPIClient: ParkingAPIProviding, Sendable {
                 .init(name: "offset", value: String(offset))
             ])
             let data = try await validatedData(for: request)
+            try Task.checkCancellation()
             let page = try Self.decodeSensorPage(data)
             rows.append(contentsOf: page.results)
             guard page.results.count == pageSize else { break }

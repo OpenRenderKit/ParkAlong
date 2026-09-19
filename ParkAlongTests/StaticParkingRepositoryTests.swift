@@ -63,7 +63,7 @@ final class StaticParkingRepositoryTests: XCTestCase {
             _ = try BundleDataLoader.load([StaticParkingLocation].self, named: "victoria_static_parking")
         }
 
-        print("PARKALONG_PERF bundled_catalog_decode_seconds=\(elapsed.components.seconds).\(elapsed.components.attoseconds)")
+        print("PARKALONG_PERF bundled_catalog_decode_seconds=\(seconds(elapsed))")
         XCTAssertLessThan(elapsed, .seconds(5))
     }
 
@@ -88,7 +88,7 @@ final class StaticParkingRepositoryTests: XCTestCase {
             }
         }
 
-        print("PARKALONG_PERF eight_street_viewport_queries_seconds=\(elapsed.components.seconds).\(elapsed.components.attoseconds) visible_counts=\(visibleCounts)")
+        print("PARKALONG_PERF eight_street_viewport_queries_seconds=\(seconds(elapsed)) visible_counts=\(visibleCounts)")
         XCTAssertLessThan(elapsed, .seconds(2))
     }
 
@@ -337,5 +337,10 @@ final class StaticParkingRepositoryTests: XCTestCase {
             north: center.latitude + 0.02, east: center.longitude + 0.02,
             zoomLevel: 14
         )
+    }
+
+    private func seconds(_ duration: Duration) -> Double {
+        Double(duration.components.seconds)
+            + Double(duration.components.attoseconds) / 1_000_000_000_000_000_000
     }
 }

@@ -4,6 +4,22 @@ import XCTest
 final class ParkingRepositoryTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_776_297_600) // Thursday 10am in Melbourne
 
+    func testBundledHistoricalDecodeCostIsRecorded() throws {
+        let clock = ContinuousClock()
+        var recordCount = 0
+
+        let elapsed = try clock.measure {
+            let records = try BundleDataLoader.load([HistoricalBucket].self, named: "historical_availability")
+            recordCount = records.count
+        }
+        let elapsedSeconds = Double(elapsed.components.seconds)
+            + Double(elapsed.components.attoseconds) / 1_000_000_000_000_000_000
+
+        print("PARKALONG_PERF historical_decode_seconds=\(elapsedSeconds) records=\(recordCount)")
+        XCTAssertGreaterThan(recordCount, 1_000)
+        XCTAssertLessThan(elapsed, .seconds(5))
+    }
+
     func testRefreshJoinsLiveCountsAndAppliesStayAsHardFilter() async throws {
         let api = FixtureParkingAPI(rows: [
             .init(zoneNumber: 7001, status: .unoccupied, bayCount: 5, newestTimestamp: now.addingTimeInterval(-60)),
@@ -38,6 +54,125 @@ final class ParkingRepositoryTests: XCTestCase {
         _ = try await repository.refresh(viewport: viewport, plan: plan(.oneHour), now: now.addingTimeInterval(120))
         let countAfterExpiry = await api.fetchCount
         XCTAssertEqual(countAfterExpiry, 2)
+    }
+
+    func testCancelledRefreshDoesNotDecodeHistoricalFallback() async {
+        let api = CancellableParkingAPI()
+        let historyLoads = SynchronousCounter()
+        let history = [
+            HistoricalBucket(
+                segmentKey: metadata[1].segmentKey,
+                weekday: 5,
+                interval: 40,
+                occupiedRatio: 0.4,
+                turnover: 0.3,
+                sampleCount: 800
+            )
+        ]
+        let repository = ParkingRepository(
+            api: api,
+            metadata: metadata,
+            restrictions: [
+                .init(zoneNumber: 7002, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "3P")
+            ],
+            history: [],
+            historyLoader: {
+                historyLoads.increment()
+                return history
+            }
+        )
+        let clock = ContinuousClock()
+        let requestViewport = viewport
+        let requestPlan = plan(.oneHour)
+        let requestNow = now
+        let refresh = Task {
+            try await repository.refresh(
+                viewport: requestViewport,
+                plan: requestPlan,
+                now: requestNow,
+                force: true
+            )
+        }
+        await api.waitUntilStarted()
+
+        let elapsed = await clock.measure {
+            refresh.cancel()
+            _ = try? await refresh.value
+        }
+
+        let elapsedSeconds = Double(elapsed.components.seconds)
+            + Double(elapsed.components.attoseconds) / 1_000_000_000_000_000_000
+        print("PARKALONG_PERF cancelled_refresh_seconds=\(elapsedSeconds) history_loads=\(historyLoads.value)")
+        XCTAssertTrue(refresh.isCancelled)
+        XCTAssertEqual(historyLoads.value, 0, "Cancellation must not trigger the 48 MB historical fallback decode")
+    }
+
+    func testViewportCacheIsBoundedDuringLongPanSessions() async throws {
+        let api = FixtureParkingAPI(rows: [
+            .init(zoneNumber: 7002, status: .unoccupied, bayCount: 2, newestTimestamp: now)
+        ])
+        let repository = ParkingRepository(
+            api: api,
+            metadata: metadata,
+            restrictions: [
+                .init(zoneNumber: 7002, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "3P")
+            ],
+            history: []
+        )
+        let first = viewport
+
+        for index in 0..<40 {
+            let offset = Double(index) * 0.01
+            let moved = ParkingViewport(
+                south: first.south + offset,
+                west: first.west + offset,
+                north: first.north + offset,
+                east: first.east + offset,
+                zoomLevel: first.zoomLevel
+            )
+            _ = try await repository.refresh(viewport: moved, plan: plan(.oneHour), now: now)
+        }
+        _ = try await repository.refresh(viewport: first, plan: plan(.oneHour), now: now)
+
+        let fetchCount = await api.fetchCount
+        print("PARKALONG_PERF bounded_cache_requests_after_40_viewports=\(fetchCount)")
+        XCTAssertEqual(fetchCount, 41, "The oldest viewport should be evicted instead of retaining an unbounded session cache")
+    }
+
+    func testViewportCacheHitRefreshesRecencyBeforeEviction() async throws {
+        let api = FixtureParkingAPI(rows: [
+            .init(zoneNumber: 7002, status: .unoccupied, bayCount: 2, newestTimestamp: now)
+        ])
+        let repository = ParkingRepository(
+            api: api,
+            metadata: metadata,
+            restrictions: [
+                .init(zoneNumber: 7002, days: "Mon-Sun", start: "00:00:00", finish: "23:59:59", display: "3P")
+            ],
+            history: [],
+            cacheLimit: 2
+        )
+        func moved(_ offset: Double) -> ParkingViewport {
+            ParkingViewport(
+                south: viewport.south + offset,
+                west: viewport.west + offset,
+                north: viewport.north + offset,
+                east: viewport.east + offset,
+                zoomLevel: viewport.zoomLevel
+            )
+        }
+        let first = moved(0)
+        let second = moved(0.01)
+        let third = moved(0.02)
+
+        _ = try await repository.refresh(viewport: first, plan: plan(.oneHour), now: now)
+        _ = try await repository.refresh(viewport: second, plan: plan(.oneHour), now: now)
+        _ = try await repository.refresh(viewport: first, plan: plan(.oneHour), now: now)
+        _ = try await repository.refresh(viewport: third, plan: plan(.oneHour), now: now)
+        _ = try await repository.refresh(viewport: second, plan: plan(.oneHour), now: now)
+
+        let fetchCount = await api.fetchCount
+        XCTAssertEqual(fetchCount, 4, "Reading the first viewport should keep it newer than the second viewport")
     }
 
     func testNetworkFailureReturnsTypicalHistoryWithoutCallingItLive() async throws {
@@ -178,4 +313,38 @@ actor FixtureParkingAPI: ParkingAPIProviding {
     }
 
     func fetchVacantBays(zoneNumber: Int, since: Date) async throws -> [SensorReading] { [] }
+}
+
+private actor CancellableParkingAPI: ParkingAPIProviding {
+    private var started = false
+    private var startedWaiters: [CheckedContinuation<Void, Never>] = []
+
+    func fetchZoneCounts(near: Coordinate, radiusMetres: Int, since: Date) async throws -> [SensorAggregateRow] {
+        started = true
+        let waiters = startedWaiters
+        startedWaiters.removeAll()
+        waiters.forEach { $0.resume() }
+        try await Task.sleep(for: .seconds(30))
+        return []
+    }
+
+    func fetchVacantBays(zoneNumber: Int, since: Date) async throws -> [SensorReading] { [] }
+
+    func waitUntilStarted() async {
+        guard !started else { return }
+        await withCheckedContinuation { startedWaiters.append($0) }
+    }
+}
+
+private final class SynchronousCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    var value: Int {
+        lock.withLock { count }
+    }
+
+    func increment() {
+        lock.withLock { count += 1 }
+    }
 }
