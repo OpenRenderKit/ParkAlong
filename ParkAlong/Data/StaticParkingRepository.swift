@@ -113,25 +113,31 @@ actor StaticParkingRepository: StaticParkingProviding {
     func search(_ query: String, near viewport: ParkingViewport, plan: ParkingPlan, limit: Int = 20) async -> [ParkingOption] {
         let normalized = Self.normalizedSearchText(query)
         let tokens = Set(normalized.split(separator: " ").map(String.init))
-        guard !tokens.isEmpty else { return [] }
+        guard !tokens.isEmpty, !Task.isCancelled else { return [] }
         _ = loadLocationsIfNeeded()
+        guard !Task.isCancelled else { return [] }
         prepareResolutionCache(for: plan)
-        return searchEntries.compactMap { entry -> (Candidate, Double)? in
-            if Task.isCancelled { return nil }
+        var candidates: [(Candidate, Double)] = []
+        for entry in searchEntries {
+            guard !Task.isCancelled else { return [] }
             let coverage = Double(tokens.intersection(entry.tokens).count) / Double(tokens.count)
             let exact = entry.normalizedText.contains(normalized) ? 1.0 : 0
             let textScore = max(exact, coverage * 0.8)
             let location = entry.location
             guard textScore >= 0.45,
-                  case .eligible(let rule, let prediction) = resolution(for: location, plan: plan) else { return nil }
+                  case .eligible(let rule, let prediction) = resolution(for: location, plan: plan) else { continue }
             let distance = ParkingRepository.distance(from: location.coordinate, to: viewport.center)
             let sourceBoost = location.source.id == "openstreetmap-victoria-parking" ? 0 : 0.08
             let proximity = max(0, 1 - min(distance, 100_000) / 100_000)
-            return (Candidate(location: location, rule: rule, distance: distance, prediction: prediction), textScore * 0.8 + proximity * 0.12 + sourceBoost)
+            candidates.append((
+                Candidate(location: location, rule: rule, distance: distance, prediction: prediction),
+                textScore * 0.8 + proximity * 0.12 + sourceBoost
+            ))
         }
-        .sorted { $0.1 > $1.1 }
-        .prefix(max(1, limit))
-        .map { makeOption($0.0, plan: plan) }
+        guard !Task.isCancelled else { return [] }
+        return candidates.sorted { $0.1 > $1.1 }
+            .prefix(max(1, limit))
+            .map { makeOption($0.0, plan: plan) }
     }
 
     private func availableLocations(viewport: ParkingViewport, plan: ParkingPlan) async -> [StaticParkingLocation] {

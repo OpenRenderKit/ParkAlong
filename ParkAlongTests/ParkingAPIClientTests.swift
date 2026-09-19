@@ -41,6 +41,26 @@ final class ParkingAPIClientTests: XCTestCase {
         XCTAssertTrue(url.contains("zone_number = 7311"))
         XCTAssertTrue(url.contains("status_description = 'Unoccupied'"))
     }
+
+    func testAggregateCancellationStopsPagination() async throws {
+        let firstPage = Data(#"{"total_count":2,"results":[{"zone_number":7001,"status_description":"Present","bay_count":3,"newest_timestamp":"2026-08-15T00:34:55+00:00"}]}"#.utf8)
+        let transport = CancellationGatedTransport(firstPage: firstPage)
+        let client = ParkingAPIClient(transport: transport, pageSize: 1)
+
+        let fetchTask = Task { try await client.fetchZoneCounts(near: .melbourneCBD, radiusMetres: 700, since: Date(timeIntervalSince1970: 1_776_297_600)) }
+        await transport.waitForFirstRequest()
+        fetchTask.cancel()
+        await transport.releaseFirstRequest()
+
+        do {
+            _ = try await fetchTask.value
+            XCTFail("Expected CancellationError instead of a partial result")
+        } catch {
+            XCTAssertTrue(error is CancellationError, "Expected CancellationError, got \(error)")
+        }
+        let requests = await transport.requests
+        XCTAssertEqual(requests.count, 1, "Cancellation must stop further page work")
+    }
 }
 
 actor RecordingTransport: HTTPTransport {
@@ -54,5 +74,49 @@ actor RecordingTransport: HTTPTransport {
         let data = responses.isEmpty ? Data(#"{"total_count":0,"results":[]}"#.utf8) : responses.removeFirst()
         let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
         return (data, response)
+    }
+}
+
+actor CancellationGatedTransport: HTTPTransport {
+    private(set) var requests: [URLRequest] = []
+    private let firstPage: Data
+    private var didStartFirstRequest = false
+    private var startWaiters: [CheckedContinuation<Void, Never>] = []
+    private var canFinishFirstRequest = false
+    private var finishWaiters: [CheckedContinuation<Void, Never>] = []
+
+    init(firstPage: Data) { self.firstPage = firstPage }
+
+    func waitForFirstRequest() async {
+        if didStartFirstRequest { return }
+        await withCheckedContinuation { continuation in
+            startWaiters.append(continuation)
+        }
+    }
+
+    func releaseFirstRequest() async {
+        canFinishFirstRequest = true
+        let waiters = finishWaiters
+        finishWaiters = []
+        for waiter in waiters { waiter.resume() }
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        requests.append(request)
+        if requests.count == 1 {
+            didStartFirstRequest = true
+            let waiters = startWaiters
+            startWaiters = []
+            for waiter in waiters { waiter.resume() }
+            if !canFinishFirstRequest {
+                await withCheckedContinuation { continuation in
+                    finishWaiters.append(continuation)
+                }
+            }
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (firstPage, response)
+        }
+        let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        return (Data(#"{"results":[]}"#.utf8), response)
     }
 }

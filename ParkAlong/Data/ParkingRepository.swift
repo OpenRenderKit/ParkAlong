@@ -22,9 +22,11 @@ actor ParkingRepository {
     private var historyBySegmentAndWeekday: [HistoryKey: [HistoricalBucket]]
     private let historyLoader: (@Sendable () throws -> [HistoricalBucket])?
     private let cacheTTL: TimeInterval
+    private let cacheLimit: Int
     private let restrictionEngine: RestrictionEngine
     private let forecastValidationBySegment: [String: ForecastValidation]
     private var cache: [CacheKey: TimedValue<ParkingRepositoryResult>] = [:]
+    private var cacheOrder: [CacheKey] = []
 
     init(
         api: any ParkingAPIProviding,
@@ -33,9 +35,11 @@ actor ParkingRepository {
         history: [HistoricalBucket],
         historyLoader: (@Sendable () throws -> [HistoricalBucket])? = nil,
         cacheTTL: TimeInterval = 120,
+        cacheLimit: Int = 16,
         restrictionEngine: RestrictionEngine = RestrictionEngine(),
         forecastValidationBySegment: [String: ForecastValidation] = [:]
     ) {
+        precondition(cacheLimit > 0, "The parking cache must retain at least one viewport")
         self.api = api
         self.metadata = Dictionary(uniqueKeysWithValues: metadata.map { ($0.zoneNumber, $0) })
         self.restrictions = Dictionary(grouping: restrictions, by: \.zoneNumber)
@@ -45,6 +49,7 @@ actor ParkingRepository {
         )
         self.historyLoader = historyLoader
         self.cacheTTL = cacheTTL
+        self.cacheLimit = cacheLimit
         self.restrictionEngine = restrictionEngine
         self.forecastValidationBySegment = forecastValidationBySegment
     }
@@ -65,16 +70,19 @@ actor ParkingRepository {
             arrivalBucket: Int(plan.arrival.timeIntervalSince1970) / (15 * 60),
             durationMinutes: plan.durationMinutes
         )
-        if !force, let cached = cache[key]?.value(ifFreshAt: now, ttl: cacheTTL) { return cached }
+        if !force, let cached = cachedResult(for: key, now: now) { return cached }
 
         do {
             let aggregates = try await api.fetchZoneCounts(
                 near: viewport.center, radiusMetres: queryViewport.queryRadiusMetres,
                 since: now.addingTimeInterval(-AvailabilityEngine.trustCutoff)
             )
+            try Task.checkCancellation()
             let stats = AvailabilityEngine.group(aggregates: aggregates, now: now)
             guard !stats.isEmpty else {
+                try Task.checkCancellation()
                 try loadHistoryIfNeeded()
+                try Task.checkCancellation()
                 return try typicalResult(viewport: queryViewport, plan: plan, now: now)
             }
             let zones = makeLiveZones(stats: stats, viewport: queryViewport, plan: plan, now: now)
@@ -84,10 +92,14 @@ actor ParkingRepository {
                 checkedAt: now,
                 notice: notice(for: zones, plan: plan, now: now)
             )
-            cache[key] = TimedValue(value: result, storedAt: now)
+            insert(result, for: key, storedAt: now)
             return result
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
+            try Task.checkCancellation()
             try loadHistoryIfNeeded()
+            try Task.checkCancellation()
             return try typicalResult(viewport: queryViewport, plan: plan, now: now)
         }
     }
@@ -191,6 +203,26 @@ actor ParkingRepository {
             grouping: try historyLoader(),
             by: { HistoryKey(segmentKey: $0.segmentKey, weekday: $0.weekday) }
         )
+    }
+
+    private func cachedResult(for key: CacheKey, now: Date) -> ParkingRepositoryResult? {
+        guard let cached = cache[key]?.value(ifFreshAt: now, ttl: cacheTTL) else {
+            cache.removeValue(forKey: key)
+            cacheOrder.removeAll { $0 == key }
+            return nil
+        }
+        cacheOrder.removeAll { $0 == key }
+        cacheOrder.append(key)
+        return cached
+    }
+
+    private func insert(_ result: ParkingRepositoryResult, for key: CacheKey, storedAt: Date) {
+        cache[key] = TimedValue(value: result, storedAt: storedAt)
+        cacheOrder.removeAll { $0 == key }
+        cacheOrder.append(key)
+        while cacheOrder.count > cacheLimit {
+            cache.removeValue(forKey: cacheOrder.removeFirst())
+        }
     }
 
     private func markBestBet(_ zones: [ParkingZone]) -> [ParkingZone] {

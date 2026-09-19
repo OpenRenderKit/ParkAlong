@@ -101,6 +101,117 @@ final class RemoteParkingRepositoryTests: XCTestCase {
         XCTAssertEqual(requests[1].value(forHTTPHeaderField: "If-None-Match"), "\"delta-1\"")
     }
 
+    func testRemoteCacheEvictsLeastRecentlyUsedQueriesAndRefreshesRecencyOnHits() async throws {
+        let expected = location(id: "remote", checkedAt: arrival)
+        let payload = try remoteEnvelopeData(locations: [expected])
+        let clock = LockedTestClock(arrival)
+        let client = try makeRemoteClient(
+            stubs: [
+                .init(statusCode: 200, headers: ["ETag": "\"a\""], data: payload),
+                .init(statusCode: 200, headers: ["ETag": "\"b\""], data: payload),
+                .init(statusCode: 200, headers: ["ETag": "\"c\""], data: payload),
+                .init(statusCode: 200, headers: ["ETag": "\"b2\""], data: payload),
+            ],
+            clock: clock,
+            cacheLimit: 2
+        )
+        let queryA = remoteQuery(offset: 0)
+        let queryB = remoteQuery(offset: 0.01)
+        let queryC = remoteQuery(offset: 0.02)
+
+        let firstA = try await client.locations(for: queryA)
+        let firstB = try await client.locations(for: queryB)
+        let hitA = try await client.locations(for: queryA)
+        let firstC = try await client.locations(for: queryC)
+        let retainedA = try await client.locations(for: queryA)
+        let evictedB = try await client.locations(for: queryB)
+        let requests = MockRemoteURLProtocol.state.requests
+
+        XCTAssertEqual(firstA, [expected])
+        XCTAssertEqual(firstB, [expected])
+        XCTAssertEqual(hitA, [expected])
+        XCTAssertEqual(firstC, [expected])
+        XCTAssertEqual(retainedA, [expected])
+        XCTAssertEqual(evictedB, [expected])
+        XCTAssertEqual(requests.count, 4)
+        XCTAssertNil(requests[3].value(forHTTPHeaderField: "If-None-Match"))
+    }
+
+    func testNotModifiedResponseRefreshesRemoteCacheRecency() async throws {
+        let expected = location(id: "remote", checkedAt: arrival)
+        let payload = try remoteEnvelopeData(locations: [expected])
+        let clock = LockedTestClock(arrival)
+        let client = try makeRemoteClient(
+            stubs: [
+                .init(statusCode: 200, headers: ["ETag": "\"a\""], data: payload),
+                .init(statusCode: 200, headers: ["ETag": "\"b\""], data: payload),
+                .init(statusCode: 304, headers: [:], data: Data()),
+                .init(statusCode: 200, headers: ["ETag": "\"c\""], data: payload),
+                .init(statusCode: 200, headers: ["ETag": "\"b2\""], data: payload),
+            ],
+            clock: clock,
+            cacheLimit: 2
+        )
+        let queryA = remoteQuery(offset: 0)
+        let queryB = remoteQuery(offset: 0.01)
+        let queryC = remoteQuery(offset: 0.02)
+
+        let firstA = try await client.locations(for: queryA)
+        let firstB = try await client.locations(for: queryB)
+        clock.advance(by: 31)
+        let revalidatedA = try await client.locations(for: queryA)
+        let firstC = try await client.locations(for: queryC)
+        let retainedA = try await client.locations(for: queryA)
+        let evictedB = try await client.locations(for: queryB)
+        let requests = MockRemoteURLProtocol.state.requests
+
+        XCTAssertEqual(firstA, [expected])
+        XCTAssertEqual(firstB, [expected])
+        XCTAssertEqual(revalidatedA, [expected])
+        XCTAssertEqual(firstC, [expected])
+        XCTAssertEqual(retainedA, [expected])
+        XCTAssertEqual(evictedB, [expected])
+        XCTAssertEqual(requests.count, 5)
+        XCTAssertEqual(requests[2].value(forHTTPHeaderField: "If-None-Match"), "\"a\"")
+        XCTAssertNil(requests[4].value(forHTTPHeaderField: "If-None-Match"))
+    }
+
+    func testCancelledRemoteLookupStopsBeforeDecodeAndDoesNotCache() async throws {
+        let expected = location(id: "remote", checkedAt: arrival)
+        let payload = try remoteEnvelopeData(locations: [expected])
+        let clock = LockedTestClock(arrival)
+        let client = try makeRemoteClient(
+            stubs: [.init(statusCode: 200, headers: ["ETag": "\"stale\""], data: Data("{not-json".utf8))],
+            clock: clock,
+            holdResponses: true
+        )
+        let query = remoteQuery()
+
+        let lookup = Task { try await client.locations(for: query) }
+        await MockRemoteURLProtocol.state.waitUntilRequestCount(1)
+        lookup.cancel()
+        MockRemoteURLProtocol.state.releaseHeldResponses()
+
+        do {
+            _ = try await lookup.value
+            XCTFail("Cancelled remote lookup should not complete")
+        } catch is CancellationError {
+        } catch let error as URLError where error.code == .cancelled {
+        } catch {
+            XCTFail("Cancelled remote lookup should not decode or fail as \(error)")
+        }
+
+        MockRemoteURLProtocol.state.reset(with: [
+            .init(statusCode: 200, headers: ["ETag": "\"fresh\""], data: payload)
+        ])
+        let recovered = try await client.locations(for: query)
+        let requests = MockRemoteURLProtocol.state.requests
+
+        XCTAssertEqual(recovered, [expected])
+        XCTAssertEqual(requests.count, 1)
+        XCTAssertNil(requests[0].value(forHTTPHeaderField: "If-None-Match"))
+    }
+
     func testRemoteFailureFallsBackToBundledParking() async {
         let bundled = location(id: "bundled", checkedAt: arrival)
         let repository = StaticParkingRepository(
@@ -147,6 +258,45 @@ final class RemoteParkingRepositoryTests: XCTestCase {
                 licenseName: "Fixture", licenseURL: nil, datasetUpdatedAt: checkedAt, checkedAt: checkedAt
             ),
             classification: .staticOnly, predictionEvidence: nil
+        )
+    }
+
+    private func remoteQuery(offset: Double = 0) -> RemoteParkingQuery {
+        RemoteParkingQuery(
+            viewport: .init(south: -38 + offset, west: 144, north: -37 + offset, east: 145, zoomLevel: 12),
+            plan: .init(arrival: arrival, durationMinutes: 60),
+            catalogVersion: "bundled-1"
+        )
+    }
+
+    private func remoteEnvelopeData(locations: [StaticParkingLocation], ttl: Int = 30) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        return try encoder.encode(TestRemoteEnvelope(
+            schemaVersion: 1,
+            dataVersion: "delta-1",
+            modelVersion: nil,
+            generatedAt: arrival,
+            cacheTTLSeconds: ttl,
+            nextCursor: nil,
+            locations: locations
+        ))
+    }
+
+    private func makeRemoteClient(
+        stubs: [MockRemoteURLProtocol.Stub],
+        clock: LockedTestClock,
+        cacheLimit: Int = 16,
+        holdResponses: Bool = false
+    ) throws -> RemoteParkingClient {
+        MockRemoteURLProtocol.state.reset(with: stubs, holdResponses: holdResponses)
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockRemoteURLProtocol.self]
+        return try RemoteParkingClient(
+            baseURL: URL(string: "https://parking.example")!,
+            session: URLSession(configuration: configuration),
+            now: { clock.value },
+            cacheLimit: cacheLimit
         )
     }
 }
@@ -206,21 +356,43 @@ private final class MockRemoteURLProtocol: URLProtocol, @unchecked Sendable {
     }
 
     static let state = State()
+    private let loadingLock = NSLock()
+    private var stopped = false
 
     final class State: @unchecked Sendable {
         private let lock = NSLock()
         private var stubs: [Stub] = []
         private var receivedRequests: [URLRequest] = []
+        private var holdResponses = false
 
         var requests: [URLRequest] {
             lock.withLock { receivedRequests }
         }
 
-        func reset(with stubs: [Stub]) {
+        func reset(with stubs: [Stub], holdResponses: Bool = false) {
             lock.withLock {
                 self.stubs = stubs
                 receivedRequests = []
+                self.holdResponses = holdResponses
             }
+        }
+
+        func waitUntilRequestCount(_ count: Int) async {
+            while true {
+                let ready = lock.withLock { receivedRequests.count >= count }
+                if ready { return }
+                await Task.yield()
+            }
+        }
+
+        func waitIfHolding() {
+            while lock.withLock({ holdResponses }) {
+                Thread.sleep(forTimeInterval: 0.001)
+            }
+        }
+
+        func releaseHeldResponses() {
+            lock.withLock { holdResponses = false }
         }
 
         func response(for request: URLRequest) -> Stub? {
@@ -235,13 +407,28 @@ private final class MockRemoteURLProtocol: URLProtocol, @unchecked Sendable {
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
-        guard let stub = Self.state.response(for: request),
-              let response = HTTPURLResponse(
-                url: request.url!,
-                statusCode: stub.statusCode,
-                httpVersion: "HTTP/1.1",
-                headerFields: stub.headers
-              ) else {
+        guard let stub = Self.state.response(for: request) else {
+            client?.urlProtocol(self, didFailWithError: RemoteParkingError.invalidResponse)
+            return
+        }
+        Self.state.waitIfHolding()
+        deliverIfNeeded(stub)
+    }
+
+    override func stopLoading() {
+        loadingLock.withLock { stopped = true }
+        Self.state.releaseHeldResponses()
+    }
+
+    private func deliverIfNeeded(_ stub: Stub) {
+        let stopped = loadingLock.withLock { self.stopped }
+        guard !stopped else { return }
+        guard let response = HTTPURLResponse(
+            url: request.url!,
+            statusCode: stub.statusCode,
+            httpVersion: "HTTP/1.1",
+            headerFields: stub.headers
+        ) else {
             client?.urlProtocol(self, didFailWithError: RemoteParkingError.invalidResponse)
             return
         }
@@ -251,6 +438,4 @@ private final class MockRemoteURLProtocol: URLProtocol, @unchecked Sendable {
         }
         client?.urlProtocolDidFinishLoading(self)
     }
-
-    override func stopLoading() {}
 }

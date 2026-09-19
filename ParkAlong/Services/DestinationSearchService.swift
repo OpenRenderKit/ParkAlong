@@ -101,15 +101,20 @@ final class DestinationSearchService: NSObject, DestinationSearching, @preconcur
         guard !trimmed.isEmpty else { return [] }
         let region = Self.region(for: viewport)
         let completions = await completions(for: trimmed, region: region)
+        try Task.checkCancellation()
         var destinations: [ParkingDestination] = []
         var seen: Set<String> = []
 
         for completion in completions.prefix(10) {
-            guard !Task.isCancelled else { return [] }
+            try Task.checkCancellation()
             let request = MKLocalSearch.Request(completion: completion)
             request.region = region
             request.resultTypes = [.address, .pointOfInterest]
-            guard let response = try? await MKLocalSearch(request: request).start() else { continue }
+            guard let response = try? await MKLocalSearch(request: request).start() else {
+                try Task.checkCancellation()
+                continue
+            }
+            try Task.checkCancellation()
             for item in response.mapItems.prefix(2) {
                 let destination = Self.destination(from: item)
                 if seen.insert(destination.id).inserted { destinations.append(destination) }
@@ -117,13 +122,16 @@ final class DestinationSearchService: NSObject, DestinationSearching, @preconcur
         }
 
         if destinations.isEmpty {
+            try Task.checkCancellation()
             let request = MKLocalSearch.Request()
             request.naturalLanguageQuery = trimmed
             request.region = region
             request.resultTypes = [.address, .pointOfInterest]
             let response = try await MKLocalSearch(request: request).start()
+            try Task.checkCancellation()
             destinations = response.mapItems.map(Self.destination(from:))
         }
+        try Task.checkCancellation()
         return Array(DestinationSearchRanker.rank(destinations, query: trimmed, viewport: viewport).prefix(20))
     }
 
@@ -145,12 +153,12 @@ final class DestinationSearchService: NSObject, DestinationSearching, @preconcur
                         return
                     }
                     guard let self, self.completionRequestID == requestID else { return }
-                    self.finishCompletions(with: [])
+                    self.finishCompletions(for: requestID, with: [])
                 }
             }
         } onCancel: {
             Task { @MainActor [weak self] in
-                self?.finishCompletions(with: [])
+                self?.finishCompletions(for: requestID, with: [])
             }
         }
     }
@@ -163,7 +171,11 @@ final class DestinationSearchService: NSObject, DestinationSearching, @preconcur
         finishCompletions(with: [])
     }
 
-    private func finishCompletions(with results: sending [MKLocalSearchCompletion]) {
+    private func finishCompletions(
+        for requestID: UUID? = nil,
+        with results: sending [MKLocalSearchCompletion]
+    ) {
+        if let requestID, requestID != completionRequestID { return }
         completionTimeoutTask?.cancel()
         completionTimeoutTask = nil
         let continuation = completionContinuation
