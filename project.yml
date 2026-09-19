@@ -20,25 +20,41 @@ targets:
       - path: ParkAlong
         excludes:
           - Resources
+          - Info.plist
       - path: ParkAlong/Resources
         buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.sidkrishnan.ParkAlong
         TARGETED_DEVICE_FAMILY: "1"
-        GENERATE_INFOPLIST_FILE: YES
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: ParkAlong/Info.plist
         PARKALONG_REMOTE_BASE_URL: ""
-        INFOPLIST_KEY_ParkAlongRemoteBaseURL: "$(PARKALONG_REMOTE_BASE_URL)"
-        INFOPLIST_KEY_CFBundleDisplayName: ParkAlong
-        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: Your location helps find parking near you. You can keep using destination search without it.
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
         SUPPORTS_MACCATALYST: NO
+    dependencies:
+      - target: ParkAlongLiveActivity
+        embed: true
     scheme:
       testTargets:
         - ParkAlongTests
         - ParkAlongUITests
+  ParkAlongLiveActivity:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ParkAlongLiveActivity
+        excludes:
+          - Info.plist
+      - path: ParkAlong/LiveActivityShared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sidkrishnan.ParkAlong.LiveActivity
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: ParkAlongLiveActivity/Info.plist
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+        SUPPORTS_MACCATALYST: NO
   ParkAlongTests:
     type: bundle.unit-test
     platform: iOS

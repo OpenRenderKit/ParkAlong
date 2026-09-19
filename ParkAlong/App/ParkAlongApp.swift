@@ -7,6 +7,7 @@ struct ParkAlongApp: App {
     var body: some Scene {
         WindowGroup {
             ParkingMapView(viewModel: viewModel)
+                .onOpenURL { viewModel.handleParkingSessionURL($0) }
         }
     }
 }

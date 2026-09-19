@@ -4,6 +4,31 @@ import Foundation
 enum AppEnvironment {
     static func makeViewModel(arguments: [String] = ProcessInfo.processInfo.arguments) -> ParkingMapViewModel {
         let isUITesting = arguments.contains("-ui-testing")
+        let usesRealLiveActivity = arguments.contains("-real-live-activity")
+        let parkingSessionStore: any ParkingSessionStoring = isUITesting && !usesRealLiveActivity
+            ? InMemoryParkingSessionStore()
+            : UserDefaultsParkingSessionStore()
+        let liveActivityController: any ParkingLiveActivityControlling
+        let reminderScheduler: any ParkingReminderScheduling
+        if isUITesting {
+            if usesRealLiveActivity {
+                liveActivityController = ActivityKitParkingLiveActivityController()
+            } else {
+                let outcome: ParkingLiveActivityStartOutcome
+                if arguments.contains("-live-activity-disabled") {
+                    outcome = .disabled
+                } else if arguments.contains("-live-activity-unavailable") {
+                    outcome = .unavailable
+                } else {
+                    outcome = .started
+                }
+                liveActivityController = FixtureParkingLiveActivityController(outcome: outcome)
+            }
+            reminderScheduler = FixtureParkingReminderScheduler()
+        } else {
+            liveActivityController = ActivityKitParkingLiveActivityController()
+            reminderScheduler = LocalParkingReminderScheduler()
+        }
         let locationResult: LocationRequestResult
         if arguments.contains("-location-denied") {
             locationResult = .denied
@@ -45,7 +70,10 @@ enum AppEnvironment {
                 destinationSearch: FixtureDestinationSearchService(),
                 navigator: AppleMapsNavigator(intercept: arguments.contains("-intercept-navigation")),
                 offStreetService: FixtureOffStreetParkingService(includeResult: !totalError),
-                staticParkingService: staticParkingService
+                staticParkingService: staticParkingService,
+                parkingSessionStore: parkingSessionStore,
+                liveActivityController: liveActivityController,
+                reminderScheduler: reminderScheduler
             )
         }
 
@@ -75,9 +103,29 @@ enum AppEnvironment {
                 remote: remote,
                 catalogVersion: catalogVersion
             )
-            return ParkingMapViewModel(repository: repository, locationService: LocationService(), destinationSearch: DestinationSearchService(), navigator: AppleMapsNavigator(), offStreetService: OffStreetParkingService(), staticParkingService: staticParkingRepository)
+            return ParkingMapViewModel(
+                repository: repository,
+                locationService: LocationService(),
+                destinationSearch: DestinationSearchService(),
+                navigator: AppleMapsNavigator(),
+                offStreetService: OffStreetParkingService(),
+                staticParkingService: staticParkingRepository,
+                parkingSessionStore: parkingSessionStore,
+                liveActivityController: liveActivityController,
+                reminderScheduler: reminderScheduler
+            )
         } catch {
-            return ParkingMapViewModel(repository: FixtureParkingRepository(mode: .error), locationService: LocationService(), destinationSearch: DestinationSearchService(), navigator: AppleMapsNavigator(), offStreetService: OffStreetParkingService(), staticParkingService: StaticParkingRepository(locations: []))
+            return ParkingMapViewModel(
+                repository: FixtureParkingRepository(mode: .error),
+                locationService: LocationService(),
+                destinationSearch: DestinationSearchService(),
+                navigator: AppleMapsNavigator(),
+                offStreetService: OffStreetParkingService(),
+                staticParkingService: StaticParkingRepository(locations: []),
+                parkingSessionStore: parkingSessionStore,
+                liveActivityController: liveActivityController,
+                reminderScheduler: reminderScheduler
+            )
         }
     }
 }

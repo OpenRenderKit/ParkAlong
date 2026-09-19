@@ -1,9 +1,16 @@
 @preconcurrency import MapKit
 
+enum ParkingNavigationHandoffResult: Equatable {
+    case opened
+    case intercepted
+    case failed
+}
+
 @MainActor
 protocol ParkingNavigating: AnyObject {
-    func navigate(to zone: ParkingZone) -> Bool
-    func navigate(to option: ParkingOption) -> Bool
+    func navigate(to zone: ParkingZone) -> ParkingNavigationHandoffResult
+    func navigate(to option: ParkingOption) -> ParkingNavigationHandoffResult
+    func returnToParking(_ session: ParkingSession) -> ParkingNavigationHandoffResult
 }
 
 @MainActor
@@ -11,20 +18,24 @@ final class AppleMapsNavigator: ParkingNavigating {
     private let intercept: Bool
     init(intercept: Bool = false) { self.intercept = intercept }
 
-    func navigate(to zone: ParkingZone) -> Bool {
-        open(coordinate: zone.coordinate, name: zone.metadata.streetName)
+    func navigate(to zone: ParkingZone) -> ParkingNavigationHandoffResult {
+        open(coordinate: zone.coordinate, name: zone.metadata.streetName, mode: MKLaunchOptionsDirectionsModeDriving)
     }
 
-    func navigate(to option: ParkingOption) -> Bool {
-        open(coordinate: option.coordinate, name: option.title)
+    func navigate(to option: ParkingOption) -> ParkingNavigationHandoffResult {
+        open(coordinate: option.coordinate, name: option.title, mode: MKLaunchOptionsDirectionsModeDriving)
     }
 
-    private func open(coordinate: Coordinate, name: String) -> Bool {
-        if intercept { return true }
+    func returnToParking(_ session: ParkingSession) -> ParkingNavigationHandoffResult {
+        open(coordinate: session.coordinate, name: session.parkingTitle, mode: MKLaunchOptionsDirectionsModeWalking)
+    }
+
+    private func open(coordinate: Coordinate, name: String, mode: String) -> ParkingNavigationHandoffResult {
+        if intercept { return .intercepted }
         let placemark = MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: coordinate.latitude, longitude: coordinate.longitude))
         let item = MKMapItem(placemark: placemark)
         item.name = name
-        item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
-        return false
+        let opened = item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: mode])
+        return opened ? .opened : .failed
     }
 }

@@ -666,4 +666,95 @@ final class ParkAlongUITests: XCTestCase {
         XCTAssertTrue(pinCaveat.label.localizedCaseInsensitiveContains("entrance"))
         XCTAssertFalse(pinCaveat.label.localizedCaseInsensitiveContains("walking"))
     }
+
+    func testNavigateWithLiveActivityShowsSessionWithoutBlockingHandoff() {
+        let app = launch()
+        app.buttons["best-bet-button"].tap()
+        XCTAssertTrue(app.otherElements["zone-detail-sheet"].waitForExistence(timeout: 2))
+        app.buttons["navigate-button"].tap()
+
+        XCTAssertTrue(app.staticTexts["navigation-intercepted"].waitForExistence(timeout: 2))
+        XCTAssertTrue(element("live-activity-status", in: app).waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["live-activity-status"].label.localizedCaseInsensitiveContains("lock screen"))
+        XCTAssertTrue(app.buttons["open-parking-session-button"].waitForExistence(timeout: 2))
+        app.buttons["open-parking-session-button"].tap()
+
+        XCTAssertTrue(element("parking-session-sheet", in: app).waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["mark-parked-button"].waitForExistence(timeout: 2))
+        XCTAssertGreaterThanOrEqual(app.buttons["mark-parked-button"].frame.height, 44)
+        XCTAssertTrue(app.switches["show-lock-screen-location-toggle"].exists)
+        XCTAssertEqual(app.switches["show-lock-screen-location-toggle"].value as? String, "0")
+        XCTAssertTrue(element("parking-session-availability", in: app).label.localizedCaseInsensitiveContains("observed"))
+        XCTAssertFalse(element("parking-session-availability", in: app).label.localizedCaseInsensitiveContains("live"))
+    }
+
+    func testLiveActivityDisabledFallbackLetsUserParkAndEnd() {
+        let app = launch(["-fixture-live", "-live-activity-disabled"])
+        completeNavigateToSession(in: app)
+
+        XCTAssertTrue(element("live-activity-fallback-status", in: app).waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["live-activity-fallback-status"].label.localizedCaseInsensitiveContains("lock screen"))
+        XCTAssertTrue(app.staticTexts["parking-session-title"].label.contains("Little Collins"))
+        XCTAssertTrue(element("posted-signs-govern", in: app).waitForExistence(timeout: 2))
+
+        app.buttons["mark-parked-button"].tap()
+        XCTAssertTrue(app.buttons["return-to-car-button"].waitForExistence(timeout: 2))
+        XCTAssertTrue(element("parking-session-countdown", in: app).waitForExistence(timeout: 2))
+        XCTAssertTrue(element("parking-session-departure", in: app).label.localizedCaseInsensitiveContains("Leave by"))
+
+        let privacy = app.switches["show-lock-screen-location-toggle"]
+        XCTAssertTrue(privacy.waitForExistence(timeout: 2))
+        privacy.tap()
+        waitForValue("1", on: privacy)
+
+        app.buttons["set-reminder-button"].tap()
+        XCTAssertTrue(element("parking-reminder-status", in: app).waitForExistence(timeout: 2))
+        XCTAssertTrue(element("parking-reminder-status", in: app).label.localizedCaseInsensitiveContains("Reminder set"))
+
+        app.buttons["return-to-car-button"].tap()
+        XCTAssertTrue(element("return-navigation-intercepted", in: app).waitForExistence(timeout: 2))
+
+        app.buttons["end-parking-button"].tap()
+        XCTAssertFalse(element("parking-session-sheet", in: app).waitForExistence(timeout: 1))
+        XCTAssertFalse(element("parking-session-chip", in: app).waitForExistence(timeout: 1))
+    }
+
+    func testLiveActivityUnavailableFallbackShowsSessionControls() {
+        let app = launch(["-fixture-live", "-live-activity-unavailable"])
+        completeNavigateToSession(in: app)
+
+        XCTAssertTrue(element("live-activity-fallback-status", in: app).waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["live-activity-fallback-status"].label.localizedCaseInsensitiveContains("isn’t available")
+            || app.staticTexts["live-activity-fallback-status"].label.localizedCaseInsensitiveContains("isn't available")
+            || app.staticTexts["live-activity-fallback-status"].label.localizedCaseInsensitiveContains("available"))
+        XCTAssertTrue(app.buttons["mark-parked-button"].isHittable)
+        XCTAssertTrue(app.buttons["end-parking-button"].isHittable)
+        XCTAssertTrue(app.switches["show-lock-screen-location-toggle"].exists)
+    }
+
+    func testStaticParkingSessionSaysAvailabilityUnavailable() {
+        let app = launch()
+        let pin = element("static-pin-static-fixture-ballarat", in: app)
+        XCTAssertTrue(pin.waitForExistence(timeout: 3))
+        pin.tap()
+        XCTAssertTrue(app.otherElements["zone-detail-sheet"].waitForExistence(timeout: 2))
+        app.buttons["navigate-button"].tap()
+        XCTAssertTrue(app.buttons["open-parking-session-button"].waitForExistence(timeout: 2))
+        app.buttons["open-parking-session-button"].tap()
+
+        XCTAssertTrue(element("parking-session-sheet", in: app).waitForExistence(timeout: 2))
+        XCTAssertEqual(app.staticTexts["parking-session-availability"].label, "Availability unavailable")
+        XCTAssertTrue(app.staticTexts["parking-session-title"].label.contains("Sturt Street"))
+    }
+
+    private func completeNavigateToSession(in app: XCUIApplication) {
+        app.buttons["best-bet-button"].tap()
+        XCTAssertTrue(app.otherElements["zone-detail-sheet"].waitForExistence(timeout: 2))
+        app.buttons["navigate-button"].tap()
+        XCTAssertTrue(app.staticTexts["navigation-intercepted"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["open-parking-session-button"].waitForExistence(timeout: 2))
+        app.buttons["open-parking-session-button"].tap()
+        XCTAssertTrue(element("parking-session-sheet", in: app).waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["mark-parked-button"].waitForExistence(timeout: 2))
+    }
 }

@@ -4,6 +4,7 @@ struct ZoneDetailView: View {
     @Bindable var viewModel: ParkingMapViewModel
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showingScheduleExplorer = false
+    @State private var isStartingNavigation = false
 
     var body: some View {
         Group {
@@ -286,7 +287,13 @@ struct ZoneDetailView: View {
     private var navigation: some View {
         let locationName = viewModel.selectedOption?.title ?? "this parking"
         return VStack(spacing: 8) {
-            Button { viewModel.navigate() } label: {
+            Button {
+                Task {
+                    isStartingNavigation = true
+                    await viewModel.navigate()
+                    isStartingNavigation = false
+                }
+            } label: {
                 Label {
                     Text("Drive with Apple Maps")
                         .multilineTextAlignment(.center)
@@ -299,8 +306,9 @@ struct ZoneDetailView: View {
             }
             .adaptiveProminentAction()
             .controlSize(.large)
+            .disabled(isStartingNavigation)
             .accessibilityLabel("Drive to \(locationName) with Apple Maps")
-            .accessibilityHint("Directions use the parking pin, which may not mark the entrance.")
+            .accessibilityHint("Starts a parking session, then opens driving directions in Apple Maps. Directions use the parking pin, which may not mark the entrance.")
             .accessibilityIdentifier("navigate-button")
             Text("Directions use the parking pin, which may not mark the entrance.")
                 .font(.footnote)
@@ -308,10 +316,40 @@ struct ZoneDetailView: View {
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("navigation-pin-caveat")
+
+            if viewModel.navigationHandoffFailed {
+                Text("Apple Maps couldn’t open. Try again.")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("navigation-handoff-failed")
+            }
+
             if viewModel.navigationWasIntercepted {
                 Text("Navigation handoff ready")
                     .font(.footnote.weight(.semibold))
                     .accessibilityIdentifier("navigation-intercepted")
+            }
+
+            if viewModel.parkingSession != nil {
+                let status = ParkingSessionStatusCopy.liveActivity(viewModel.liveActivityStartOutcome)
+                Text(status.text)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier(status.isFallback ? "live-activity-fallback-status" : "live-activity-status")
+
+                Button {
+                    viewModel.presentParkingSession()
+                } label: {
+                    Text("Open parking session")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.bordered)
+                .accessibilityIdentifier("open-parking-session-button")
+                .accessibilityHint("Shows the parking session if the Lock Screen card is off or you need more controls")
             }
         }
         .padding(.horizontal, 20)

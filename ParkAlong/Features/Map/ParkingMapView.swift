@@ -11,10 +11,18 @@ struct ParkingMapView: View {
     @Namespace private var mapScope
     @State private var showingPlanner = false
     @State private var restorePlannerButtonFocus = false
+    @State private var parkingSessionDetent: PresentationDetent = .large
 
     var body: some View {
         plannerOrMap
             .animation(nil, value: showingPlanner)
+            .sheet(isPresented: $viewModel.isParkingSessionPresented) {
+                ParkingSessionView(viewModel: viewModel)
+                    .presentationDetents([.medium, .large], selection: $parkingSessionDetent)
+                    .presentationDragIndicator(.visible)
+                    .presentationContentInteraction(.resizes)
+                    .onAppear { parkingSessionDetent = .large }
+            }
             .task {
                 await viewModel.start()
                 while !Task.isCancelled {
@@ -146,14 +154,17 @@ struct ParkingMapView: View {
             }
         }
         .overlay(alignment: .bottom) {
-            MapBottomChrome(
-                viewModel: viewModel,
-                showingPlanner: plannerPresented,
-                restorePlannerButtonFocus: $restorePlannerButtonFocus
-            )
-                .padding(.horizontal, 16)
-                .padding(.bottom, 8)
-                .safeAreaPadding(.bottom)
+            VStack(spacing: 10) {
+                ParkingSessionMapEntry(viewModel: viewModel)
+                MapBottomChrome(
+                    viewModel: viewModel,
+                    showingPlanner: plannerPresented,
+                    restorePlannerButtonFocus: $restorePlannerButtonFocus
+                )
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+            .safeAreaPadding(.bottom)
         }
         .mapScope(mapScope)
     }
@@ -172,9 +183,9 @@ struct ParkingMapView: View {
 
     private var zoneSheetPresented: Binding<Bool> {
         Binding(
-            get: { viewModel.selectedOption != nil },
+            get: { viewModel.selectedOption != nil && !viewModel.isParkingSessionPresented },
             set: { presented in
-                if !presented {
+                if !presented, !viewModel.isParkingSessionPresented {
                     selectedMarkerID = nil
                     viewModel.dismissZone()
                 }

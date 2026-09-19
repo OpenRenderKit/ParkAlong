@@ -26,6 +26,9 @@ final class ParkingMapViewModel {
     private let navigator: any ParkingNavigating
     private let offStreetService: any OffStreetParkingProviding
     private let staticParkingService: any StaticParkingProviding
+    private let parkingSessionStore: any ParkingSessionStoring
+    private let liveActivityController: any ParkingLiveActivityControlling
+    private let reminderScheduler: any ParkingReminderScheduling
     private let viewportDebounce: Duration
     private var refreshGeneration = 0
     private var searchGeneration = 0
@@ -61,6 +64,11 @@ final class ParkingMapViewModel {
     var searchState: ParkingSearchState = .idle
     var isSearching = false
     var navigationWasIntercepted = false
+    var navigationHandoffFailed = false
+    var parkingSession: ParkingSession?
+    var liveActivityStartOutcome: ParkingLiveActivityStartOutcome?
+    var reminderScheduleOutcome: ParkingReminderScheduleOutcome?
+    var isParkingSessionPresented = false
     var mapFocusRequest: ParkingViewport?
     var canRecoverLocationFromSettings = false
     var isLocating: Bool { destination.id == "locating" }
@@ -97,6 +105,9 @@ final class ParkingMapViewModel {
         navigator: any ParkingNavigating,
         offStreetService: any OffStreetParkingProviding,
         staticParkingService: any StaticParkingProviding,
+        parkingSessionStore: any ParkingSessionStoring = InMemoryParkingSessionStore(),
+        liveActivityController: any ParkingLiveActivityControlling = NoopParkingLiveActivityController(),
+        reminderScheduler: any ParkingReminderScheduling = NoopParkingReminderScheduler(),
         viewportDebounce: Duration = .milliseconds(250)
     ) {
         self.repository = repository
@@ -105,7 +116,11 @@ final class ParkingMapViewModel {
         self.navigator = navigator
         self.offStreetService = offStreetService
         self.staticParkingService = staticParkingService
+        self.parkingSessionStore = parkingSessionStore
+        self.liveActivityController = liveActivityController
+        self.reminderScheduler = reminderScheduler
         self.viewportDebounce = viewportDebounce
+        parkingSession = parkingSessionStore.load()
     }
 
     func start() async {
@@ -217,6 +232,8 @@ final class ParkingMapViewModel {
     }
 
     func refreshAfterActivation() async {
+        reloadParkingSession()
+        await liveActivityController.reconcile(with: parkingSession)
         guard !isLocating else { return }
         await refresh(force: true)
     }
@@ -519,14 +536,114 @@ final class ParkingMapViewModel {
         selectedOffStreetOption = nil
         vacantBays = []
         navigationWasIntercepted = false
+        navigationHandoffFailed = false
     }
 
-    func navigate() {
-        if let selectedZone {
-            navigationWasIntercepted = navigator.navigate(to: selectedZone)
-        } else if let selectedOffStreetOption {
-            navigationWasIntercepted = navigator.navigate(to: selectedOffStreetOption)
+    func navigate() async {
+        guard let option = selectedOption else { return }
+        let priorSessionID = parkingSession?.id
+        navigationWasIntercepted = false
+        navigationHandoffFailed = false
+        reminderScheduleOutcome = nil
+
+        let session = ParkingSession(option: option, plan: plan)
+        // Cancel the prior session's reminder before replacing it so a stale
+        // notification can never fire for a discarded session.
+        if let priorSessionID, priorSessionID != session.id {
+            reminderScheduler.cancel(sessionID: priorSessionID)
         }
+        parkingSession = session
+        parkingSessionStore.save(session)
+        liveActivityStartOutcome = await liveActivityController.start(session)
+
+        let handoff: ParkingNavigationHandoffResult
+        if let selectedZone {
+            handoff = navigator.navigate(to: selectedZone)
+        } else {
+            handoff = navigator.navigate(to: option)
+        }
+        navigationWasIntercepted = handoff == .intercepted
+        navigationHandoffFailed = handoff == .failed
+        if handoff == .failed {
+            // Defensive: the new session never scheduled a reminder through
+            // this path yet, but clear it so a future scheduling order cannot
+            // leak a notification for a discarded session.
+            reminderScheduler.cancel(sessionID: session.id)
+            if liveActivityStartOutcome == .started {
+                await liveActivityController.end(sessionID: session.id)
+            }
+            parkingSessionStore.clear()
+            parkingSession = nil
+            liveActivityStartOutcome = nil
+        }
+    }
+
+    func presentParkingSession() {
+        reloadParkingSession()
+        guard parkingSession != nil else { return }
+        isParkingSessionPresented = true
+    }
+
+    func markParked(at date: Date = .now) async {
+        guard var session = parkingSession else { return }
+        session.markParked(at: date)
+        parkingSession = session
+        parkingSessionStore.save(session)
+        await liveActivityController.update(session)
+    }
+
+    func setShowsPreciseLocation(_ showsPreciseLocation: Bool) async {
+        guard var session = parkingSession else { return }
+        session.showsPreciseLocation = showsPreciseLocation
+        parkingSession = session
+        parkingSessionStore.save(session)
+        await liveActivityController.update(session)
+    }
+
+    func scheduleParkingReminder(message: ParkingReminderMessage) async {
+        guard var session = parkingSession else { return }
+        let outcome = await reminderScheduler.schedule(for: session, message: message)
+        reminderScheduleOutcome = outcome
+        if case let .scheduled(date) = outcome {
+            session.reminderScheduledAt = date
+            parkingSession = session
+            parkingSessionStore.save(session)
+        }
+    }
+
+    func returnToParking() {
+        guard let parkingSession else { return }
+        let result = navigator.returnToParking(parkingSession)
+        navigationWasIntercepted = result == .intercepted
+        navigationHandoffFailed = result == .failed
+    }
+
+    func endParkingSession() async {
+        guard let session = parkingSession else { return }
+        reminderScheduler.cancel(sessionID: session.id)
+        await liveActivityController.end(sessionID: session.id)
+        parkingSessionStore.clear()
+        parkingSession = nil
+        isParkingSessionPresented = false
+        liveActivityStartOutcome = nil
+        reminderScheduleOutcome = nil
+    }
+
+    func handleParkingSessionURL(_ url: URL) {
+        reloadParkingSession()
+        guard let deepLink = ParkingSessionDeepLink(url: url),
+              deepLink.sessionID == parkingSession?.id else { return }
+        Task { await liveActivityController.reconcile(with: parkingSession) }
+        switch deepLink.action {
+        case .details:
+            isParkingSessionPresented = true
+        case .returnToCar:
+            returnToParking()
+        }
+    }
+
+    private func reloadParkingSession() {
+        parkingSession = parkingSessionStore.load()
     }
 
     private static func viewport(centeredAt coordinate: Coordinate) -> ParkingViewport {
