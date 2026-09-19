@@ -669,7 +669,7 @@ final class ParkAlongUITests: XCTestCase {
 
     func testNavigateWithLiveActivityShowsSessionWithoutBlockingHandoff() {
         let app = launch()
-        app.buttons["best-bet-button"].tap()
+        app.buttons["suggested-on-street-area-button"].tap()
         XCTAssertTrue(app.otherElements["zone-detail-sheet"].waitForExistence(timeout: 2))
         app.buttons["navigate-button"].tap()
 
@@ -748,7 +748,7 @@ final class ParkAlongUITests: XCTestCase {
     }
 
     private func completeNavigateToSession(in app: XCUIApplication) {
-        app.buttons["best-bet-button"].tap()
+        app.buttons["suggested-on-street-area-button"].tap()
         XCTAssertTrue(app.otherElements["zone-detail-sheet"].waitForExistence(timeout: 2))
         app.buttons["navigate-button"].tap()
         XCTAssertTrue(app.staticTexts["navigation-intercepted"].waitForExistence(timeout: 2))
