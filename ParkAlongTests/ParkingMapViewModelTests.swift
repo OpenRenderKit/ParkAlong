@@ -585,7 +585,41 @@ final class ParkingMapViewModelTests: XCTestCase {
 
         XCTAssertNil(viewModel.selectedOffStreetOption)
         XCTAssertEqual(viewModel.mapFocusRequest, cluster.clusterViewport)
-        XCTAssertEqual(viewModel.viewport, cluster.clusterViewport)
+        XCTAssertNotEqual(viewModel.viewport, cluster.clusterViewport)
+        XCTAssertEqual(viewModel.viewport.zoomLevel, 9)
+    }
+
+    func testClusterRefreshWaitsForSettledCameraViewport() async {
+        let repository = ControllableParkingRepository()
+        let staticService = ViewportCapturingStaticParkingService()
+        let viewModel = ParkingMapViewModel(
+            repository: repository, locationService: FixtureLocationService(denied: true),
+            destinationSearch: FixtureDestinationSearchService(), navigator: AppleMapsNavigator(intercept: true),
+            offStreetService: FixtureOffStreetParkingService(includeResult: false),
+            staticParkingService: staticService, viewportDebounce: .zero
+        )
+        viewModel.destination = .init(id: "fixture", name: "Fixture", subtitle: "Fixture", coordinate: .melbourneCBD)
+        let original = ParkingViewport(south: -38.0, west: 144.7, north: -37.6, east: 145.1, zoomLevel: 9)
+        let settled = ParkingViewport(south: -37.82, west: 144.95, north: -37.80, east: 144.98, zoomLevel: 13.55)
+        viewModel.viewport = original
+        let cluster = makeClusterOption(target: settled)
+
+        viewModel.selectStatic(cluster)
+        await Task.yield()
+
+        let requestCountBeforeCameraSettled = await repository.totalStartedCount
+        XCTAssertEqual(requestCountBeforeCameraSettled, 0)
+        XCTAssertEqual(viewModel.viewport, original)
+
+        viewModel.updateViewport(settled, interactionEnded: true, userInitiated: false)
+        await repository.waitForStartedRequestCount(1)
+        let requested = await staticService.lastViewport
+
+        XCTAssertEqual(viewModel.viewport, settled)
+        XCTAssertEqual(requested?.center.latitude ?? 0, settled.center.latitude, accuracy: 0.000_001)
+        XCTAssertEqual(requested?.center.longitude ?? 0, settled.center.longitude, accuracy: 0.000_001)
+        XCTAssertEqual(requested?.zoomLevel, settled.zoomLevel)
+        await repository.completeLast(with: result(notice: "expanded"))
     }
 
     private func result(notice: String) -> ParkingRepositoryResult {
@@ -602,6 +636,19 @@ final class ParkingMapViewModelTests: XCTestCase {
             isBestBet: false, zoneNumber: nil, classification: .staticOnly,
             warningText: "Not live", sourceDatasetAt: nil, sourceCheckedAt: nil,
             schedule: [], clusterCount: nil, clusterViewport: nil
+        )
+    }
+
+    private func makeClusterOption(target: ParkingViewport) -> ParkingOption {
+        let base = makeStaticOption(id: "cluster")
+        return ParkingOption(
+            id: base.id, kind: base.kind, title: "8 parking locations", locationLabel: base.locationLabel,
+            coordinate: target.center, availabilityState: base.availabilityState, available: nil, total: nil,
+            restrictionLabel: base.restrictionLabel, restrictionWindow: base.restrictionWindow,
+            activeNow: true, price: base.price, provider: base.provider, sourceTimestamp: nil,
+            walkingMetres: 0, prediction: nil, isBestBet: false, zoneNumber: nil,
+            classification: .staticOnly, warningText: base.warningText, sourceDatasetAt: nil,
+            sourceCheckedAt: nil, schedule: [], clusterCount: 8, clusterViewport: target
         )
     }
 }
@@ -797,6 +844,15 @@ private actor ViewportCapturingOffStreetService: OffStreetParkingProviding {
     private(set) var lastViewport: ParkingViewport?
 
     func options(in viewport: ParkingViewport) async -> [ParkingOption] {
+        lastViewport = viewport
+        return []
+    }
+}
+
+private actor ViewportCapturingStaticParkingService: StaticParkingProviding {
+    private(set) var lastViewport: ParkingViewport?
+
+    func options(in viewport: ParkingViewport, plan: ParkingPlan) async -> [ParkingOption] {
         lastViewport = viewport
         return []
     }

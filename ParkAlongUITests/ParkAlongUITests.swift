@@ -92,6 +92,23 @@ final class ParkAlongUITests: XCTestCase {
         waitForValue("selected", on: twoHours)
     }
 
+    func testClusterTapLandsOnVisibleParkingChildren() {
+        let app = launch(["-fixture-live", "-fixture-cluster"])
+        let cluster = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "parking locations in this area")
+        ).firstMatch
+        XCTAssertTrue(cluster.waitForExistence(timeout: 3))
+
+        cluster.tap()
+
+        let child = app.descendants(matching: .any).matching(
+            NSPredicate(format: "identifier BEGINSWITH %@ AND label CONTAINS[c] %@", "static-pin-static-fixture-cluster-", "location only")
+        ).firstMatch
+        XCTAssertTrue(child.waitForExistence(timeout: 4))
+        XCTAssertTrue(child.isHittable)
+        XCTAssertFalse(cluster.exists)
+    }
+
     func testStayTrackRemainsUsableAtAccessibilityTextSize() {
         let app = launch([
             "-fixture-live",

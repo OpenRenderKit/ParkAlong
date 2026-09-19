@@ -398,9 +398,13 @@ final class ParkingMapViewModel {
             selectedZone = nil
             selectedOffStreetOption = nil
             vacantBays = []
-            viewport = target
+            // The cluster target is a camera intent. Keep the current viewport
+            // and markers until MapKit reports the settled visible region, so
+            // there is exactly one refresh generation for the actual camera.
+            viewportRefreshTask?.cancel()
+            activeRefreshTask?.cancel()
+            refreshGeneration += 1
             mapFocusRequest = target
-            Task { await refresh(force: false) }
             return
         }
         selectOffStreet(option)

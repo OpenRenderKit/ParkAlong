@@ -23,16 +23,19 @@ enum AppEnvironment {
             let repository = FixtureParkingRepository(
                 mode: repositoryError ? .error : (arguments.contains("-fixture-loading") ? .loading : .live)
             )
+            let staticParkingService: any StaticParkingProviding = arguments.contains("-fixture-cluster")
+                ? FixtureClusterParkingService()
+                : FixtureStaticParkingService(
+                    includeResult: !totalError,
+                    resultCount: arguments.contains("-fixture-dense") ? 160 : 1
+                )
             return ParkingMapViewModel(
                 repository: repository,
                 locationService: location,
                 destinationSearch: FixtureDestinationSearchService(),
                 navigator: AppleMapsNavigator(intercept: arguments.contains("-intercept-navigation")),
                 offStreetService: FixtureOffStreetParkingService(includeResult: !totalError),
-                staticParkingService: FixtureStaticParkingService(
-                    includeResult: !totalError,
-                    resultCount: arguments.contains("-fixture-dense") ? 160 : 1
-                )
+                staticParkingService: staticParkingService
             )
         }
 
@@ -103,6 +106,37 @@ struct FixtureStaticParkingService: StaticParkingProviding {
             )
         }
         return await StaticParkingRepository(locations: locations).options(in: viewport, plan: plan)
+    }
+}
+
+/// Exercises the production cluster-to-detail transition in UI tests without
+/// relying on the bundled statewide catalog or network services.
+struct FixtureClusterParkingService: StaticParkingProviding {
+    func options(in viewport: ParkingViewport, plan: ParkingPlan) async -> [ParkingOption] {
+        let source = ParkingSourceAttribution(
+            id: "fixture-cluster", name: "Fixture Council",
+            sourceURL: URL(string: "https://example.com/parking")!,
+            licenseName: "Fixture", licenseURL: nil,
+            datasetUpdatedAt: plan.arrival, checkedAt: plan.arrival
+        )
+        let locations = (0..<30).map { index in
+            StaticParkingLocation(
+                id: "fixture-cluster-\(index)", name: "Cluster parking \(index + 1)", municipality: "Fixture",
+                coordinate: .init(
+                    latitude: viewport.center.latitude + Double(index % 5) * 0.00005,
+                    longitude: viewport.center.longitude + Double(index / 5) * 0.00005
+                ),
+                kind: .offStreet, archetype: .general, capacity: 20, accessibleSpaces: nil,
+                schedules: [], tariffs: [], source: source,
+                classification: .staticOnly, predictionEvidence: nil
+            )
+        }
+        let queryViewport = ParkingViewport(
+            south: viewport.south, west: viewport.west, north: viewport.north, east: viewport.east,
+            zoomLevel: viewport.longitudeSpan > 0.01 ? 9 : viewport.zoomLevel
+        )
+        return await StaticParkingRepository(locations: locations, resultLimit: 80)
+            .options(in: queryViewport, plan: plan)
     }
 }
 

@@ -270,10 +270,19 @@ actor StaticParkingRepository: StaticParkingProviding {
             let east = longitudes.max()!
             let latitudePadding = max((north - south) * 0.45, 0.002)
             let longitudePadding = max((east - west) * 0.45, 0.002)
+            let targetSouth = south - latitudePadding
+            let targetWest = west - longitudePadding
+            let targetNorth = north + latitudePadding
+            let targetEast = east + longitudePadding
+            // Keep the query zoom consistent with the region MapKit will
+            // actually display. A synthetic `current + 2` zoom can disagree
+            // by several levels for dense clusters, causing one refresh before
+            // the camera move and a conflicting refresh after it settles.
+            let targetZoom = log2(360 / max(targetEast - targetWest, 0.002))
             let target = ParkingViewport(
-                south: south - latitudePadding, west: west - longitudePadding,
-                north: north + latitudePadding, east: east + longitudePadding,
-                zoomLevel: min(16, viewport.zoomLevel + 2)
+                south: targetSouth, west: targetWest,
+                north: targetNorth, east: targetEast,
+                zoomLevel: targetZoom
             )
             let municipalities = Set(members.map(\.locationLabel))
             let coordinate = Coordinate(

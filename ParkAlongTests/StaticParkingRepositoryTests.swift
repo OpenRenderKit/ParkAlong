@@ -277,7 +277,53 @@ final class StaticParkingRepositoryTests: XCTestCase {
         XCTAssertEqual(options.count, 1)
         XCTAssertEqual(options[0].clusterCount, 30)
         XCTAssertEqual(options[0].pinLabel, "30")
-        XCTAssertEqual(options[0].clusterViewport?.zoomLevel, 11)
+        let target = try! XCTUnwrap(options[0].clusterViewport)
+        XCTAssertEqual(target.zoomLevel, log2(360 / max(target.longitudeSpan, 0.002)), accuracy: 0.000_001)
+    }
+
+    func testDisplayedClusterExpandsToItsEligibleChildren() async throws {
+        let locations = (0..<30).map { index in
+            fixture(
+                id: "expand-\(index)", name: "Parking \(index)",
+                coordinate: .init(
+                    latitude: Coordinate.melbourneCBD.latitude + Double(index % 5) * 0.00005,
+                    longitude: Coordinate.melbourneCBD.longitude + Double(index / 5) * 0.00005
+                )
+            )
+        }
+        let repository = StaticParkingRepository(locations: locations, resultLimit: 80)
+        let wide = ParkingViewport(south: -38.0, west: 144.7, north: -37.6, east: 145.1, zoomLevel: 9)
+        let clustered = await repository.options(in: wide, plan: plan(.oneHour))
+        let cluster = try XCTUnwrap(clustered.first)
+        let target = try XCTUnwrap(cluster.clusterViewport)
+
+        let expanded = await repository.options(in: target, plan: plan(.oneHour))
+
+        XCTAssertEqual(expanded.count, 30)
+        XCTAssertTrue(expanded.allSatisfy { $0.clusterCount == nil })
+        XCTAssertTrue(expanded.allSatisfy { target.contains($0.coordinate) })
+    }
+
+    func testBoundaryClusterTargetContainsAndRevealsEligibleChildren() async throws {
+        let locations = (0..<8).map { index in
+            fixture(
+                id: "edge-\(index)", name: "Edge parking \(index)",
+                coordinate: .init(
+                    latitude: -37.80002 + Double(index % 2) * 0.00004,
+                    longitude: 145.00002 + Double(index / 2) * 0.00004
+                )
+            )
+        }
+        let repository = StaticParkingRepository(locations: locations, resultLimit: 80)
+        let wide = ParkingViewport(south: -38.0, west: 144.8, north: -37.8, east: 145.0, zoomLevel: 10)
+        let clustered = await repository.options(in: wide, plan: plan(.oneHour))
+        let cluster = try XCTUnwrap(clustered.first(where: { $0.clusterCount != nil }))
+        let target = try XCTUnwrap(cluster.clusterViewport)
+
+        let expanded = await repository.options(in: target, plan: plan(.oneHour))
+
+        XCTAssertEqual(expanded.count, locations.count)
+        XCTAssertTrue(expanded.allSatisfy { $0.clusterCount == nil && target.contains($0.coordinate) })
     }
 
     func testWideViewportClustersEveryVisibleRecordInsteadOfTruncatingAroundTheCentre() async {
