@@ -79,6 +79,65 @@ final class ParkAlongUITests: XCTestCase {
         return options
     }
 
+    private func openPlanner(in app: XCUIApplication) {
+        let plannerButton = app.buttons["arrival-planner-button"]
+        XCTAssertTrue(plannerButton.waitForExistence(timeout: 2))
+        plannerButton.tap()
+        waitForPlannerReady(in: app)
+    }
+
+    private func waitForPlannerReady(in app: XCUIApplication, timeout: TimeInterval = 8) {
+        XCTAssertTrue(element("arrival-stay-planner", in: app).waitForExistence(timeout: timeout))
+        let reset = app.buttons["planner-reset"]
+        let predicate = NSPredicate { _, _ in
+            reset.exists && reset.isHittable
+        }
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: reset)
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: timeout), .completed)
+    }
+
+    private func revealPlannerElement(_ identifier: String, in app: XCUIApplication) {
+        let control = element(identifier, in: app)
+        if control.exists { return }
+        element("arrival-stay-planner", in: app).swipeUp()
+        if control.exists { return }
+        app.swipeUp()
+    }
+
+    private func tapPlannerControl(_ identifier: String, in app: XCUIApplication) {
+        revealPlannerElement(identifier, in: app)
+        let control = element(identifier, in: app)
+        XCTAssertTrue(control.waitForExistence(timeout: 2), identifier)
+        if !control.isHittable {
+            element("arrival-stay-planner", in: app).swipeUp()
+        }
+        if !control.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(control.isHittable, identifier)
+        control.tap()
+    }
+
+    private func chooseTomorrowStay(minutes: Int, in app: XCUIApplication) {
+        app.buttons["planner-arrival-tomorrow"].tap()
+        tapPlannerControl("planner-duration-\(minutes)", in: app)
+    }
+
+    private func assertPlannerOvernightSummary(in app: XCUIApplication) {
+        revealPlannerElement("planner-overnight-summary", in: app)
+        XCTAssertTrue(element("planner-overnight-summary", in: app).waitForExistence(timeout: 2))
+    }
+
+    private func assertMapReplacedByPlanner(in app: XCUIApplication) {
+        XCTAssertFalse(element("parking-map", in: app).exists)
+        XCTAssertFalse(app.maps.firstMatch.exists)
+    }
+
+    private func assertPlannerDismissed(in app: XCUIApplication) {
+        XCTAssertFalse(element("arrival-stay-planner", in: app).waitForExistence(timeout: 1))
+        XCTAssertTrue(element("parking-map", in: app).waitForExistence(timeout: 2))
+    }
+
     func testPermissionDeniedKeepsDefaultCBDUsable() {
         let app = launch(["-fixture-live", "-location-denied"])
         XCTAssertTrue(app.staticTexts["destination-title"].waitForExistence(timeout: 3))
@@ -317,28 +376,80 @@ final class ParkAlongUITests: XCTestCase {
     func testPlannerAppliesFutureCustomStay() {
         let app = launch()
         XCTAssertTrue(element("stay-duration-track", in: app).waitForExistence(timeout: 3))
-        let plannerButton = app.buttons["arrival-planner-button"]
-        XCTAssertTrue(plannerButton.waitForExistence(timeout: 2))
-        plannerButton.tap()
-        XCTAssertTrue(element("arrival-stay-planner", in: app).waitForExistence(timeout: 2))
+        openPlanner(in: app)
+        assertMapReplacedByPlanner(in: app)
 
-        app.buttons["planner-arrival-tomorrow"].tap()
-        let twelveHours = app.buttons["planner-duration-720"]
-        XCTAssertTrue(twelveHours.waitForExistence(timeout: 2))
-        twelveHours.tap()
+        chooseTomorrowStay(minutes: 720, in: app)
 
         app.buttons["planner-apply"].tap()
+        assertPlannerDismissed(in: app)
         XCTAssertTrue(app.buttons["duration-8h+"].waitForExistence(timeout: 2))
         waitForValue("selected", on: app.buttons["duration-8h+"])
         XCTAssertTrue(element("planned-arrival-caption", in: app).waitForExistence(timeout: 2))
     }
 
-    func testPlannerButtonOpensArrivalStaySheet() {
+    func testPlannerOpensFullScreenArrivalStayPlanner() {
         let app = launch()
-        XCTAssertTrue(app.buttons["arrival-planner-button"].waitForExistence(timeout: 2))
-        app.buttons["arrival-planner-button"].tap()
-        XCTAssertTrue(element("arrival-stay-planner", in: app).waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["planner-reset"].exists)
+        openPlanner(in: app)
+        assertMapReplacedByPlanner(in: app)
+    }
+
+    func testPlannerOpensAndCloseDiscardsDraft() {
+        let app = launch()
+        openPlanner(in: app)
+
+        XCTAssertTrue(element("planner-arrival-context", in: app).exists)
+        XCTAssertTrue(app.buttons["planner-arrival-today"].exists)
+        XCTAssertTrue(app.buttons["planner-arrival-tomorrow"].exists)
+        XCTAssertTrue(element("planner-arrival-date", in: app).exists)
+        XCTAssertTrue(app.buttons["planner-close"].exists)
+        XCTAssertTrue(app.buttons["planner-apply"].exists)
+        XCTAssertTrue(element("planner-duration-days", in: app).exists)
+        XCTAssertTrue(element("planner-duration-hours", in: app).exists)
+        XCTAssertTrue(element("planner-duration-minutes", in: app).exists)
+        for minutes in [15, 60, 120, 180, 240, 360, 480, 720, 1440, 2880, 10080] {
+            XCTAssertTrue(app.buttons["planner-duration-\(minutes)"].exists, "planner-duration-\(minutes)")
+        }
+        assertMapReplacedByPlanner(in: app)
+
+        chooseTomorrowStay(minutes: 1440, in: app)
+        assertPlannerOvernightSummary(in: app)
+
+        app.buttons["planner-close"].tap()
+        assertPlannerDismissed(in: app)
+        XCTAssertTrue(app.buttons["duration-1h"].waitForExistence(timeout: 2))
+        waitForValue("selected", on: app.buttons["duration-1h"])
+        XCTAssertFalse(element("planned-arrival-caption", in: app).exists)
+    }
+
+    func testPlannerResetAppliesLiveOneHourStay() {
+        let app = launch()
+        let twoHours = app.buttons["duration-2h"]
+        XCTAssertTrue(twoHours.waitForExistence(timeout: 3))
+        twoHours.tap()
+        waitForValue("selected", on: twoHours)
+
+        openPlanner(in: app)
+        chooseTomorrowStay(minutes: 720, in: app)
+        app.buttons["planner-reset"].tap()
+
+        assertPlannerDismissed(in: app)
+        XCTAssertTrue(app.buttons["duration-1h"].waitForExistence(timeout: 2))
+        waitForValue("selected", on: app.buttons["duration-1h"])
+        XCTAssertFalse(element("planned-arrival-caption", in: app).exists)
+    }
+
+    func testPlannerApplyCommitsArrivalAndDuration() {
+        let app = launch()
+        openPlanner(in: app)
+        chooseTomorrowStay(minutes: 1440, in: app)
+        assertPlannerOvernightSummary(in: app)
+
+        app.buttons["planner-apply"].tap()
+        assertPlannerDismissed(in: app)
+        XCTAssertTrue(app.buttons["duration-8h+"].waitForExistence(timeout: 2))
+        waitForValue("selected", on: app.buttons["duration-8h+"])
+        XCTAssertTrue(element("planned-arrival-caption", in: app).waitForExistence(timeout: 2))
     }
 
     func testSearchChangesDestination() {

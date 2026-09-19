@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct MapTopChrome: View {
     @Bindable var viewModel: ParkingMapViewModel
@@ -71,6 +72,8 @@ struct MapTopChrome: View {
 
 struct MapBottomChrome: View {
     @Bindable var viewModel: ParkingMapViewModel
+    @Binding var showingPlanner: Bool
+    @Binding var restorePlannerButtonFocus: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -83,7 +86,11 @@ struct MapBottomChrome: View {
                 }
             }
             if viewModel.selectedOption == nil {
-                StayDurationBar(viewModel: viewModel)
+                StayDurationBar(
+                    viewModel: viewModel,
+                    showingPlanner: $showingPlanner,
+                    restorePlannerButtonFocus: $restorePlannerButtonFocus
+                )
             }
         }
         .accessibilityElement(children: .contain)
@@ -288,8 +295,10 @@ struct SuggestedOnStreetAreaButton: View {
 
 struct StayDurationBar: View {
     @Bindable var viewModel: ParkingMapViewModel
+    @Binding var showingPlanner: Bool
+    @Binding var restorePlannerButtonFocus: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var showingPlanner = false
+    @AccessibilityFocusState private var isPlannerButtonFocused: Bool
 
     private var trackShape: Capsule {
         Capsule(style: .continuous)
@@ -320,11 +329,10 @@ struct StayDurationBar: View {
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: viewModel.plan)
         .sensoryFeedback(.selection, trigger: viewModel.plan.durationMinutes)
-        .sheet(isPresented: $showingPlanner) {
-            ArrivalStayPlannerView(viewModel: viewModel, preferEightHourDefault: false)
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-                .presentationContentInteraction(.resizes)
+        .onAppear {
+            guard restorePlannerButtonFocus else { return }
+            restorePlannerButtonFocus = false
+            isPlannerButtonFocused = true
         }
     }
 
@@ -360,6 +368,7 @@ struct StayDurationBar: View {
         .adaptiveGlassControlButton()
         .accessibilityLabel("Arrival and stay planner")
         .accessibilityIdentifier("arrival-planner-button")
+        .accessibilityFocused($isPlannerButtonFocused)
     }
 
     private var refreshButton: some View {
@@ -492,19 +501,24 @@ enum StayPlanFormatting {
 
 struct ArrivalStayPlannerView: View {
     @Bindable var viewModel: ParkingMapViewModel
-    @Environment(\.dismiss) private var dismiss
+    @Binding var isPresented: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @AccessibilityFocusState private var isPlannerFocused: Bool
     @State private var arrival: Date
     @State private var durationMinutes: Int
+    private let isPublicHoliday: Bool
 
     private static let victoriaTimeZone = TimeZone(identifier: "Australia/Melbourne") ?? .current
     private static let maximumMinutes = 7 * 24 * 60
 
-    init(viewModel: ParkingMapViewModel, preferEightHourDefault: Bool) {
+    init(viewModel: ParkingMapViewModel, isPresented: Binding<Bool>, preferEightHourDefault: Bool) {
         self.viewModel = viewModel
+        self._isPresented = isPresented
         let plan = viewModel.plan
         let minutes = preferEightHourDefault && plan.durationMinutes < 480 ? 480 : plan.durationMinutes
         _arrival = State(initialValue: Self.rounded(plan.arrival))
         _durationMinutes = State(initialValue: minutes)
+        isPublicHoliday = plan.isPublicHoliday
     }
 
     var body: some View {
@@ -519,15 +533,8 @@ struct ArrivalStayPlannerView: View {
                 }
 
                 Section("Arrival") {
-                    HStack(spacing: 8) {
-                        dayButton("Today", identifier: "planner-arrival-today") {
-                            arrival = Self.rounded(.now)
-                        }
-                        dayButton("Tomorrow", identifier: "planner-arrival-tomorrow") {
-                            arrival = Self.tomorrow(preserving: arrival)
-                        }
-                    }
-                    .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 8, trailing: 16))
+                    dayButtons
+                        .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 8, trailing: 16))
 
                     DatePicker(
                         "Arrival date and time",
@@ -560,37 +567,91 @@ struct ArrivalStayPlannerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
+                    Button("Close") { discardAndClose() }
+                        .keyboardShortcut(.cancelAction)
                         .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                        .accessibilityHint("Closes without changing the current stay")
+                        .accessibilityInputLabels(["Close", "Cancel"])
+                        .accessibilityIdentifier("planner-close")
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                HStack(spacing: 12) {
-                    Button("Reset") {
-                        arrival = Self.rounded(.now)
-                        durationMinutes = StayDuration.oneHour.rawValue
-                        applyAndDismiss()
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .accessibilityIdentifier("planner-reset")
-
-                    Button("Apply") {
-                        applyAndDismiss()
-                    }
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .adaptiveProminentAction()
-                    .accessibilityIdentifier("planner-apply")
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-                .background(.bar)
+                actionBar
             }
         }
         .adaptiveToolbarMinimizationBehavior()
+        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
         .environment(\.timeZone, Self.victoriaTimeZone)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("arrival-stay-planner")
+        .accessibilityAction(.escape, discardAndClose)
+        .accessibilityFocused($isPlannerFocused)
+        .onAppear { isPlannerFocused = true }
+        .simultaneousGesture(backSwipe)
+    }
+
+    @ViewBuilder
+    private var dayButtons: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(spacing: 8) {
+                dayButton("Today", identifier: "planner-arrival-today") {
+                    arrival = Self.rounded(.now)
+                }
+                dayButton("Tomorrow", identifier: "planner-arrival-tomorrow") {
+                    arrival = Self.tomorrow(preserving: arrival)
+                }
+            }
+        } else {
+            HStack(spacing: 8) {
+                dayButton("Today", identifier: "planner-arrival-today") {
+                    arrival = Self.rounded(.now)
+                }
+                dayButton("Tomorrow", identifier: "planner-arrival-tomorrow") {
+                    arrival = Self.tomorrow(preserving: arrival)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var actionBar: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(spacing: 12) {
+                    resetButton
+                    applyButton
+                }
+            } else {
+                HStack(spacing: 12) {
+                    resetButton
+                    applyButton
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+        .background(.bar)
+    }
+
+    private var resetButton: some View {
+        Button("Reset") {
+            arrival = Self.rounded(.now)
+            durationMinutes = StayDuration.oneHour.rawValue
+            applyAndClose()
+        }
+        .frame(maxWidth: .infinity, minHeight: 44)
+        .accessibilityIdentifier("planner-reset")
+    }
+
+    private var applyButton: some View {
+        Button("Apply") {
+            applyAndClose()
+        }
+        .font(.headline)
+        .frame(maxWidth: .infinity, minHeight: 44)
+        .adaptiveProminentAction()
+        .accessibilityIdentifier("planner-apply")
     }
 
     private var presetGrid: some View {
@@ -607,6 +668,7 @@ struct ArrivalStayPlannerView: View {
                 }
                 .adaptiveGlassControlButton(isSelected: selected)
                 .accessibilityLabel(ParkingPlan.durationLabel(minutes: minutes))
+                .accessibilityAddTraits(selected ? .isSelected : AccessibilityTraits())
                 .accessibilityIdentifier("planner-duration-\(minutes)")
             }
         }
@@ -675,6 +737,15 @@ struct ArrivalStayPlannerView: View {
         return "Overnight stay · arrive \(arriveText), leave \(leaveText)"
     }
 
+    private var backSwipe: some Gesture {
+        DragGesture(minimumDistance: 24)
+            .onEnded { value in
+                guard value.startLocation.x < 24 else { return }
+                guard value.translation.width > 70, abs(value.translation.height) < 80 else { return }
+                discardAndClose()
+            }
+    }
+
     private func dayButton(_ title: String, identifier: String, action: @escaping () -> Void) -> some View {
         Button(title, action: action)
             .frame(maxWidth: .infinity, minHeight: 44)
@@ -682,15 +753,19 @@ struct ArrivalStayPlannerView: View {
             .accessibilityIdentifier(identifier)
     }
 
-    private func applyAndDismiss() {
+    private func discardAndClose() {
+        isPresented = false
+    }
+
+    private func applyAndClose() {
         viewModel.applyPlan(
             ParkingPlan(
                 arrival: arrival,
                 durationMinutes: durationMinutes,
-                isPublicHoliday: viewModel.plan.isPublicHoliday
+                isPublicHoliday: isPublicHoliday
             )
         )
-        dismiss()
+        isPresented = false
     }
 
     private static var startOfToday: Date {

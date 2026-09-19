@@ -9,29 +9,12 @@ struct ParkingMapView: View {
     @State private var selectedMarkerID: String?
     @State private var showingAbout = false
     @Namespace private var mapScope
+    @State private var showingPlanner = false
+    @State private var restorePlannerButtonFocus = false
 
     var body: some View {
-        map
-            .adaptiveStatusBarColorScheme()
-            .sheet(isPresented: $viewModel.isSearching) {
-                DestinationSearchView(viewModel: viewModel)
-                    .presentationDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
-                    .presentationContentInteraction(.resizes)
-            }
-            .sheet(isPresented: zoneSheetPresented) {
-                ZoneDetailView(viewModel: viewModel)
-                    .presentationDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
-                    .presentationContentInteraction(.resizes)
-                    .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-            }
-            .sheet(isPresented: $showingAbout) {
-                AboutParkingView()
-                    .presentationDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
-                    .presentationContentInteraction(.resizes)
-            }
+        plannerOrMap
+            .animation(nil, value: showingPlanner)
             .task {
                 await viewModel.start()
                 while !Task.isCancelled {
@@ -62,6 +45,55 @@ struct ParkingMapView: View {
             .onChange(of: viewModel.selectedOption?.id) { _, optionID in
                 selectedMarkerID = optionID
             }
+    }
+
+    @ViewBuilder
+    private var plannerOrMap: some View {
+        if showingPlanner {
+            ArrivalStayPlannerView(
+                viewModel: viewModel,
+                isPresented: plannerPresented,
+                preferEightHourDefault: false
+            )
+        } else {
+            map
+                .adaptiveStatusBarColorScheme()
+                .sheet(isPresented: $viewModel.isSearching) {
+                    DestinationSearchView(viewModel: viewModel)
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
+                        .presentationContentInteraction(.resizes)
+                }
+                .sheet(isPresented: zoneSheetPresented) {
+                    ZoneDetailView(viewModel: viewModel)
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
+                        .presentationContentInteraction(.resizes)
+                        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+                }
+                .sheet(isPresented: $showingAbout) {
+                    AboutParkingView()
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
+                        .presentationContentInteraction(.resizes)
+                }
+        }
+    }
+
+    private var plannerPresented: Binding<Bool> {
+        Binding(
+            get: { showingPlanner },
+            set: { newValue in
+                if showingPlanner && !newValue {
+                    restorePlannerButtonFocus = true
+                }
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    showingPlanner = newValue
+                }
+            }
+        )
     }
 
     private var map: some View {
@@ -114,7 +146,11 @@ struct ParkingMapView: View {
             }
         }
         .overlay(alignment: .bottom) {
-            MapBottomChrome(viewModel: viewModel)
+            MapBottomChrome(
+                viewModel: viewModel,
+                showingPlanner: plannerPresented,
+                restorePlannerButtonFocus: $restorePlannerButtonFocus
+            )
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8)
                 .safeAreaPadding(.bottom)
