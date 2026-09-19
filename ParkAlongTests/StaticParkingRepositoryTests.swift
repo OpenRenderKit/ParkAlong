@@ -305,20 +305,21 @@ final class StaticParkingRepositoryTests: XCTestCase {
     }
 
     func testBoundaryClusterTargetContainsAndRevealsEligibleChildren() async throws {
-        let locations = (0..<8).map { index in
-            fixture(
-                id: "edge-\(index)", name: "Edge parking \(index)",
-                coordinate: .init(
-                    latitude: -37.80002 + Double(index % 2) * 0.00004,
-                    longitude: 145.00002 + Double(index / 2) * 0.00004
-                )
-            )
+        let locations: [StaticParkingLocation] = (0..<8).map { index in
+            let row: Int = index % 2
+            let column: Int = index / 2
+            let latitude: Double = -37.80002 + Double(row) * 0.00004
+            let longitude: Double = 145.00002 + Double(column) * 0.00004
+            let coordinate = Coordinate(latitude: latitude, longitude: longitude)
+            let identifier: String = "edge-\(index)"
+            let title: String = "Edge parking \(index)"
+            return fixture(id: identifier, name: title, coordinate: coordinate)
         }
         let repository = StaticParkingRepository(locations: locations, resultLimit: 80)
         let wide = ParkingViewport(south: -38.0, west: 144.8, north: -37.8, east: 145.0, zoomLevel: 10)
-        let clustered = await repository.options(in: wide, plan: plan(.oneHour))
-        let cluster = try XCTUnwrap(clustered.first(where: { $0.clusterCount != nil }))
-        let target = try XCTUnwrap(cluster.clusterViewport)
+        let clustered: [ParkingOption] = await repository.options(in: wide, plan: plan(.oneHour))
+        let cluster: ParkingOption = try XCTUnwrap(clustered.first(where: { $0.clusterCount != nil }))
+        let target: ParkingViewport = try XCTUnwrap(cluster.clusterViewport)
 
         let expanded = await repository.options(in: target, plan: plan(.oneHour))
 
