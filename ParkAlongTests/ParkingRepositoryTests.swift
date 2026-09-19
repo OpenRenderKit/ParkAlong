@@ -95,11 +95,12 @@ final class ParkingRepositoryTests: XCTestCase {
         let clock = ContinuousClock()
         let requestViewport = viewport
         let requestPlan = plan(.oneHour)
+        let requestReference = reference()
         let requestNow = now
         let refresh = Task {
             try await repository.refresh(
                 viewport: requestViewport,
-                proximityReference: reference(),
+                proximityReference: requestReference,
                 plan: requestPlan,
                 now: requestNow,
                 force: true
