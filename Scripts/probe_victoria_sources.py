@@ -372,6 +372,96 @@ def probe_swan_hill_accessible(timeout: int) -> dict[str, Any]:
     }
 
 
+def probe_port_phillip_accessible(timeout: int) -> dict[str, Any]:
+    payload = _request_json(
+        "https://data.gov.au/data/dataset/874498ce-a720-43c3-b7d5-0a750653ffa2/"
+        "resource/2ae71d07-8def-469d-976c-24193b968288/download/city-of-port-phillip-accessible-parking.geojson",
+        timeout=timeout,
+    )
+    features = payload.get("features", [])
+    observed_fields = sorted({
+        key for feature in features for key in ((feature.get("properties") or {}).keys())
+    })
+    return {
+        "classification": "static_locations_or_restrictions",
+        "source": "City of Port Phillip accessible parking",
+        "parkingFeatures": len(features),
+        "observedFields": observed_fields,
+        "datasetUpdatedAt": "2022-08-11T05:43:28Z",
+        "license": "Creative Commons Attribution 2.5 Australia",
+        "licenseURL": "https://creativecommons.org/licenses/by/2.5/au/",
+        "occupancy": "not present; accessible-parking points carry no bay state or event time",
+    }
+
+
+def probe_glen_eira_accessible(timeout: int) -> dict[str, Any]:
+    payload = _request_json(
+        "https://data.gov.au/data/dataset/66f2f149-f822-4077-b8a9-15fa0990bf58/"
+        "resource/81fbc12d-2d0d-41b4-af04-e62fd1b5a482/download/accessibleparking.json",
+        timeout=timeout,
+    )
+    features = payload.get("features", [])
+    observed_fields = sorted({
+        key for feature in features for key in ((feature.get("properties") or {}).keys())
+    })
+    return {
+        "classification": "static_locations_or_restrictions",
+        "source": "Glen Eira City Council accessible parking",
+        "parkingFeatures": len(features),
+        "observedFields": observed_fields,
+        "datasetUpdatedAt": "2022-08-01T04:22:41Z",
+        "license": "Creative Commons Attribution 2.5 Australia",
+        "licenseURL": "https://creativecommons.org/licenses/by/2.5/au/",
+        "occupancy": "not present; accessible-parking points carry no bay state or event time",
+    }
+
+
+def probe_brimbank_carparks(timeout: int) -> dict[str, Any]:
+    payload = _request_json(
+        "https://data.gov.au/geoserver/brimbank-carparks/wfs?request=GetFeature"
+        "&typeName=ckan_43c21764_3114_4e2b_8718_a2ded31e14d2&outputFormat=json",
+        timeout=timeout,
+    )
+    features = payload.get("features", [])
+    observed_fields = sorted({
+        key for feature in features for key in ((feature.get("properties") or {}).keys())
+    })
+    return {
+        "classification": "static_locations_or_restrictions",
+        "source": "Brimbank City Council car parks",
+        "datasetLanding": "https://data.gov.au/data/dataset/brimbank-carparks",
+        "parkingFeatures": len(features),
+        "observedFields": observed_fields,
+        "datasetUpdatedAt": "2019-03-12T00:00:00Z",
+        "license": "Creative Commons Attribution 2.5 Australia",
+        "licenseURL": "https://creativecommons.org/licenses/by/2.5/au/",
+        "occupancy": "not present; car-park polygons carry restriction text but no bay state or event time",
+    }
+
+
+def probe_brimbank_disabled(timeout: int) -> dict[str, Any]:
+    payload = _request_json(
+        "https://data.gov.au/geoserver/brimbank-disabled-car-parks/wfs?request=GetFeature"
+        "&typeName=ckan_3ecdd93d_0d55_49a3_a11a_294e4640f9e1&outputFormat=json",
+        timeout=timeout,
+    )
+    features = payload.get("features", [])
+    observed_fields = sorted({
+        key for feature in features for key in ((feature.get("properties") or {}).keys())
+    })
+    return {
+        "classification": "static_locations_or_restrictions",
+        "source": "Brimbank City Council disabled car parks",
+        "datasetLanding": "https://data.gov.au/data/dataset/brimbank-disabled-car-parks",
+        "parkingFeatures": len(features),
+        "observedFields": observed_fields,
+        "datasetUpdatedAt": "2019-03-12T00:00:00Z",
+        "license": "Creative Commons Attribution 2.5 Australia",
+        "licenseURL": "https://creativecommons.org/licenses/by/2.5/au/",
+        "occupancy": "not present; disabled-parking points carry no bay state or event time",
+    }
+
+
 def probe_vicmap_parking(timeout: int) -> dict[str, Any]:
     layer = (
         "https://services-ap1.arcgis.com/P744lA0wf4LlBZ84/arcgis/rest/services/"
@@ -438,6 +528,10 @@ PROBES = {
     "casey": probe_casey,
     "mildura_accessible": probe_mildura_accessible,
     "swan_hill_accessible": probe_swan_hill_accessible,
+    "port_phillip_accessible": probe_port_phillip_accessible,
+    "glen_eira_accessible": probe_glen_eira_accessible,
+    "brimbank_carparks": probe_brimbank_carparks,
+    "brimbank_disabled": probe_brimbank_disabled,
     "vicmap_parking": probe_vicmap_parking,
     "osm": probe_osm,
 }

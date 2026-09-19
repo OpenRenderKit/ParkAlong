@@ -1,0 +1,3303 @@
+{
+  "after": {
+    "boundarySource": "https://services-ap1.arcgis.com/P744lA0wf4LlBZ84/arcgis/rest/services/Vicmap_Admin/FeatureServer/11/query",
+    "catalogRecordCount": 38610,
+    "localityFieldLabeledCount": 38606,
+    "localityFieldUnmatchedCount": 4,
+    "localityPolygonCount": 2973,
+    "outsidePolygonRecordCount": 4,
+    "outsidePolygonRecordIds": [
+      "osm-way-39889371",
+      "osm-way-89782111",
+      "osm-way-186249854",
+      "osm-way-503565304"
+    ],
+    "spatiallyAssignedRecordCount": 38606,
+    "targetCount": 62,
+    "targets": [
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 1,
+        "name": "Burwood",
+        "polygonPresent": true,
+        "recordCount": 50,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 5
+      },
+      {
+        "accessibleRecordCount": 12,
+        "authoritativeAccessibleRecordCount": 10,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 23,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 5,
+        "name": "Kew",
+        "polygonPresent": true,
+        "recordCount": 104,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "boroondara-public-carparks",
+          "openstreetmap-victoria-parking",
+          "vicmap-features-of-interest-parking"
+        ],
+        "tariffRecordCount": 14
+      },
+      {
+        "accessibleRecordCount": 13,
+        "authoritativeAccessibleRecordCount": 13,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 28,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 4,
+        "name": "Hawthorn",
+        "polygonPresent": true,
+        "recordCount": 125,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "boroondara-public-carparks",
+          "openstreetmap-victoria-parking",
+          "vicmap-features-of-interest-parking"
+        ],
+        "tariffRecordCount": 19
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 330,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 4,
+        "name": "Glen Waverley",
+        "polygonPresent": true,
+        "recordCount": 521,
+        "scheduleRecordCount": 2,
+        "sourceIds": [
+          "monash-wga-parking-review",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 12
+      },
+      {
+        "accessibleRecordCount": 3,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 7,
+        "name": "Tarneit",
+        "polygonPresent": true,
+        "recordCount": 238,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 8
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 2,
+        "authoritativeCapacityRecordCount": 2,
+        "authoritativeRecordCount": 2,
+        "authoritativeScheduleRecordCount": 2,
+        "authoritativeTariffRecordCount": 2,
+        "capacityRecordCount": 20,
+        "name": "South Yarra",
+        "polygonPresent": true,
+        "recordCount": 42,
+        "scheduleRecordCount": 15,
+        "sourceIds": [
+          "openstreetmap-victoria-parking",
+          "stonnington-carparks"
+        ],
+        "tariffRecordCount": 13
+      },
+      {
+        "accessibleRecordCount": 18,
+        "authoritativeAccessibleRecordCount": 18,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 18,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Elsternwick",
+        "polygonPresent": true,
+        "recordCount": 36,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "glen-eira-accessible-parking",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 2
+      },
+      {
+        "accessibleRecordCount": 3,
+        "authoritativeAccessibleRecordCount": 1,
+        "authoritativeCapacityRecordCount": 1,
+        "authoritativeRecordCount": 1,
+        "authoritativeScheduleRecordCount": 1,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 10,
+        "name": "Box Hill",
+        "polygonPresent": true,
+        "recordCount": 92,
+        "scheduleRecordCount": 2,
+        "sourceIds": [
+          "openstreetmap-victoria-parking",
+          "whitehorse-harrow-street"
+        ],
+        "tariffRecordCount": 8
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 492,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 9,
+        "name": "Clayton",
+        "polygonPresent": true,
+        "recordCount": 612,
+        "scheduleRecordCount": 3,
+        "sourceIds": [
+          "monash-wga-parking-review",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 16
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 1,
+        "authoritativeScheduleRecordCount": 1,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 7,
+        "name": "Springvale",
+        "polygonPresent": true,
+        "recordCount": 102,
+        "scheduleRecordCount": 4,
+        "sourceIds": [
+          "greater-dandenong-number-8",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 19
+      },
+      {
+        "accessibleRecordCount": 8,
+        "authoritativeAccessibleRecordCount": 8,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 31,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 3,
+        "name": "Camberwell",
+        "polygonPresent": true,
+        "recordCount": 90,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "boroondara-public-carparks",
+          "openstreetmap-victoria-parking",
+          "vicmap-features-of-interest-parking"
+        ],
+        "tariffRecordCount": 6
+      },
+      {
+        "accessibleRecordCount": 5,
+        "authoritativeAccessibleRecordCount": 4,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 13,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 6,
+        "name": "Canterbury",
+        "polygonPresent": true,
+        "recordCount": 45,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "boroondara-public-carparks",
+          "openstreetmap-victoria-parking",
+          "vicmap-features-of-interest-parking"
+        ],
+        "tariffRecordCount": 6
+      },
+      {
+        "accessibleRecordCount": 12,
+        "authoritativeAccessibleRecordCount": 12,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 26,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Balwyn",
+        "polygonPresent": true,
+        "recordCount": 80,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "boroondara-public-carparks",
+          "openstreetmap-victoria-parking",
+          "vicmap-features-of-interest-parking"
+        ],
+        "tariffRecordCount": 14
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 2,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 9,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 2,
+        "name": "Surrey Hills",
+        "polygonPresent": true,
+        "recordCount": 48,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "boroondara-public-carparks",
+          "openstreetmap-victoria-parking",
+          "vicmap-features-of-interest-parking"
+        ],
+        "tariffRecordCount": 5
+      },
+      {
+        "accessibleRecordCount": 4,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 9,
+        "name": "Blackburn",
+        "polygonPresent": true,
+        "recordCount": 119,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 20
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 2,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 11,
+        "name": "Nunawading",
+        "polygonPresent": true,
+        "recordCount": 91,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "manningham-council-carparks",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 3
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 187,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 2,
+        "name": "Mount Waverley",
+        "polygonPresent": true,
+        "recordCount": 304,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "monash-wga-parking-review",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 12
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 185,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 4,
+        "name": "Oakleigh",
+        "polygonPresent": true,
+        "recordCount": 261,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "monash-wga-parking-review",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 9
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 39,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Chadstone",
+        "polygonPresent": true,
+        "recordCount": 60,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "monash-wga-parking-review",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 1
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 7,
+        "authoritativeRecordCount": 11,
+        "authoritativeScheduleRecordCount": 4,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 9,
+        "name": "Dandenong",
+        "polygonPresent": true,
+        "recordCount": 184,
+        "scheduleRecordCount": 11,
+        "sourceIds": [
+          "casey-parking-zones",
+          "casey-station-carparks-2024",
+          "greater-dandenong-carroll-lane",
+          "greater-dandenong-thomas-street",
+          "greater-dandenong-walker-street",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 4
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 3,
+        "authoritativeRecordCount": 3,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 4,
+        "name": "Noble Park",
+        "polygonPresent": true,
+        "recordCount": 75,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "casey-station-carparks-2024",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 10
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 2,
+        "authoritativeCapacityRecordCount": 2,
+        "authoritativeRecordCount": 2,
+        "authoritativeScheduleRecordCount": 2,
+        "authoritativeTariffRecordCount": 2,
+        "capacityRecordCount": 31,
+        "name": "Prahran",
+        "polygonPresent": true,
+        "recordCount": 47,
+        "scheduleRecordCount": 26,
+        "sourceIds": [
+          "openstreetmap-victoria-parking",
+          "stonnington-carparks"
+        ],
+        "tariffRecordCount": 8
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 2,
+        "name": "Windsor",
+        "polygonPresent": true,
+        "recordCount": 11,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 0
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 3,
+        "name": "Malvern",
+        "polygonPresent": true,
+        "recordCount": 15,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 9
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Armadale",
+        "polygonPresent": true,
+        "recordCount": 15,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 5
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Toorak",
+        "polygonPresent": true,
+        "recordCount": 6,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 0
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 11,
+        "name": "Richmond",
+        "polygonPresent": true,
+        "recordCount": 238,
+        "scheduleRecordCount": 3,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 7
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Cremorne",
+        "polygonPresent": true,
+        "recordCount": 25,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 0
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Fitzroy",
+        "polygonPresent": true,
+        "recordCount": 48,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 1
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 6,
+        "name": "Collingwood",
+        "polygonPresent": true,
+        "recordCount": 54,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 0
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 73,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 5,
+        "name": "St Kilda",
+        "polygonPresent": true,
+        "recordCount": 110,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking",
+          "port-phillip-accessible-parking"
+        ],
+        "tariffRecordCount": 0
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 77,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 2,
+        "name": "South Melbourne",
+        "polygonPresent": true,
+        "recordCount": 100,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking",
+          "port-phillip-accessible-parking"
+        ],
+        "tariffRecordCount": 1
+      },
+      {
+        "accessibleRecordCount": 5,
+        "authoritativeAccessibleRecordCount": 4,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 4,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 2,
+        "name": "Caulfield",
+        "polygonPresent": true,
+        "recordCount": 14,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "glen-eira-accessible-parking",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 1
+      },
+      {
+        "accessibleRecordCount": 13,
+        "authoritativeAccessibleRecordCount": 13,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 13,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Carnegie",
+        "polygonPresent": true,
+        "recordCount": 33,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "glen-eira-accessible-parking",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 2
+      },
+      {
+        "accessibleRecordCount": 32,
+        "authoritativeAccessibleRecordCount": 32,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 32,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Bentleigh",
+        "polygonPresent": true,
+        "recordCount": 60,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "glen-eira-accessible-parking",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 7
+      },
+      {
+        "accessibleRecordCount": 4,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 3,
+        "name": "Brighton",
+        "polygonPresent": true,
+        "recordCount": 70,
+        "scheduleRecordCount": 8,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 5
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 1,
+        "name": "Moorabbin",
+        "polygonPresent": true,
+        "recordCount": 34,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 5
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 7,
+        "name": "Cheltenham",
+        "polygonPresent": true,
+        "recordCount": 93,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 12
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 1,
+        "name": "Mordialloc",
+        "polygonPresent": true,
+        "recordCount": 58,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 2
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 2,
+        "name": "Brunswick",
+        "polygonPresent": true,
+        "recordCount": 68,
+        "scheduleRecordCount": 6,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 10
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 1,
+        "name": "Coburg",
+        "polygonPresent": true,
+        "recordCount": 45,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 11
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 4,
+        "name": "Northcote",
+        "polygonPresent": true,
+        "recordCount": 42,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 17
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 5,
+        "name": "Preston",
+        "polygonPresent": true,
+        "recordCount": 250,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 22
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 7,
+        "name": "Reservoir",
+        "polygonPresent": true,
+        "recordCount": 88,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 11
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 3,
+        "name": "Moonee Ponds",
+        "polygonPresent": true,
+        "recordCount": 64,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 13
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 2,
+        "name": "Essendon",
+        "polygonPresent": true,
+        "recordCount": 124,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 9
+      },
+      {
+        "accessibleRecordCount": 52,
+        "authoritativeAccessibleRecordCount": 51,
+        "authoritativeCapacityRecordCount": 253,
+        "authoritativeRecordCount": 253,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 257,
+        "name": "Footscray",
+        "polygonPresent": true,
+        "recordCount": 350,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "maribyrnong-parking-explorer",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 8
+      },
+      {
+        "accessibleRecordCount": 15,
+        "authoritativeAccessibleRecordCount": 14,
+        "authoritativeCapacityRecordCount": 123,
+        "authoritativeRecordCount": 123,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 127,
+        "name": "Yarraville",
+        "polygonPresent": true,
+        "recordCount": 182,
+        "scheduleRecordCount": 2,
+        "sourceIds": [
+          "maribyrnong-parking-explorer",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 7
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 3,
+        "name": "Williamstown",
+        "polygonPresent": true,
+        "recordCount": 46,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 6
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 1,
+        "authoritativeCapacityRecordCount": 1,
+        "authoritativeRecordCount": 1,
+        "authoritativeScheduleRecordCount": 1,
+        "authoritativeTariffRecordCount": 1,
+        "capacityRecordCount": 4,
+        "name": "Werribee",
+        "polygonPresent": true,
+        "recordCount": 351,
+        "scheduleRecordCount": 2,
+        "sourceIds": [
+          "openstreetmap-victoria-parking",
+          "wyndham-hunter-werribee"
+        ],
+        "tariffRecordCount": 12
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 4,
+        "name": "Point Cook",
+        "polygonPresent": true,
+        "recordCount": 299,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 7
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 15,
+        "name": "Hoppers Crossing",
+        "polygonPresent": true,
+        "recordCount": 122,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 14
+      },
+      {
+        "accessibleRecordCount": 38,
+        "authoritativeAccessibleRecordCount": 38,
+        "authoritativeCapacityRecordCount": 243,
+        "authoritativeRecordCount": 282,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 244,
+        "name": "Sunshine",
+        "polygonPresent": true,
+        "recordCount": 368,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "brimbank-carparks",
+          "brimbank-disabled-car-parks",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 5
+      },
+      {
+        "accessibleRecordCount": 30,
+        "authoritativeAccessibleRecordCount": 30,
+        "authoritativeCapacityRecordCount": 380,
+        "authoritativeRecordCount": 411,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 385,
+        "name": "St Albans",
+        "polygonPresent": true,
+        "recordCount": 534,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "brimbank-carparks",
+          "brimbank-disabled-car-parks",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 2
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Melton",
+        "polygonPresent": true,
+        "recordCount": 48,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 0
+      },
+      {
+        "accessibleRecordCount": 4,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 4,
+        "name": "Craigieburn",
+        "polygonPresent": true,
+        "recordCount": 230,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 3
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 1,
+        "name": "Broadmeadows",
+        "polygonPresent": true,
+        "recordCount": 97,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 1
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Epping",
+        "polygonPresent": true,
+        "recordCount": 217,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 3
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 10,
+        "name": "Ringwood",
+        "polygonPresent": true,
+        "recordCount": 227,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 33
+      },
+      {
+        "accessibleRecordCount": 4,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 70,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 46,
+        "name": "Doncaster",
+        "polygonPresent": true,
+        "recordCount": 188,
+        "scheduleRecordCount": 13,
+        "sourceIds": [
+          "manningham-council-carparks",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 10
+      },
+      {
+        "accessibleRecordCount": 7,
+        "authoritativeAccessibleRecordCount": 3,
+        "authoritativeCapacityRecordCount": 5,
+        "authoritativeRecordCount": 5,
+        "authoritativeScheduleRecordCount": 5,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 10,
+        "name": "Frankston",
+        "polygonPresent": true,
+        "recordCount": 182,
+        "scheduleRecordCount": 5,
+        "sourceIds": [
+          "frankston-waterfront-parking",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 33
+      },
+      {
+        "accessibleRecordCount": 4,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 3,
+        "authoritativeRecordCount": 109,
+        "authoritativeScheduleRecordCount": 67,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 10,
+        "name": "Cranbourne",
+        "polygonPresent": true,
+        "recordCount": 291,
+        "scheduleRecordCount": 67,
+        "sourceIds": [
+          "casey-parking-zones",
+          "casey-station-carparks-2024",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 14
+      }
+    ]
+  },
+  "afterAssignedRecordCount": 38606,
+  "afterCatalogRecordCount": 38610,
+  "afterFieldLabeledCount": 38606,
+  "afterOutsideRecordCount": 4,
+  "before": {
+    "boundarySource": "https://services-ap1.arcgis.com/P744lA0wf4LlBZ84/arcgis/rest/services/Vicmap_Admin/FeatureServer/11/query",
+    "catalogRecordCount": 35004,
+    "localityFieldLabeledCount": 0,
+    "localityFieldUnmatchedCount": 35004,
+    "localityPolygonCount": 2973,
+    "outsidePolygonRecordCount": 4,
+    "outsidePolygonRecordIds": [
+      "osm-way-39889371",
+      "osm-way-89782111",
+      "osm-way-186249854",
+      "osm-way-503565304"
+    ],
+    "spatiallyAssignedRecordCount": 35000,
+    "targetCount": 62,
+    "targets": [
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 1,
+        "name": "Burwood",
+        "polygonPresent": true,
+        "recordCount": 50,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 5
+      },
+      {
+        "accessibleRecordCount": 12,
+        "authoritativeAccessibleRecordCount": 10,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 23,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 5,
+        "name": "Kew",
+        "polygonPresent": true,
+        "recordCount": 104,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "boroondara-public-carparks",
+          "openstreetmap-victoria-parking",
+          "vicmap-features-of-interest-parking"
+        ],
+        "tariffRecordCount": 14
+      },
+      {
+        "accessibleRecordCount": 13,
+        "authoritativeAccessibleRecordCount": 13,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 28,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 4,
+        "name": "Hawthorn",
+        "polygonPresent": true,
+        "recordCount": 125,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "boroondara-public-carparks",
+          "openstreetmap-victoria-parking",
+          "vicmap-features-of-interest-parking"
+        ],
+        "tariffRecordCount": 19
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 330,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 4,
+        "name": "Glen Waverley",
+        "polygonPresent": true,
+        "recordCount": 521,
+        "scheduleRecordCount": 2,
+        "sourceIds": [
+          "monash-wga-parking-review",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 12
+      },
+      {
+        "accessibleRecordCount": 3,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 7,
+        "name": "Tarneit",
+        "polygonPresent": true,
+        "recordCount": 238,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 8
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 2,
+        "authoritativeCapacityRecordCount": 2,
+        "authoritativeRecordCount": 2,
+        "authoritativeScheduleRecordCount": 2,
+        "authoritativeTariffRecordCount": 2,
+        "capacityRecordCount": 20,
+        "name": "South Yarra",
+        "polygonPresent": true,
+        "recordCount": 42,
+        "scheduleRecordCount": 15,
+        "sourceIds": [
+          "openstreetmap-victoria-parking",
+          "stonnington-carparks"
+        ],
+        "tariffRecordCount": 13
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Elsternwick",
+        "polygonPresent": true,
+        "recordCount": 18,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 2
+      },
+      {
+        "accessibleRecordCount": 3,
+        "authoritativeAccessibleRecordCount": 1,
+        "authoritativeCapacityRecordCount": 1,
+        "authoritativeRecordCount": 1,
+        "authoritativeScheduleRecordCount": 1,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 10,
+        "name": "Box Hill",
+        "polygonPresent": true,
+        "recordCount": 92,
+        "scheduleRecordCount": 2,
+        "sourceIds": [
+          "openstreetmap-victoria-parking",
+          "whitehorse-harrow-street"
+        ],
+        "tariffRecordCount": 8
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 492,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 9,
+        "name": "Clayton",
+        "polygonPresent": true,
+        "recordCount": 612,
+        "scheduleRecordCount": 3,
+        "sourceIds": [
+          "monash-wga-parking-review",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 16
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 7,
+        "name": "Springvale",
+        "polygonPresent": true,
+        "recordCount": 101,
+        "scheduleRecordCount": 3,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 19
+      },
+      {
+        "accessibleRecordCount": 8,
+        "authoritativeAccessibleRecordCount": 8,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 31,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 3,
+        "name": "Camberwell",
+        "polygonPresent": true,
+        "recordCount": 90,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "boroondara-public-carparks",
+          "openstreetmap-victoria-parking",
+          "vicmap-features-of-interest-parking"
+        ],
+        "tariffRecordCount": 6
+      },
+      {
+        "accessibleRecordCount": 5,
+        "authoritativeAccessibleRecordCount": 4,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 13,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 6,
+        "name": "Canterbury",
+        "polygonPresent": true,
+        "recordCount": 45,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "boroondara-public-carparks",
+          "openstreetmap-victoria-parking",
+          "vicmap-features-of-interest-parking"
+        ],
+        "tariffRecordCount": 6
+      },
+      {
+        "accessibleRecordCount": 12,
+        "authoritativeAccessibleRecordCount": 12,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 26,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Balwyn",
+        "polygonPresent": true,
+        "recordCount": 80,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "boroondara-public-carparks",
+          "openstreetmap-victoria-parking",
+          "vicmap-features-of-interest-parking"
+        ],
+        "tariffRecordCount": 14
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 2,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 9,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 2,
+        "name": "Surrey Hills",
+        "polygonPresent": true,
+        "recordCount": 48,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "boroondara-public-carparks",
+          "openstreetmap-victoria-parking",
+          "vicmap-features-of-interest-parking"
+        ],
+        "tariffRecordCount": 5
+      },
+      {
+        "accessibleRecordCount": 4,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 9,
+        "name": "Blackburn",
+        "polygonPresent": true,
+        "recordCount": 119,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 20
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 2,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 11,
+        "name": "Nunawading",
+        "polygonPresent": true,
+        "recordCount": 91,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "manningham-council-carparks",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 3
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 187,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 2,
+        "name": "Mount Waverley",
+        "polygonPresent": true,
+        "recordCount": 304,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "monash-wga-parking-review",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 12
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 185,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 4,
+        "name": "Oakleigh",
+        "polygonPresent": true,
+        "recordCount": 261,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "monash-wga-parking-review",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 9
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 39,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Chadstone",
+        "polygonPresent": true,
+        "recordCount": 60,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "monash-wga-parking-review",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 1
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 7,
+        "authoritativeRecordCount": 8,
+        "authoritativeScheduleRecordCount": 1,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 9,
+        "name": "Dandenong",
+        "polygonPresent": true,
+        "recordCount": 181,
+        "scheduleRecordCount": 8,
+        "sourceIds": [
+          "casey-parking-zones",
+          "casey-station-carparks-2024",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 4
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 3,
+        "authoritativeRecordCount": 3,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 4,
+        "name": "Noble Park",
+        "polygonPresent": true,
+        "recordCount": 75,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "casey-station-carparks-2024",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 10
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 2,
+        "authoritativeCapacityRecordCount": 2,
+        "authoritativeRecordCount": 2,
+        "authoritativeScheduleRecordCount": 2,
+        "authoritativeTariffRecordCount": 2,
+        "capacityRecordCount": 31,
+        "name": "Prahran",
+        "polygonPresent": true,
+        "recordCount": 47,
+        "scheduleRecordCount": 26,
+        "sourceIds": [
+          "openstreetmap-victoria-parking",
+          "stonnington-carparks"
+        ],
+        "tariffRecordCount": 8
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 2,
+        "name": "Windsor",
+        "polygonPresent": true,
+        "recordCount": 11,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 0
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 3,
+        "name": "Malvern",
+        "polygonPresent": true,
+        "recordCount": 15,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 9
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Armadale",
+        "polygonPresent": true,
+        "recordCount": 15,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 5
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Toorak",
+        "polygonPresent": true,
+        "recordCount": 6,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 0
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 11,
+        "name": "Richmond",
+        "polygonPresent": true,
+        "recordCount": 238,
+        "scheduleRecordCount": 3,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 7
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Cremorne",
+        "polygonPresent": true,
+        "recordCount": 25,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 0
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Fitzroy",
+        "polygonPresent": true,
+        "recordCount": 48,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 1
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 6,
+        "name": "Collingwood",
+        "polygonPresent": true,
+        "recordCount": 54,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 0
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 5,
+        "name": "St Kilda",
+        "polygonPresent": true,
+        "recordCount": 37,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 0
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 2,
+        "name": "South Melbourne",
+        "polygonPresent": true,
+        "recordCount": 23,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 1
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 2,
+        "name": "Caulfield",
+        "polygonPresent": true,
+        "recordCount": 10,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 1
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Carnegie",
+        "polygonPresent": true,
+        "recordCount": 20,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 2
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Bentleigh",
+        "polygonPresent": true,
+        "recordCount": 28,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 7
+      },
+      {
+        "accessibleRecordCount": 4,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 3,
+        "name": "Brighton",
+        "polygonPresent": true,
+        "recordCount": 70,
+        "scheduleRecordCount": 8,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 5
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 1,
+        "name": "Moorabbin",
+        "polygonPresent": true,
+        "recordCount": 34,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 5
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 7,
+        "name": "Cheltenham",
+        "polygonPresent": true,
+        "recordCount": 93,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 12
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 1,
+        "name": "Mordialloc",
+        "polygonPresent": true,
+        "recordCount": 58,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 2
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 2,
+        "name": "Brunswick",
+        "polygonPresent": true,
+        "recordCount": 68,
+        "scheduleRecordCount": 6,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 10
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 1,
+        "name": "Coburg",
+        "polygonPresent": true,
+        "recordCount": 45,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 11
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 4,
+        "name": "Northcote",
+        "polygonPresent": true,
+        "recordCount": 42,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 17
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 5,
+        "name": "Preston",
+        "polygonPresent": true,
+        "recordCount": 250,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 22
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 7,
+        "name": "Reservoir",
+        "polygonPresent": true,
+        "recordCount": 89,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 12
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 3,
+        "name": "Moonee Ponds",
+        "polygonPresent": true,
+        "recordCount": 64,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 13
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 2,
+        "name": "Essendon",
+        "polygonPresent": true,
+        "recordCount": 124,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 9
+      },
+      {
+        "accessibleRecordCount": 52,
+        "authoritativeAccessibleRecordCount": 51,
+        "authoritativeCapacityRecordCount": 253,
+        "authoritativeRecordCount": 253,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 257,
+        "name": "Footscray",
+        "polygonPresent": true,
+        "recordCount": 350,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "maribyrnong-parking-explorer",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 8
+      },
+      {
+        "accessibleRecordCount": 15,
+        "authoritativeAccessibleRecordCount": 14,
+        "authoritativeCapacityRecordCount": 123,
+        "authoritativeRecordCount": 123,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 127,
+        "name": "Yarraville",
+        "polygonPresent": true,
+        "recordCount": 182,
+        "scheduleRecordCount": 2,
+        "sourceIds": [
+          "maribyrnong-parking-explorer",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 7
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 3,
+        "name": "Williamstown",
+        "polygonPresent": true,
+        "recordCount": 46,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 6
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 1,
+        "authoritativeCapacityRecordCount": 1,
+        "authoritativeRecordCount": 1,
+        "authoritativeScheduleRecordCount": 1,
+        "authoritativeTariffRecordCount": 1,
+        "capacityRecordCount": 4,
+        "name": "Werribee",
+        "polygonPresent": true,
+        "recordCount": 351,
+        "scheduleRecordCount": 2,
+        "sourceIds": [
+          "openstreetmap-victoria-parking",
+          "wyndham-hunter-werribee"
+        ],
+        "tariffRecordCount": 12
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 4,
+        "name": "Point Cook",
+        "polygonPresent": true,
+        "recordCount": 299,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 7
+      },
+      {
+        "accessibleRecordCount": 2,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 15,
+        "name": "Hoppers Crossing",
+        "polygonPresent": true,
+        "recordCount": 122,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 14
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 1,
+        "name": "Sunshine",
+        "polygonPresent": true,
+        "recordCount": 86,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 5
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 5,
+        "name": "St Albans",
+        "polygonPresent": true,
+        "recordCount": 123,
+        "scheduleRecordCount": 1,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 2
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Melton",
+        "polygonPresent": true,
+        "recordCount": 48,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 0
+      },
+      {
+        "accessibleRecordCount": 4,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 4,
+        "name": "Craigieburn",
+        "polygonPresent": true,
+        "recordCount": 230,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 3
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 1,
+        "name": "Broadmeadows",
+        "polygonPresent": true,
+        "recordCount": 97,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 1
+      },
+      {
+        "accessibleRecordCount": 0,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 0,
+        "name": "Epping",
+        "polygonPresent": true,
+        "recordCount": 217,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 3
+      },
+      {
+        "accessibleRecordCount": 1,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 0,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 10,
+        "name": "Ringwood",
+        "polygonPresent": true,
+        "recordCount": 227,
+        "scheduleRecordCount": 0,
+        "sourceIds": [
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 33
+      },
+      {
+        "accessibleRecordCount": 4,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 0,
+        "authoritativeRecordCount": 70,
+        "authoritativeScheduleRecordCount": 0,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 46,
+        "name": "Doncaster",
+        "polygonPresent": true,
+        "recordCount": 188,
+        "scheduleRecordCount": 13,
+        "sourceIds": [
+          "manningham-council-carparks",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 10
+      },
+      {
+        "accessibleRecordCount": 7,
+        "authoritativeAccessibleRecordCount": 3,
+        "authoritativeCapacityRecordCount": 5,
+        "authoritativeRecordCount": 5,
+        "authoritativeScheduleRecordCount": 5,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 10,
+        "name": "Frankston",
+        "polygonPresent": true,
+        "recordCount": 182,
+        "scheduleRecordCount": 5,
+        "sourceIds": [
+          "frankston-waterfront-parking",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 33
+      },
+      {
+        "accessibleRecordCount": 4,
+        "authoritativeAccessibleRecordCount": 0,
+        "authoritativeCapacityRecordCount": 3,
+        "authoritativeRecordCount": 109,
+        "authoritativeScheduleRecordCount": 67,
+        "authoritativeTariffRecordCount": 0,
+        "capacityRecordCount": 10,
+        "name": "Cranbourne",
+        "polygonPresent": true,
+        "recordCount": 291,
+        "scheduleRecordCount": 67,
+        "sourceIds": [
+          "casey-parking-zones",
+          "casey-station-carparks-2024",
+          "openstreetmap-victoria-parking"
+        ],
+        "tariffRecordCount": 14
+      }
+    ]
+  },
+  "beforeAssignedRecordCount": 35000,
+  "beforeCatalogRecordCount": 35004,
+  "beforeFieldLabeledCount": 0,
+  "beforeOutsideRecordCount": 4,
+  "boundarySource": "https://services-ap1.arcgis.com/P744lA0wf4LlBZ84/arcgis/rest/services/Vicmap_Admin/FeatureServer/11/query",
+  "changes": [
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 50,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 50,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Burwood",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 23,
+      "afterRecordCount": 104,
+      "afterSourceIds": [
+        "boroondara-public-carparks",
+        "openstreetmap-victoria-parking",
+        "vicmap-features-of-interest-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 23,
+      "beforeRecordCount": 104,
+      "beforeSourceIds": [
+        "boroondara-public-carparks",
+        "openstreetmap-victoria-parking",
+        "vicmap-features-of-interest-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Kew",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 28,
+      "afterRecordCount": 125,
+      "afterSourceIds": [
+        "boroondara-public-carparks",
+        "openstreetmap-victoria-parking",
+        "vicmap-features-of-interest-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 28,
+      "beforeRecordCount": 125,
+      "beforeSourceIds": [
+        "boroondara-public-carparks",
+        "openstreetmap-victoria-parking",
+        "vicmap-features-of-interest-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Hawthorn",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 330,
+      "afterRecordCount": 521,
+      "afterSourceIds": [
+        "monash-wga-parking-review",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 330,
+      "beforeRecordCount": 521,
+      "beforeSourceIds": [
+        "monash-wga-parking-review",
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Glen Waverley",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 238,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 238,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Tarneit",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 2,
+      "afterRecordCount": 42,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking",
+        "stonnington-carparks"
+      ],
+      "beforeAuthoritativeRecordCount": 2,
+      "beforeRecordCount": 42,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking",
+        "stonnington-carparks"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "South Yarra",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 18,
+      "afterRecordCount": 36,
+      "afterSourceIds": [
+        "glen-eira-accessible-parking",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 18,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 18,
+      "deltaRecordCount": 18,
+      "name": "Elsternwick",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 1,
+      "afterRecordCount": 92,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking",
+        "whitehorse-harrow-street"
+      ],
+      "beforeAuthoritativeRecordCount": 1,
+      "beforeRecordCount": 92,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking",
+        "whitehorse-harrow-street"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Box Hill",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 492,
+      "afterRecordCount": 612,
+      "afterSourceIds": [
+        "monash-wga-parking-review",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 492,
+      "beforeRecordCount": 612,
+      "beforeSourceIds": [
+        "monash-wga-parking-review",
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Clayton",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 1,
+      "afterRecordCount": 102,
+      "afterSourceIds": [
+        "greater-dandenong-number-8",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 101,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 1,
+      "deltaRecordCount": 1,
+      "name": "Springvale",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 31,
+      "afterRecordCount": 90,
+      "afterSourceIds": [
+        "boroondara-public-carparks",
+        "openstreetmap-victoria-parking",
+        "vicmap-features-of-interest-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 31,
+      "beforeRecordCount": 90,
+      "beforeSourceIds": [
+        "boroondara-public-carparks",
+        "openstreetmap-victoria-parking",
+        "vicmap-features-of-interest-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Camberwell",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 13,
+      "afterRecordCount": 45,
+      "afterSourceIds": [
+        "boroondara-public-carparks",
+        "openstreetmap-victoria-parking",
+        "vicmap-features-of-interest-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 13,
+      "beforeRecordCount": 45,
+      "beforeSourceIds": [
+        "boroondara-public-carparks",
+        "openstreetmap-victoria-parking",
+        "vicmap-features-of-interest-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Canterbury",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 26,
+      "afterRecordCount": 80,
+      "afterSourceIds": [
+        "boroondara-public-carparks",
+        "openstreetmap-victoria-parking",
+        "vicmap-features-of-interest-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 26,
+      "beforeRecordCount": 80,
+      "beforeSourceIds": [
+        "boroondara-public-carparks",
+        "openstreetmap-victoria-parking",
+        "vicmap-features-of-interest-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Balwyn",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 9,
+      "afterRecordCount": 48,
+      "afterSourceIds": [
+        "boroondara-public-carparks",
+        "openstreetmap-victoria-parking",
+        "vicmap-features-of-interest-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 9,
+      "beforeRecordCount": 48,
+      "beforeSourceIds": [
+        "boroondara-public-carparks",
+        "openstreetmap-victoria-parking",
+        "vicmap-features-of-interest-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Surrey Hills",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 119,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 119,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Blackburn",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 2,
+      "afterRecordCount": 91,
+      "afterSourceIds": [
+        "manningham-council-carparks",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 2,
+      "beforeRecordCount": 91,
+      "beforeSourceIds": [
+        "manningham-council-carparks",
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Nunawading",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 187,
+      "afterRecordCount": 304,
+      "afterSourceIds": [
+        "monash-wga-parking-review",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 187,
+      "beforeRecordCount": 304,
+      "beforeSourceIds": [
+        "monash-wga-parking-review",
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Mount Waverley",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 185,
+      "afterRecordCount": 261,
+      "afterSourceIds": [
+        "monash-wga-parking-review",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 185,
+      "beforeRecordCount": 261,
+      "beforeSourceIds": [
+        "monash-wga-parking-review",
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Oakleigh",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 39,
+      "afterRecordCount": 60,
+      "afterSourceIds": [
+        "monash-wga-parking-review",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 39,
+      "beforeRecordCount": 60,
+      "beforeSourceIds": [
+        "monash-wga-parking-review",
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Chadstone",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 11,
+      "afterRecordCount": 184,
+      "afterSourceIds": [
+        "casey-parking-zones",
+        "casey-station-carparks-2024",
+        "greater-dandenong-carroll-lane",
+        "greater-dandenong-thomas-street",
+        "greater-dandenong-walker-street",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 8,
+      "beforeRecordCount": 181,
+      "beforeSourceIds": [
+        "casey-parking-zones",
+        "casey-station-carparks-2024",
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 3,
+      "deltaRecordCount": 3,
+      "name": "Dandenong",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 3,
+      "afterRecordCount": 75,
+      "afterSourceIds": [
+        "casey-station-carparks-2024",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 3,
+      "beforeRecordCount": 75,
+      "beforeSourceIds": [
+        "casey-station-carparks-2024",
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Noble Park",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 2,
+      "afterRecordCount": 47,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking",
+        "stonnington-carparks"
+      ],
+      "beforeAuthoritativeRecordCount": 2,
+      "beforeRecordCount": 47,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking",
+        "stonnington-carparks"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Prahran",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 11,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 11,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Windsor",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 15,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 15,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Malvern",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 15,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 15,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Armadale",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 6,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 6,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Toorak",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 238,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 238,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Richmond",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 25,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 25,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Cremorne",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 48,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 48,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Fitzroy",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 54,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 54,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Collingwood",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 73,
+      "afterRecordCount": 110,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking",
+        "port-phillip-accessible-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 37,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 73,
+      "deltaRecordCount": 73,
+      "name": "St Kilda",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 77,
+      "afterRecordCount": 100,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking",
+        "port-phillip-accessible-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 23,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 77,
+      "deltaRecordCount": 77,
+      "name": "South Melbourne",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 4,
+      "afterRecordCount": 14,
+      "afterSourceIds": [
+        "glen-eira-accessible-parking",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 10,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 4,
+      "deltaRecordCount": 4,
+      "name": "Caulfield",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 13,
+      "afterRecordCount": 33,
+      "afterSourceIds": [
+        "glen-eira-accessible-parking",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 20,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 13,
+      "deltaRecordCount": 13,
+      "name": "Carnegie",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 32,
+      "afterRecordCount": 60,
+      "afterSourceIds": [
+        "glen-eira-accessible-parking",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 28,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 32,
+      "deltaRecordCount": 32,
+      "name": "Bentleigh",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 70,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 70,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Brighton",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 34,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 34,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Moorabbin",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 93,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 93,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Cheltenham",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 58,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 58,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Mordialloc",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 68,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 68,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Brunswick",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 45,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 45,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Coburg",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 42,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 42,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Northcote",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 250,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 250,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Preston",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 88,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 89,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": -1,
+      "name": "Reservoir",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 64,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 64,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Moonee Ponds",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 124,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 124,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Essendon",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 253,
+      "afterRecordCount": 350,
+      "afterSourceIds": [
+        "maribyrnong-parking-explorer",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 253,
+      "beforeRecordCount": 350,
+      "beforeSourceIds": [
+        "maribyrnong-parking-explorer",
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Footscray",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 123,
+      "afterRecordCount": 182,
+      "afterSourceIds": [
+        "maribyrnong-parking-explorer",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 123,
+      "beforeRecordCount": 182,
+      "beforeSourceIds": [
+        "maribyrnong-parking-explorer",
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Yarraville",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 46,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 46,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Williamstown",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 1,
+      "afterRecordCount": 351,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking",
+        "wyndham-hunter-werribee"
+      ],
+      "beforeAuthoritativeRecordCount": 1,
+      "beforeRecordCount": 351,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking",
+        "wyndham-hunter-werribee"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Werribee",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 299,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 299,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Point Cook",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 122,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 122,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Hoppers Crossing",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 282,
+      "afterRecordCount": 368,
+      "afterSourceIds": [
+        "brimbank-carparks",
+        "brimbank-disabled-car-parks",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 86,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 282,
+      "deltaRecordCount": 282,
+      "name": "Sunshine",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 411,
+      "afterRecordCount": 534,
+      "afterSourceIds": [
+        "brimbank-carparks",
+        "brimbank-disabled-car-parks",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 123,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 411,
+      "deltaRecordCount": 411,
+      "name": "St Albans",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 48,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 48,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Melton",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 230,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 230,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Craigieburn",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 97,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 97,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Broadmeadows",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 217,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 217,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Epping",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 0,
+      "afterRecordCount": 227,
+      "afterSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 0,
+      "beforeRecordCount": 227,
+      "beforeSourceIds": [
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Ringwood",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 70,
+      "afterRecordCount": 188,
+      "afterSourceIds": [
+        "manningham-council-carparks",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 70,
+      "beforeRecordCount": 188,
+      "beforeSourceIds": [
+        "manningham-council-carparks",
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Doncaster",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 5,
+      "afterRecordCount": 182,
+      "afterSourceIds": [
+        "frankston-waterfront-parking",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 5,
+      "beforeRecordCount": 182,
+      "beforeSourceIds": [
+        "frankston-waterfront-parking",
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Frankston",
+      "polygonPresent": true
+    },
+    {
+      "afterAuthoritativeRecordCount": 109,
+      "afterRecordCount": 291,
+      "afterSourceIds": [
+        "casey-parking-zones",
+        "casey-station-carparks-2024",
+        "openstreetmap-victoria-parking"
+      ],
+      "beforeAuthoritativeRecordCount": 109,
+      "beforeRecordCount": 291,
+      "beforeSourceIds": [
+        "casey-parking-zones",
+        "casey-station-carparks-2024",
+        "openstreetmap-victoria-parking"
+      ],
+      "deltaAuthoritativeRecordCount": 0,
+      "deltaRecordCount": 0,
+      "name": "Cranbourne",
+      "polygonPresent": true
+    }
+  ],
+  "localityPolygonCount": 2973,
+  "targetCount": 62
+}

@@ -1,11 +1,16 @@
+import json
 import unittest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from Scripts.probe_victoria_sources import (
     classify_occupancy_records,
+    probe_brimbank_carparks,
+    probe_brimbank_disabled,
+    probe_glen_eira_accessible,
     probe_mildura_accessible,
     probe_melbourne,
+    probe_port_phillip_accessible,
     probe_vicmap_parking,
     summarize_maribyrnong,
 )
@@ -112,6 +117,109 @@ class StaticSourceSummaryTests(unittest.TestCase):
         self.assertEqual("static_locations_or_restrictions", result["classification"])
         self.assertEqual(464, result["parkingFeatures"])
         self.assertEqual("not present", result["occupancy"])
+
+    @patch("Scripts.probe_victoria_sources._request_json")
+    def test_port_phillip_accessible_probe_reports_static_provenance_without_live_fields(self, request_json):
+        request_json.return_value = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [144.955, -37.84]},
+                    "properties": {"Table_Row_ID": 12},
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [144.956, -37.841]},
+                    "properties": {"Table_Row_ID": 13},
+                },
+            ],
+        }
+
+        result = probe_port_phillip_accessible(timeout=1)
+
+        self.assertEqual("static_locations_or_restrictions", result["classification"])
+        self.assertEqual(2, result["parkingFeatures"])
+        self.assertIn("Table_Row_ID", result["observedFields"])
+        self.assertEqual("2022-08-11T05:43:28Z", result["datasetUpdatedAt"])
+        self.assertEqual("Creative Commons Attribution 2.5 Australia", result["license"])
+        self.assertIn("not present", result["occupancy"])
+        self.assertNotIn("verified_live_occupancy", json.dumps(result))
+
+    @patch("Scripts.probe_victoria_sources._request_json")
+    def test_glen_eira_accessible_probe_reports_static_provenance_without_live_fields(self, request_json):
+        request_json.return_value = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [145.05, -37.88]},
+                    "properties": {"ID": 7, "Spaces": 2},
+                }
+            ],
+        }
+
+        result = probe_glen_eira_accessible(timeout=1)
+
+        self.assertEqual("static_locations_or_restrictions", result["classification"])
+        self.assertEqual(1, result["parkingFeatures"])
+        self.assertIn("Spaces", result["observedFields"])
+        self.assertEqual("2022-08-01T04:22:41Z", result["datasetUpdatedAt"])
+        self.assertEqual("Creative Commons Attribution 2.5 Australia", result["license"])
+        self.assertIn("not present", result["occupancy"])
+        self.assertNotIn("verified_live_occupancy", json.dumps(result))
+
+    @patch("Scripts.probe_victoria_sources._request_json")
+    def test_brimbank_carparks_probe_reports_static_wfs_provenance_without_live_fields(self, request_json):
+        request_json.return_value = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "id": "brimbank_carparks.1",
+                    "type": "Feature",
+                    "geometry": {"type": "MultiPolygon", "coordinates": []},
+                    "properties": {"Type": "Sunshine Car Park", "Num_Of_Bay": "45", "Parking_Re": ""},
+                }
+            ],
+        }
+
+        result = probe_brimbank_carparks(timeout=1)
+
+        self.assertEqual("static_locations_or_restrictions", result["classification"])
+        self.assertEqual(1, result["parkingFeatures"])
+        self.assertIn("Parking_Re", result["observedFields"])
+        self.assertIn("Num_Of_Bay", result["observedFields"])
+        self.assertEqual("2019-03-12T00:00:00Z", result["datasetUpdatedAt"])
+        self.assertEqual("Creative Commons Attribution 2.5 Australia", result["license"])
+        self.assertEqual("https://creativecommons.org/licenses/by/2.5/au/", result["licenseURL"])
+        self.assertEqual("https://data.gov.au/data/dataset/brimbank-carparks", result["datasetLanding"])
+        self.assertIn("not present", result["occupancy"])
+        self.assertNotIn("verified_live_occupancy", json.dumps(result))
+
+    @patch("Scripts.probe_victoria_sources._request_json")
+    def test_brimbank_disabled_probe_reports_static_wfs_provenance_without_live_fields(self, request_json):
+        request_json.return_value = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "id": "brimbank_disabled_car_parks.5",
+                    "type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [144.99, -37.78]},
+                    "properties": {"Type": "Outside Library", "Location": "Sunshine", "Num_Of_Bay": 2},
+                }
+            ],
+        }
+
+        result = probe_brimbank_disabled(timeout=1)
+
+        self.assertEqual("static_locations_or_restrictions", result["classification"])
+        self.assertEqual(1, result["parkingFeatures"])
+        self.assertIn("Num_Of_Bay", result["observedFields"])
+        self.assertEqual("2019-03-12T00:00:00Z", result["datasetUpdatedAt"])
+        self.assertEqual("Creative Commons Attribution 2.5 Australia", result["license"])
+        self.assertEqual("https://data.gov.au/data/dataset/brimbank-disabled-car-parks", result["datasetLanding"])
+        self.assertIn("not present", result["occupancy"])
+        self.assertNotIn("verified_live_occupancy", json.dumps(result))
 
 
 class MelbourneProbeTests(unittest.TestCase):

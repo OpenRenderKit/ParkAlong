@@ -23,12 +23,22 @@ enum AppEnvironment {
             let repository = FixtureParkingRepository(
                 mode: repositoryError ? .error : (arguments.contains("-fixture-loading") ? .loading : .live)
             )
-            let staticParkingService: any StaticParkingProviding = arguments.contains("-fixture-cluster")
-                ? FixtureClusterParkingService()
-                : FixtureStaticParkingService(
+            let staticParkingService: any StaticParkingProviding
+            if arguments.contains("-fixture-cluster") {
+                staticParkingService = FixtureClusterParkingService()
+            } else if arguments.contains("-fixture-real-static-catalog") {
+                let catalogVersion = (try? BundleDataLoader.load(StaticCatalogManifest.self, named: "victoria_static_manifest"))?.version
+                    ?? "bundled-unversioned"
+                staticParkingService = StaticParkingRepository(
+                    loader: { try BundleDataLoader.load([StaticParkingLocation].self, named: "victoria_static_parking") },
+                    catalogVersion: catalogVersion
+                )
+            } else {
+                staticParkingService = FixtureStaticParkingService(
                     includeResult: !totalError,
                     resultCount: arguments.contains("-fixture-dense") ? 160 : 1
                 )
+            }
             return ParkingMapViewModel(
                 repository: repository,
                 locationService: location,

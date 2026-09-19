@@ -40,7 +40,7 @@ ParkAlong normalizes those pieces into a single `ParkingOption` model and a sing
 
 - Live on-street availability from City of Melbourne parking-bay sensors.
 - Green, amber, and red count pins: 3+ spaces, 1–2 spaces, or no currently vacant spaces.
-- Statewide parking discovery from 35,004 integrity-manifested public records, with explicitly restricted OpenStreetMap parking removed and authority/approved contractor records preferred over nearby duplicates.
+- Statewide parking discovery from 38,610 integrity-manifested public records, with explicitly restricted OpenStreetMap parking removed and authority/approved contractor records preferred over nearby duplicates.
 - Deep-plum `~N` pins for validated predictions and red `P` pins for location-only results; every non-live pin carries a small amber warning.
 - Current restriction and price resolution from effective-dated schedules and tariffs when a public source supplies enough information.
 - Completion-first destination search plus relevant ParkAlong catalog results, ranked around the visible map rather than a Melbourne-only rectangle.
@@ -82,7 +82,7 @@ flowchart LR
     Sensors["City live sensors"] --> Repository
     Signs["Current zone restrictions"] --> Repository
     History["Historical buckets + held-out validation"] --> Repository
-    Catalog["35,004 statewide static records"] --> Normalizer
+    Catalog["38,610 statewide static records"] --> Normalizer
     MapKit["Apple MapKit facilities"] --> Normalizer["ParkingOption normalizer"]
     Repository --> Engines["Availability, restriction, prediction and ranking engines"]
     Engines --> Normalizer
@@ -234,7 +234,7 @@ Rebuild the anonymous statewide static catalog and its manifest:
 python3 Scripts/generate_victoria_static_catalog.py
 ```
 
-The generator combines public council data from Maribyrnong, Ballarat, Casey, Boroondara, Wodonga, Manningham, Latrobe, Moorabool, Mildura and Swan Hill; the CC BY Vicmap parking-area layer; approved attributed layers for Colac Otway, Monash and Southern Grampians; official parking/rate pages for selected named facilities and regional parking areas; and OpenStreetMap's statewide layer. It records fetch time, complete source attribution, per-source retained counts, municipality/source/accessibility counts, byte size and SHA-256, clusters dense bay geometry, and never converts transactions or old surveys into live availability. See the [19 September source expansion checkpoint](docs/victoria-parking-source-expansion-2026-09-19.md) for the priority method, measured bundle impact, and blocked candidates, and the [fresh 87-area geographic audit](docs/victoria-parking-geographic-coverage-2026-09-19.md) for council-level evidence gaps.
+The generator combines public council data from Maribyrnong, Ballarat, Casey, Boroondara, Wodonga, Manningham, Latrobe, Moorabool, Mildura, Swan Hill, Brimbank and Port Phillip/Glen Eira accessible snapshots; the CC BY Vicmap parking-area layer; approved attributed layers for Colac Otway, Monash and Southern Grampians; official parking/rate pages for selected named facilities and regional parking areas, including four Greater Dandenong facilities; and OpenStreetMap's statewide layer. It records fetch time, complete source attribution, per-source retained counts, municipality/source/accessibility counts, byte size and SHA-256, clusters dense bay geometry, and never converts transactions or old surveys into live availability. All eight source IDs added in this expansion (Port Phillip, Glen Eira, two Brimbank feeds and four Greater Dandenong facilities) are static-only. The Brimbank source resource is dated 2019 and restrictions with exclusion semantics were withheld/filtered conservatively. Greater Dandenong tariffs were omitted because the pages publish no fee-effective date, and Number 8 capacity remains unknown because the source says more than 500. Locality labels are derived from official Vicmap polygons and do not upgrade parking-source authority. See the [19 September source expansion checkpoint](docs/victoria-parking-source-expansion-2026-09-19.md) for the priority method, measured bundle impact, and blocked candidates, the [fresh 87-area geographic audit](docs/victoria-parking-geographic-coverage-2026-09-19.md) for council-level evidence gaps, and the [62-locality coverage audit](docs/victoria-parking-locality-coverage-2026-09-19.md) for before/after locality evidence. Research holds with no ingest where reuse permission, exact geometry, or exact current semantics were unresolved include additional Stonnington facilities, Deakin Burwood, West Tarneit, Ringwood/hospital candidates, and Glen Waverley page corrections not safely mappable to source polygons.
 
 Optional remote deltas use the same bounding-box/arrival/duration/zoom contract. Set the `PARKALONG_REMOTE_BASE_URL` Xcode build setting for a production build, or the environment variable with the same name for local development. It is empty and disabled by default; bundled records remain the offline fallback.
 

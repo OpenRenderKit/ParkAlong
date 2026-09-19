@@ -13,6 +13,7 @@ enum ParkingDataClassification: String, Codable, Equatable, Sendable {
 enum StaticParkingKind: String, Codable, Equatable, Sendable {
     case onStreet = "on_street"
     case offStreet = "off_street"
+    case unknown = "unknown"
 }
 
 enum ParkingArchetype: String, Codable, Equatable, Sendable {
@@ -144,6 +145,7 @@ struct StaticParkingLocation: Codable, Equatable, Identifiable, Sendable {
     let id: String
     let name: String
     let municipality: String
+    let locality: String?
     let coordinate: Coordinate
     let kind: StaticParkingKind
     let archetype: ParkingArchetype
@@ -154,4 +156,45 @@ struct StaticParkingLocation: Codable, Equatable, Identifiable, Sendable {
     let source: ParkingSourceAttribution
     let classification: ParkingDataClassification
     let predictionEvidence: PredictionEvidence?
+
+    init(
+        id: String,
+        name: String,
+        municipality: String,
+        locality: String? = nil,
+        coordinate: Coordinate,
+        kind: StaticParkingKind,
+        archetype: ParkingArchetype,
+        capacity: Int?,
+        accessibleSpaces: Int?,
+        schedules: [ParkingSchedule],
+        tariffs: [ParkingTariff],
+        source: ParkingSourceAttribution,
+        classification: ParkingDataClassification,
+        predictionEvidence: PredictionEvidence?
+    ) {
+        self.id = id
+        self.name = name
+        self.municipality = municipality
+        self.locality = locality
+        self.coordinate = coordinate
+        self.kind = kind
+        self.archetype = archetype
+        self.capacity = capacity
+        self.accessibleSpaces = accessibleSpaces
+        self.schedules = schedules
+        self.tariffs = tariffs
+        self.source = source
+        self.classification = classification
+        self.predictionEvidence = predictionEvidence
+    }
+
+    var locationLabel: String {
+        let trimmedLocality = locality?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmedLocality.isEmpty else { return municipality }
+        if trimmedLocality.caseInsensitiveCompare(municipality.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame {
+            return municipality
+        }
+        return "\(trimmedLocality), \(municipality)"
+    }
 }

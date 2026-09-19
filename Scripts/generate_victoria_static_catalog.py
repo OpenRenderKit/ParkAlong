@@ -21,6 +21,45 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+try:
+    from analyze_victoria_catalog_coverage import (
+        VICMAP_LOCALITY_DATASET_UPDATED_AT,
+        VICMAP_LOCALITY_ITEM_ID,
+        VICMAP_LOCALITY_LICENSE_NAME,
+        VICMAP_LOCALITY_LICENSE_URL,
+        VICMAP_LOCALITY_MIN_SANE_COUNT,
+        VICMAP_LOCALITY_QUERY_URL,
+        VICMAP_LOCALITY_SERVICE_URL,
+        build_locality_index,
+        fetch_lga_geojson,
+        fetch_locality_geojson,
+        lga_areas_from_geojson,
+        locality_areas_from_geojson,
+        matching_lga,
+        matching_locality,
+        natural_locality_name,
+        validate_locality_geojson,
+    )
+except ImportError:  # pragma: no cover - unittest discovery from the repository root
+    from Scripts.analyze_victoria_catalog_coverage import (
+        VICMAP_LOCALITY_DATASET_UPDATED_AT,
+        VICMAP_LOCALITY_ITEM_ID,
+        VICMAP_LOCALITY_LICENSE_NAME,
+        VICMAP_LOCALITY_LICENSE_URL,
+        VICMAP_LOCALITY_MIN_SANE_COUNT,
+        VICMAP_LOCALITY_QUERY_URL,
+        VICMAP_LOCALITY_SERVICE_URL,
+        build_locality_index,
+        fetch_lga_geojson,
+        fetch_locality_geojson,
+        lga_areas_from_geojson,
+        locality_areas_from_geojson,
+        matching_lga,
+        matching_locality,
+        natural_locality_name,
+        validate_locality_geojson,
+    )
+
 
 USER_AGENT = "ParkAlong-Static-Catalog/1.0 (+https://github.com/OpenRenderKit/ParkAlong)"
 BALLARAT_FEES_EFFECTIVE = "2026-08-01T00:00:00+10:00"
@@ -31,6 +70,22 @@ MILDURA_ACCESSIBLE_URL = (
 SWAN_HILL_ACCESSIBLE_URL = (
     "https://data.gov.au/data/dataset/52c7294f-dfdc-410e-ba83-539b0bf83931/"
     "resource/1e8b32d0-7038-44b8-8f1c-a70504eda408/download/shrccdisabledparking.csv"
+)
+PORT_PHILLIP_ACCESSIBLE_URL = (
+    "https://data.gov.au/data/dataset/874498ce-a720-43c3-b7d5-0a750653ffa2/"
+    "resource/2ae71d07-8def-469d-976c-24193b968288/download/city-of-port-phillip-accessible-parking.geojson"
+)
+GLEN_EIRA_ACCESSIBLE_URL = (
+    "https://data.gov.au/data/dataset/66f2f149-f822-4077-b8a9-15fa0990bf58/"
+    "resource/81fbc12d-2d0d-41b4-af04-e62fd1b5a482/download/accessibleparking.json"
+)
+BRIMBANK_CARPARK_WFS_URL = (
+    "https://data.gov.au/geoserver/brimbank-carparks/wfs?request=GetFeature"
+    "&typeName=ckan_43c21764_3114_4e2b_8718_a2ded31e14d2&outputFormat=json"
+)
+BRIMBANK_DISABLED_WFS_URL = (
+    "https://data.gov.au/geoserver/brimbank-disabled-car-parks/wfs?request=GetFeature"
+    "&typeName=ckan_3ecdd93d_0d55_49a3_a11a_294e4640f9e1&outputFormat=json"
 )
 VICMAP_FOI_URL = (
     "https://services-ap1.arcgis.com/P744lA0wf4LlBZ84/arcgis/rest/services/"
@@ -582,6 +637,202 @@ def build_swan_hill_accessible_records(rows: list[dict[str, Any]], *, checked_at
     return records
 
 
+def build_port_phillip_accessible_records(features: list[dict[str, Any]], *, checked_at: str) -> list[dict[str, Any]]:
+    source = _source(
+        "port-phillip-accessible-parking", "City of Port Phillip",
+        "https://data.gov.au/data/dataset/city-of-port-phillip-accessible-parking",
+        checked_at,
+        license_name="Creative Commons Attribution 2.5 Australia",
+        license_url="https://creativecommons.org/licenses/by/2.5/au/",
+        dataset_updated_at="2022-08-11T05:43:28Z",
+    )
+    records: list[dict[str, Any]] = []
+    for feature in features:
+        properties = feature.get("properties") or {}
+        raw_identifier = properties.get("Table_Row_ID")
+        if raw_identifier is None or str(raw_identifier).strip() == "":
+            continue
+        identifier = _safe_component(raw_identifier, "")
+        if not identifier:
+            continue
+        geometry = feature.get("geometry") or {}
+        if geometry.get("type") not in (None, "Point"):
+            continue
+        coordinates = geometry.get("coordinates") or []
+        coordinate = _coordinate(coordinates[1], coordinates[0]) if len(coordinates) >= 2 else None
+        if not coordinate:
+            continue
+        records.append(_record(
+            f"port-phillip-accessible-{identifier}", "Accessible parking location", "Port Phillip",
+            coordinate, source, kind="unknown",
+        ))
+    return records
+
+
+def _glen_eira_stable_id(properties: dict[str, Any]) -> Any:
+    for key in ("ID", "id", "Id", "ogr_fid", "OGR_FID", "FID", "fid"):
+        value = properties.get(key)
+        if value is not None and str(value).strip() != "":
+            return value
+    return None
+
+
+def _glen_eira_spaces(properties: dict[str, Any]) -> int | None:
+    for key in ("Spaces", "spaces", "SPACES"):
+        if properties.get(key) is not None:
+            parsed = _positive_int(properties.get(key))
+            # Distinguish missing/invalid (None) from explicit non-positive; both reject.
+            if parsed is not None:
+                return parsed
+            return None
+    return None
+
+
+def build_glen_eira_accessible_records(features: list[dict[str, Any]], *, checked_at: str) -> list[dict[str, Any]]:
+    source = _source(
+        "glen-eira-accessible-parking", "Glen Eira City Council",
+        "https://data.gov.au/data/dataset/accessible-parking",
+        checked_at,
+        license_name="Creative Commons Attribution 2.5 Australia",
+        license_url="https://creativecommons.org/licenses/by/2.5/au/",
+        dataset_updated_at="2022-08-01T04:22:41Z",
+    )
+    records: list[dict[str, Any]] = []
+    seen_locations: set[tuple[float, float, int]] = set()
+    for feature in features:
+        properties = feature.get("properties") or {}
+        raw_identifier = _glen_eira_stable_id(properties)
+        if raw_identifier is None:
+            continue
+        identifier = _safe_component(raw_identifier, "")
+        if not identifier:
+            continue
+        accessible_spaces = _glen_eira_spaces(properties)
+        if accessible_spaces is None:
+            continue
+        geometry = feature.get("geometry") or {}
+        if geometry.get("type") not in (None, "Point"):
+            continue
+        coordinates = geometry.get("coordinates") or []
+        coordinate = _coordinate(coordinates[1], coordinates[0]) if len(coordinates) >= 2 else None
+        if not coordinate:
+            continue
+        location_key = (
+            coordinate["latitude"], coordinate["longitude"], accessible_spaces
+        )
+        # The published file contains an exact duplicate pair (source IDs 119
+        # and 120). Keep the first stable source row instead of presenting the
+        # same bay twice; nearby bays with different coordinates or counts stay.
+        if location_key in seen_locations:
+            continue
+        seen_locations.add(location_key)
+        records.append(_record(
+            f"glen-eira-accessible-{identifier}", "Accessible parking bay", "Glen Eira",
+            coordinate, source, kind="unknown", accessible_spaces=accessible_spaces,
+        ))
+    return records
+
+
+_BRIMBANK_DATASET_UPDATED_AT = "2019-03-12T00:00:00Z"
+_BRIMBANK_LICENSE_NAME = "Creative Commons Attribution 2.5 Australia"
+_BRIMBANK_LICENSE_URL = "https://creativecommons.org/licenses/by/2.5/au/"
+_BRIMBANK_EXCLUDED_RESTRICTION_SUBSTRINGS = (
+    "no stopping",
+    "no parking",
+    "bus zone",
+    "loading zone",
+    "taxi zone",
+    "permit zone",
+    "staff excepted",
+    "council vehicles excepted",
+    "library staff excepted",
+    "drop off zone",
+    "clearway",
+    "disabled only",
+)
+
+
+def _brimbank_coordinate(properties: dict[str, Any]) -> dict[str, float] | None:
+    for lat_key in ("Lat", "LAT", "lat", "Latitude", "LATITUDE"):
+        for lon_key in ("Long", "LONG", "long", "Lon", "LON", "lon", "Longitude", "LONGITUDE", "Lng", "LNG"):
+            if properties.get(lat_key) is not None and properties.get(lon_key) is not None:
+                coordinate = _coordinate(properties.get(lat_key), properties.get(lon_key))
+                if coordinate:
+                    return coordinate
+    return None
+
+
+def build_brimbank_carpark_records(features: list[dict[str, Any]], *, checked_at: str) -> list[dict[str, Any]]:
+    source = _source(
+        "brimbank-carparks", "Brimbank City Council",
+        "https://data.gov.au/data/dataset/brimbank-carparks",
+        checked_at,
+        license_name=_BRIMBANK_LICENSE_NAME,
+        license_url=_BRIMBANK_LICENSE_URL,
+        dataset_updated_at=_BRIMBANK_DATASET_UPDATED_AT,
+    )
+    records: list[dict[str, Any]] = []
+    for feature in features:
+        properties = feature.get("properties") or {}
+        restriction = str(properties.get("Parking_Re") or "")
+        lowered = restriction.lower()
+        if any(phrase in lowered for phrase in _BRIMBANK_EXCLUDED_RESTRICTION_SUBSTRINGS):
+            continue
+        raw_identifier = feature.get("id")
+        if raw_identifier is None or str(raw_identifier).strip() == "":
+            continue
+        identifier = _safe_component(raw_identifier, "")
+        if not identifier:
+            continue
+        name = str(properties.get("Type") or "").strip()
+        if not name:
+            continue
+        coordinate = geometry_centroid(feature.get("geometry")) or _brimbank_coordinate(properties)
+        if not coordinate:
+            continue
+        capacity = _positive_int(properties.get("Num_Of_Bay"))
+        records.append(_record(
+            f"brimbank-{identifier}", name, "Brimbank", coordinate, source,
+            kind="unknown", capacity=capacity,
+        ))
+    return records
+
+
+def build_brimbank_disabled_records(features: list[dict[str, Any]], *, checked_at: str) -> list[dict[str, Any]]:
+    source = _source(
+        "brimbank-disabled-car-parks", "Brimbank City Council",
+        "https://data.gov.au/data/dataset/brimbank-disabled-car-parks",
+        checked_at,
+        license_name=_BRIMBANK_LICENSE_NAME,
+        license_url=_BRIMBANK_LICENSE_URL,
+        dataset_updated_at=_BRIMBANK_DATASET_UPDATED_AT,
+    )
+    records: list[dict[str, Any]] = []
+    for feature in features:
+        properties = feature.get("properties") or {}
+        raw_identifier = feature.get("id")
+        if raw_identifier is None or str(raw_identifier).strip() == "":
+            continue
+        identifier = _safe_component(raw_identifier, "")
+        if not identifier:
+            continue
+        type_text = str(properties.get("Type") or "").strip()
+        location_text = str(properties.get("Location") or "").strip()
+        if type_text and location_text:
+            name = f"{type_text} · {location_text}"
+        else:
+            name = type_text or location_text or "Accessible parking bay"
+        coordinate = geometry_centroid(feature.get("geometry")) or _brimbank_coordinate(properties)
+        if not coordinate:
+            continue
+        accessible_spaces = _positive_int(properties.get("Num_Of_Bay"))
+        records.append(_record(
+            f"brimbank-disabled-{identifier}", name, "Brimbank", coordinate, source,
+            kind="unknown", accessible_spaces=accessible_spaces,
+        ))
+    return records
+
+
 def build_vicmap_parking_records(
     features: list[dict[str, Any]], *, checked_at: str, dataset_updated_at: str | None,
 ) -> list[dict[str, Any]]:
@@ -1050,6 +1301,178 @@ def curated_official_records(checked_at: str) -> list[dict[str, Any]]:
         schedules=[_schedule([2, 3, 4, 5, 6], 9 * 60, 17 * 60 + 30, 120, "2P ticketed area", outside_unrestricted=True)],
         tariffs=[_tariff("2026-02-02T00:00:00+11:00", [2, 3, 4, 5, 6], 9 * 60, 17 * 60 + 30, hourly_cents=140)],
     ))
+
+    # Greater Dandenong council facility pages verified 2026-09-19. Pages expose
+    # no resource date, so sources carry checkedAt only (no datasetUpdatedAt).
+    # Their fee tables do not publish an effective date; the model requires one,
+    # so tariffs are deliberately withheld rather than assigned a guessed date.
+    number_8 = _source(
+        "greater-dandenong-number-8", "City of Greater Dandenong",
+        "https://www.greaterdandenong.vic.gov.au/number-8-car-park",
+        checked_at, license_name="Official council facility page",
+    )
+    records.append(_record(
+        "greater-dandenong-number-8", "Number 8 Balmoral Avenue Multi-deck Car Park", "Greater Dandenong",
+        _coordinate(-37.949639, 145.151733), number_8, kind="off_street",
+        # The page says "more than 500". The model represents exact capacities
+        # only, so retain the useful facility without inventing an exact count.
+        capacity=None,
+        schedules=[_schedule(range(1, 8), 7 * 60, 23 * 60, None, "Open 7:00 am–11:00 pm")],
+        tariffs=[],
+    ))
+
+    thomas_street = _source(
+        "greater-dandenong-thomas-street", "City of Greater Dandenong",
+        "https://www.greaterdandenong.vic.gov.au/council-car-parks/thomas-street-multi-deck-car-park",
+        checked_at, license_name="Official council facility page",
+    )
+    records.append(_record(
+        "greater-dandenong-thomas-street", "Thomas Street Multi-deck Car Park", "Greater Dandenong",
+        _coordinate(-37.986932, 145.212884), thomas_street, kind="off_street",
+        schedules=[
+            _schedule([2, 3, 4, 5, 6, 7], 6 * 60, 22 * 60, None, "Open 6:00 am–10:00 pm"),
+            _schedule([1], 9 * 60, 22 * 60, None, "Open 9:00 am–10:00 pm"),
+        ],
+        tariffs=[],
+    ))
+
+    walker_street = _source(
+        "greater-dandenong-walker-street", "City of Greater Dandenong",
+        "https://www.greaterdandenong.vic.gov.au/council-car-parks/walker-street-multi-deck-car-park",
+        checked_at, license_name="Official council facility page",
+    )
+    records.append(_record(
+        "greater-dandenong-walker-street", "Walker Street Multi-deck Car Park", "Greater Dandenong",
+        _coordinate(-37.987707, 145.211924), walker_street, kind="off_street",
+        schedules=[
+            # Cross-midnight Mon-Sat 06:00–01:00 encoded with end > 24h,
+            # matching the existing Whitehorse cross-midnight pattern.
+            _schedule([2, 3, 4, 5, 6, 7], 6 * 60, 24 * 60 + 60, None, "Open 6:00 am–1:00 am"),
+            _schedule([1], 9 * 60, 23 * 60, None, "Open 9:00 am–11:00 pm"),
+        ],
+        tariffs=[],
+    ))
+
+    carroll_lane = _source(
+        "greater-dandenong-carroll-lane", "City of Greater Dandenong",
+        "https://www.greaterdandenong.vic.gov.au/council-car-parks/carroll-lane-car-park",
+        checked_at, license_name="Official council facility page",
+    )
+    records.append(_record(
+        "greater-dandenong-carroll-lane", "Carroll Lane Car Park", "Greater Dandenong",
+        _coordinate(-37.989876, 145.207576), carroll_lane, kind="off_street",
+        schedules=[_schedule(range(1, 8), 0, 24 * 60, None, "Open 24 hours")],
+        # No tariff: page offers free parking only for public-transport users
+        # and the tariff model cannot represent that user condition, so an
+        # unconditional free tariff would mislead.
+        tariffs=[],
+    ))
+    return records
+
+
+_LGA_SHORT_NAME_EXCEPTIONS = {
+    "MERRI-BEK": "Merri-bek",
+}
+
+
+def lga_short_municipality_name(lga_name: str) -> str:
+    """Title-case Vicmap lga_name values to match existing catalog municipality labels."""
+
+    stripped = " ".join(str(lga_name or "").split())
+    if not stripped:
+        return stripped
+    return _LGA_SHORT_NAME_EXCEPTIONS.get(stripped.upper(), stripped.title())
+
+
+def assign_spatial_municipality(
+    records: list[dict[str, Any]], geojson: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Replace generic statewide municipality labels using Vicmap LGA polygons.
+
+    Only records whose municipality is exactly "Victoria" are rewritten. Source
+    provenance, identifiers, classification, schedules, and tariffs stay intact.
+    Points outside every polygon, including polygon holes, remain "Victoria".
+    """
+
+    areas = lga_areas_from_geojson(geojson)
+    for record in records:
+        if record.get("municipality") != "Victoria":
+            continue
+        coordinate = record.get("coordinate") or {}
+        try:
+            point = (float(coordinate["longitude"]), float(coordinate["latitude"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+        match = matching_lga(areas, point)
+        if match is None:
+            continue
+        short_name = lga_short_municipality_name((match or {}).get("name", ""))
+        if not short_name:
+            continue
+        record["municipality"] = short_name
+    return records
+
+
+def locality_summary(records: list[dict[str, Any]]) -> dict[str, int]:
+    """Manifest-facing locality counts derived only from assigned records."""
+    labeled = sum(1 for record in records if record.get("locality"))
+    return {
+        "localityLabeled": labeled,
+        "localityUnmatched": len(records) - labeled,
+        "localityDistinct": len(
+            {record.get("locality") for record in records if record.get("locality")}
+        ),
+    }
+
+
+def assign_spatial_locality(
+    records: list[dict[str, Any]],
+    geojson: dict[str, Any],
+    *,
+    index: dict[str, Any] | None = None,
+    min_count: int = VICMAP_LOCALITY_MIN_SANE_COUNT,
+) -> list[dict[str, Any]]:
+    """Add suburb/locality only from authoritative Vicmap polygon containment.
+
+    Uses the official Vicmap Admin Locality Boundaries layer 11 polygons
+    (CC BY 4.0 International, item 51eed453d31243a795850b765a400769). The
+    full paginated result is validated first; a partial page fails closed
+    with RuntimeError instead of silently labeling a subset. Points are
+    matched through a grid/bounds candidate index plus the shared
+    hole-aware Polygon/MultiPolygon containment, never from a record name
+    and never via reverse-geocoding.
+
+    Existing locality values are preserved (no overwrite). Unmatched points
+    (outside every polygon, inside a hole, or with bad coordinates) keep
+    locality absent or null. Municipality, source, IDs, classification,
+    kind, schedules, and tariffs are never modified.
+
+    min_count exists only so offline unit fixtures can use tiny polygons;
+    production callers must keep the default sane threshold.
+    """
+
+    validate_locality_geojson(geojson, min_count=min_count)
+    areas = locality_areas_from_geojson(geojson)
+    if not areas:
+        raise RuntimeError("Locality GeoJSON produced no usable polygons")
+    spatial_index = index if index is not None else build_locality_index(areas)
+    for record in records:
+        if record.get("locality"):
+            continue
+        coordinate = record.get("coordinate") or {}
+        try:
+            point = (float(coordinate["longitude"]), float(coordinate["latitude"]))
+        except (KeyError, TypeError, ValueError):
+            record["locality"] = None
+            continue
+        match = matching_locality(spatial_index, point)
+        if match is None:
+            record["locality"] = None
+            continue
+        label = match.get("name") or natural_locality_name(
+            str(match.get("rawName") or "")
+        )
+        record["locality"] = label or None
     return records
 
 
@@ -1132,7 +1555,13 @@ def fetch_osm_parking(timeout: int) -> tuple[list[dict[str, Any]], str | None]:
     raise RuntimeError("All Overpass endpoints failed: " + " | ".join(errors))
 
 
-def build_catalog(timeout: int = 45, *, include_osm: bool = True) -> tuple[list[dict[str, Any]], dict[str, int]]:
+def build_catalog(
+    timeout: int = 45,
+    *,
+    include_osm: bool = True,
+    lga_geojson: dict[str, Any] | None = None,
+    locality_geojson: dict[str, Any] | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
     checked_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     arcgis_root = "https://services2.arcgis.com/PovBcp8J7VQYyDEI/arcgis/rest/services"
     maribyrnong_regular = fetch_arcgis_features(f"{arcgis_root}/Reg_Parking_Bay_GreenZone_Ply/FeatureServer/0", timeout)
@@ -1152,6 +1581,10 @@ def build_catalog(timeout: int = 45, *, include_osm: bool = True) -> tuple[list[
     southern_grampians = fetch_arcgis_features("https://services1.arcgis.com/bLsSwu2wpv4JvxHE/arcgis/rest/services/southern_grampians_carpark_inspection_2024/FeatureServer/0", timeout)
     mildura_accessible = request_json(MILDURA_ACCESSIBLE_URL, timeout=timeout).get("features", [])
     swan_hill_accessible = list(csv.DictReader(io.StringIO(request_text(SWAN_HILL_ACCESSIBLE_URL, timeout))))
+    port_phillip_accessible = request_json(PORT_PHILLIP_ACCESSIBLE_URL, timeout=timeout).get("features", [])
+    glen_eira_accessible = request_json(GLEN_EIRA_ACCESSIBLE_URL, timeout=timeout).get("features", [])
+    brimbank_carparks = request_json(BRIMBANK_CARPARK_WFS_URL, timeout=timeout).get("features", [])
+    brimbank_disabled = request_json(BRIMBANK_DISABLED_WFS_URL, timeout=timeout).get("features", [])
     vicmap_parking = fetch_arcgis_features(VICMAP_FOI_URL, timeout, where="feature_subtype='parking area'")
     vicmap_updated_at = arcgis_dataset_updated_at(VICMAP_FOI_URL, timeout)
 
@@ -1169,6 +1602,10 @@ def build_catalog(timeout: int = 45, *, include_osm: bool = True) -> tuple[list[
         "southernGrampians": build_southern_grampians_records(southern_grampians, checked_at=checked_at),
         "milduraAccessible": build_mildura_accessible_records(mildura_accessible, checked_at=checked_at),
         "swanHillAccessible": build_swan_hill_accessible_records(swan_hill_accessible, checked_at=checked_at),
+        "portPhillipAccessible": build_port_phillip_accessible_records(port_phillip_accessible, checked_at=checked_at),
+        "glenEiraAccessible": build_glen_eira_accessible_records(glen_eira_accessible, checked_at=checked_at),
+        "brimbankCarparks": build_brimbank_carpark_records(brimbank_carparks, checked_at=checked_at),
+        "brimbankDisabled": build_brimbank_disabled_records(brimbank_disabled, checked_at=checked_at),
         "vicmapParking": build_vicmap_parking_records(
             vicmap_parking, checked_at=checked_at, dataset_updated_at=vicmap_updated_at,
         ),
@@ -1180,6 +1617,16 @@ def build_catalog(timeout: int = 45, *, include_osm: bool = True) -> tuple[list[
             osm_elements, checked_at=checked_at, dataset_updated_at=osm_updated_at
         )
     records = deduplicate_records([record for values in groups.values() for record in values])
+    boundaries = lga_geojson if lga_geojson is not None else fetch_lga_geojson(
+        timeout=max(timeout, 90), user_agent=USER_AGENT
+    )
+    records = assign_spatial_municipality(records, boundaries)
+    locality_boundaries = (
+        locality_geojson
+        if locality_geojson is not None
+        else fetch_locality_geojson(timeout=max(timeout, 90), user_agent=USER_AGENT)
+    )
+    records = assign_spatial_locality(records, locality_boundaries)
     retained_ids = {record["id"] for record in records}
     claimed_ids: set[str] = set()
     counts: dict[str, int] = {}
@@ -1190,6 +1637,11 @@ def build_catalog(timeout: int = 45, *, include_osm: bool = True) -> tuple[list[
         }
         counts[name] = len(group_ids)
         claimed_ids.update(group_ids)
+    summary = locality_summary(records)
+    counts["localityLabeled"] = summary["localityLabeled"]
+    counts["localityUnmatched"] = summary["localityUnmatched"]
+    counts["localityDistinct"] = summary["localityDistinct"]
+    counts["localityPolygons"] = len((locality_boundaries or {}).get("features", []))
     return records, counts
 
 
@@ -1205,7 +1657,9 @@ def main() -> None:
     required_sources = (
         "maribyrnong", "ballarat", "casey", "boroondara", "wodonga", "manningham", "latrobe",
         "moorabool", "colacOtway", "monash", "southernGrampians",
-        "milduraAccessible", "swanHillAccessible", "vicmapParking",
+        "milduraAccessible", "swanHillAccessible", "portPhillipAccessible", "glenEiraAccessible",
+        "brimbankCarparks", "brimbankDisabled",
+        "vicmapParking",
     )
     if not records or any(counts[name] == 0 for name in required_sources):
         raise RuntimeError(f"Required public source produced no records: {counts}")
@@ -1213,14 +1667,28 @@ def main() -> None:
     output = json.dumps(records, separators=(",", ":")).encode("utf-8")
     args.output.write_bytes(output)
     sources = {record["source"]["id"]: record["source"] for record in records}
+    source_counts = {
+        key: value for key, value in counts.items() if not key.startswith("locality")
+    }
+    summary = locality_summary(records)
     manifest = {
         "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "recordCount": len(records),
         "municipalityCount": len({record["municipality"] for record in records}),
         "sourceCount": len(sources),
-        "sourceCounts": counts,
+        "sourceCounts": source_counts,
         "sourceAttributions": [sources[key] for key in sorted(sources)],
         "accessibleRecordCount": sum(1 for record in records if (record.get("accessibleSpaces") or 0) > 0),
+        "localityLabeledCount": summary["localityLabeled"],
+        "localityUnmatchedCount": summary["localityUnmatched"],
+        "localityDistinctCount": summary["localityDistinct"],
+        "localityPolygonCount": counts.get("localityPolygons", 0),
+        "localityBoundarySource": VICMAP_LOCALITY_QUERY_URL,
+        "localityServiceURL": VICMAP_LOCALITY_SERVICE_URL,
+        "localityItemId": VICMAP_LOCALITY_ITEM_ID,
+        "localityLicenseName": VICMAP_LOCALITY_LICENSE_NAME,
+        "localityLicenseURL": VICMAP_LOCALITY_LICENSE_URL,
+        "localityDatasetUpdatedAt": VICMAP_LOCALITY_DATASET_UPDATED_AT,
         "outputBytes": args.output.stat().st_size,
         "outputSHA256": hashlib.sha256(output).hexdigest(),
     }

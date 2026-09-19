@@ -276,9 +276,7 @@ struct ZoneDetailView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Posted signs govern.")
                 .font(.subheadline.weight(.semibold))
-            Text(option.kind == .onStreet
-                 ? "Counts and estimates can change. Check the sign and meter before you leave the car. Sensors can misread on public holidays and near construction."
-                 : "Facility hours, spaces and prices are controlled by the provider. Check before you travel.")
+            Text(ZoneDetailDisclaimer.detail(for: option.kind))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -342,6 +340,19 @@ struct ZoneDetailView: View {
 
     private func priceLabel(_ price: ParkingPriceInformation) -> String {
         price.detail.isEmpty ? price.primaryText : "\(price.primaryText). \(price.detail)"
+    }
+}
+
+enum ZoneDetailDisclaimer {
+    static func detail(for kind: ParkingOptionKind) -> String {
+        switch kind {
+        case .onStreet:
+            "Counts and estimates can change. Check the sign and meter before you leave the car. Sensors can misread on public holidays and near construction."
+        case .offStreet:
+            "Facility hours, spaces and prices are controlled by the provider. Check before you travel."
+        case .unknown:
+            "Location and accessibility may change. Posted signs or facility information govern."
+        }
     }
 }
 

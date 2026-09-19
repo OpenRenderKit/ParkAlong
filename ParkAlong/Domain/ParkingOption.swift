@@ -3,6 +3,15 @@ import Foundation
 enum ParkingOptionKind: String, Codable, Sendable {
     case onStreet = "On-street"
     case offStreet = "Off-street"
+    case unknown = "Parking"
+
+    init(_ kind: StaticParkingKind) {
+        switch kind {
+        case .onStreet: self = .onStreet
+        case .offStreet: self = .offStreet
+        case .unknown: self = .unknown
+        }
+    }
 }
 
 enum ParkingAvailabilityState: String, Sendable {

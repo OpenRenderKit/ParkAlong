@@ -355,6 +355,38 @@ final class ParkAlongUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["destination-title"].label, "Flinders Street Station")
     }
 
+    func testBundledCatalogSearchFindsRepresentativeMelbourneLocalities() {
+        let app = launch(["-fixture-live", "-fixture-real-static-catalog"])
+        let localities = [
+            "Burwood", "Kew", "Glen Waverley", "Tarneit", "South Yarra",
+            "Elsternwick", "Box Hill", "Clayton", "Springvale"
+        ]
+
+        for locality in localities {
+            app.buttons["destination-search-button"].tap()
+            let field = app.textFields["destination-search-field"]
+            XCTAssertTrue(field.waitForExistence(timeout: 2), locality)
+            field.tap()
+            field.typeText(locality)
+
+            let result = app.buttons.matching(
+                NSPredicate(format: "identifier BEGINSWITH %@", "search-result-parking-")
+            ).firstMatch
+            XCTAssertTrue(result.waitForExistence(timeout: 5), locality)
+            XCTAssertTrue(result.label.localizedCaseInsensitiveContains(locality), result.label)
+
+            result.tap()
+            let detailSheet = app.otherElements["zone-detail-sheet"]
+            XCTAssertTrue(detailSheet.waitForExistence(timeout: 3), locality)
+            let localityLabel = app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", locality)
+            ).firstMatch
+            XCTAssertTrue(localityLabel.waitForExistence(timeout: 2), locality)
+            detailSheet.swipeDown()
+            XCTAssertTrue(app.buttons["destination-search-button"].waitForExistence(timeout: 2), locality)
+        }
+    }
+
     func testSearchIdleStateAvoidsEmptyBlackScreen() {
         let app = launch()
         XCTAssertTrue(app.buttons["destination-search-button"].waitForExistence(timeout: 3))

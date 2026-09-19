@@ -238,7 +238,11 @@ actor StaticParkingRepository: StaticParkingProviding {
 
     private static func makeSearchEntries(_ locations: [StaticParkingLocation]) -> [SearchEntry] {
         locations.map { location in
-            let normalized = normalizedSearchText("\(location.name) \(location.municipality) \(location.source.name)")
+            let normalized = normalizedSearchText(
+                [location.name, location.municipality, location.locality, location.source.name]
+                    .compactMap { $0 }
+                    .joined(separator: " ")
+            )
             return SearchEntry(
                 location: location,
                 normalizedText: normalized,
@@ -249,7 +253,7 @@ actor StaticParkingRepository: StaticParkingProviding {
 
     private func makeOption(_ candidate: Candidate, plan: ParkingPlan) -> ParkingOption {
         let location = candidate.location
-        let kind: ParkingOptionKind = location.kind == .onStreet ? .onStreet : .offStreet
+        let kind = ParkingOptionKind(location.kind)
         let sourceAgeWarning = location.source.datasetUpdatedAt == nil
             ? "Location only · availability is not live"
             : "Static data checked by ParkAlong · availability is not live"
@@ -257,7 +261,7 @@ actor StaticParkingRepository: StaticParkingProviding {
         let available = candidate.prediction?.expectedAvailable.map { Int($0.rounded(.down)) }
         return ParkingOption(
             id: "static-\(location.id)", kind: kind, title: location.name,
-            locationLabel: location.municipality, coordinate: location.coordinate,
+            locationLabel: location.locationLabel, coordinate: location.coordinate,
             availabilityState: .unknown, available: available, total: location.capacity,
             restrictionLabel: candidate.rule.timeLimitText,
             restrictionWindow: candidate.rule.restrictionWindow,
@@ -316,7 +320,7 @@ actor StaticParkingRepository: StaticParkingProviding {
                 longitude: longitudes.reduce(0, +) / Double(members.count)
             )
             return ParkingOption(
-                id: "cluster-\(Int(viewport.zoomLevel))-\(key.row)-\(key.column)", kind: .offStreet,
+                id: "cluster-\(Int(viewport.zoomLevel))-\(key.row)-\(key.column)", kind: .unknown,
                 title: "\(members.count) parking locations",
                 locationLabel: municipalities.count == 1 ? municipalities.first! : "Visible area",
                 coordinate: coordinate, availabilityState: .unknown, available: nil, total: nil,

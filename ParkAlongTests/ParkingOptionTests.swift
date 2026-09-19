@@ -221,6 +221,48 @@ final class ParkingOptionTests: XCTestCase {
         )
     }
 
+    func testUnknownOptionKindUsesParkingLabelInsteadOfUnknown() {
+        XCTAssertEqual(ParkingOptionKind(StaticParkingKind.unknown), .unknown)
+        XCTAssertEqual(ParkingOptionKind.unknown.rawValue, "Parking")
+        XCTAssertEqual(ParkingOptionKind.unknown.rawValue.uppercased(), "PARKING")
+        XCTAssertEqual(ParkingOptionKind.onStreet.rawValue, "On-street")
+        XCTAssertEqual(ParkingOptionKind.offStreet.rawValue, "Off-street")
+        XCTAssertEqual(ParkingOptionKind(StaticParkingKind.onStreet), .onStreet)
+        XCTAssertEqual(ParkingOptionKind(StaticParkingKind.offStreet), .offStreet)
+    }
+
+    func testOptionLocationLabelFallsBackAndDeduplicatesLocality() {
+        let glenWaverley = staticLocation(municipality: "Monash", locality: "Glen Waverley")
+        XCTAssertEqual(glenWaverley.locationLabel, "Glen Waverley, Monash")
+        XCTAssertEqual(staticLocation(municipality: "Ballarat", locality: nil).locationLabel, "Ballarat")
+        XCTAssertEqual(staticLocation(municipality: "Ballarat", locality: "").locationLabel, "Ballarat")
+        XCTAssertEqual(staticLocation(municipality: "Wyndham", locality: "   ").locationLabel, "Wyndham")
+        XCTAssertEqual(staticLocation(municipality: "Hamilton", locality: "Hamilton").locationLabel, "Hamilton")
+        XCTAssertEqual(staticLocation(municipality: "Casey", locality: "casey").locationLabel, "Casey")
+        XCTAssertEqual(glenWaverley.name, "Fixture parking")
+        XCTAssertEqual(glenWaverley.source.name, "Fixture Council")
+        XCTAssertEqual(glenWaverley.kind, .offStreet)
+        XCTAssertEqual(glenWaverley.classification, .staticOnly)
+        XCTAssertEqual(glenWaverley.municipality, "Monash")
+    }
+
+    func testUnknownDetailDisclaimerStaysNeutral() {
+        let unknown = ZoneDetailDisclaimer.detail(for: .unknown)
+        XCTAssertTrue(unknown.localizedCaseInsensitiveContains("location"))
+        XCTAssertTrue(unknown.localizedCaseInsensitiveContains("accessibility"))
+        XCTAssertTrue(unknown.localizedCaseInsensitiveContains("posted signs or facility information"))
+        XCTAssertFalse(unknown.localizedCaseInsensitiveContains("facility hours"))
+        XCTAssertFalse(unknown.localizedCaseInsensitiveContains("sensor"))
+        XCTAssertEqual(
+            ZoneDetailDisclaimer.detail(for: .onStreet),
+            "Counts and estimates can change. Check the sign and meter before you leave the car. Sensors can misread on public holidays and near construction."
+        )
+        XCTAssertEqual(
+            ZoneDetailDisclaimer.detail(for: .offStreet),
+            "Facility hours, spaces and prices are controlled by the provider. Check before you travel."
+        )
+    }
+
     private func option(classification: ParkingDataClassification, available: Int?, total: Int?) -> ParkingOption {
         ParkingOption(
             id: "fixture", kind: .offStreet, title: "Fixture parking", locationLabel: "Fixture Council",
@@ -236,6 +278,20 @@ final class ParkingOptionTests: XCTestCase {
             isSuggested: false, zoneNumber: nil, classification: classification,
             warningText: classification == .verifiedLive ? nil : "Not live",
             sourceDatasetAt: nil, sourceCheckedAt: nil, schedule: [], clusterCount: nil, clusterViewport: nil
+        )
+    }
+
+    private func staticLocation(municipality: String, locality: String?) -> StaticParkingLocation {
+        StaticParkingLocation(
+            id: "fixture", name: "Fixture parking", municipality: municipality, locality: locality,
+            coordinate: .melbourneCBD, kind: .offStreet, archetype: .general, capacity: 40, accessibleSpaces: nil,
+            schedules: [], tariffs: [],
+            source: .init(
+                id: "fixture", name: "Fixture Council", sourceURL: URL(string: "https://example.com")!,
+                licenseName: "Official", licenseURL: nil, datasetUpdatedAt: nil,
+                checkedAt: Date(timeIntervalSince1970: 1_777_000_000)
+            ),
+            classification: .staticOnly, predictionEvidence: nil
         )
     }
 

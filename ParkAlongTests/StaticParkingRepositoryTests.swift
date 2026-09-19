@@ -44,6 +44,98 @@ final class StaticParkingRepositoryTests: XCTestCase {
         XCTAssertEqual(tariff.unparsedCondition, "EUR 2/hour")
     }
 
+    func testStaticKindDecodesUnknownWithoutGuessingOnOrOffStreet() throws {
+        let decoder = BundleDataLoader.decoder()
+
+        XCTAssertEqual(try decoder.decode(StaticParkingKind.self, from: Data("\"unknown\"".utf8)), .unknown)
+        XCTAssertEqual(try decoder.decode(StaticParkingKind.self, from: Data("\"on_street\"".utf8)), .onStreet)
+        XCTAssertEqual(try decoder.decode(StaticParkingKind.self, from: Data("\"off_street\"".utf8)), .offStreet)
+        XCTAssertThrowsError(try decoder.decode(StaticParkingKind.self, from: Data("\"street\"".utf8)))
+    }
+
+    func testStaticLocationJSONDecodesUnknownKind() throws {
+        let data = Data("""
+        {
+          "id": "accessible-unknown",
+          "name": "Accessible parking bay",
+          "municipality": "Latrobe",
+          "coordinate": {"latitude": -38.237, "longitude": 146.414},
+          "kind": "unknown",
+          "archetype": "general",
+          "capacity": 1,
+          "accessibleSpaces": 1,
+          "schedules": [],
+          "tariffs": [],
+          "source": {
+            "id": "latrobe-accessible-parking",
+            "name": "Latrobe City accessible parking",
+            "sourceURL": "https://example.com/accessible",
+            "licenseName": "Official public page",
+            "licenseURL": null,
+            "datasetUpdatedAt": "2026-01-01T00:00:00Z",
+            "checkedAt": "2026-09-19T00:00:00Z"
+          },
+          "classification": "static_only",
+          "predictionEvidence": null
+        }
+        """.utf8)
+
+        let location = try BundleDataLoader.decoder().decode(StaticParkingLocation.self, from: data)
+
+        XCTAssertEqual(location.kind, .unknown)
+        XCTAssertEqual(location.kind.rawValue, "unknown")
+        XCTAssertNil(location.locality)
+    }
+
+    func testStaticLocationJSONDecodesMissingLocality() throws {
+        let location = try BundleDataLoader.decoder().decode(StaticParkingLocation.self, from: staticLocationJSON())
+
+        XCTAssertNil(location.locality)
+        XCTAssertEqual(location.municipality, "Latrobe")
+        XCTAssertEqual(location.locationLabel, "Latrobe")
+        XCTAssertEqual(location.name, "Accessible parking bay")
+        XCTAssertEqual(location.kind, .unknown)
+        XCTAssertEqual(location.classification, .staticOnly)
+        XCTAssertEqual(location.source.name, "Latrobe City accessible parking")
+    }
+
+    func testStaticLocationJSONDecodesAuthoritativeLocality() throws {
+        let location = try BundleDataLoader.decoder().decode(
+            StaticParkingLocation.self,
+            from: staticLocationJSON(localityLine: "          \"locality\": \"Glen Waverley\",\n")
+        )
+
+        XCTAssertEqual(location.locality, "Glen Waverley")
+        XCTAssertEqual(location.municipality, "Latrobe")
+        XCTAssertEqual(location.locationLabel, "Glen Waverley, Latrobe")
+        XCTAssertEqual(location.name, "Accessible parking bay")
+        XCTAssertEqual(location.kind, .unknown)
+        XCTAssertEqual(location.source.name, "Latrobe City accessible parking")
+    }
+
+    func testUnknownStaticKindMapsToParkingOptionWithoutChoosingOnOrOffStreet() async {
+        let unknown = fixture(id: "unknown", name: "Accessible bay", coordinate: .melbourneCBD, kind: .unknown)
+        let onStreet = fixture(
+            id: "on", name: "Street bay",
+            coordinate: .init(latitude: Coordinate.melbourneCBD.latitude + 0.001, longitude: Coordinate.melbourneCBD.longitude),
+            kind: .onStreet
+        )
+        let offStreet = fixture(
+            id: "off", name: "Car park",
+            coordinate: .init(latitude: Coordinate.melbourneCBD.latitude - 0.001, longitude: Coordinate.melbourneCBD.longitude),
+            kind: .offStreet
+        )
+        let repository = StaticParkingRepository(locations: [unknown, onStreet, offStreet])
+
+        let options = await repository.options(in: viewport(center: .melbourneCBD), plan: plan(.oneHour))
+        let byID = Dictionary(uniqueKeysWithValues: options.map { ($0.id, $0) })
+
+        XCTAssertEqual(byID["static-unknown"]?.kind, .unknown)
+        XCTAssertEqual(byID["static-unknown"]?.kind.rawValue, "Parking")
+        XCTAssertEqual(byID["static-on"]?.kind, .onStreet)
+        XCTAssertEqual(byID["static-off"]?.kind, .offStreet)
+    }
+
     func testGeneratedVictorianCatalogDecodesFromAppBundle() throws {
         let locations = try BundleDataLoader.load([StaticParkingLocation].self, named: "victoria_static_parking")
         let manifest = try BundleDataLoader.load(StaticCatalogManifest.self, named: "victoria_static_manifest")
@@ -396,6 +488,39 @@ final class StaticParkingRepositoryTests: XCTestCase {
         XCTAssertEqual(metrics.entries, 2)
     }
 
+    func testZoomedOutClusterUsesUnknownKindForMixedAndUnknownMembers() async {
+        let kinds: [StaticParkingKind] = [.unknown, .onStreet, .offStreet]
+        let locations = kinds.enumerated().map { index, kind in
+            fixture(
+                id: "mixed-\(index)",
+                name: "Parking \(index)",
+                coordinate: .init(
+                    latitude: Coordinate.melbourneCBD.latitude + Double(index) * 0.00005,
+                    longitude: Coordinate.melbourneCBD.longitude
+                ),
+                kind: kind,
+                municipality: "Monash",
+                locality: "Glen Waverley"
+            )
+        }
+        let repository = StaticParkingRepository(locations: locations, resultLimit: 80)
+        let wide = ParkingViewport(south: -38.0, west: 144.7, north: -37.6, east: 145.1, zoomLevel: 9)
+
+        let options = await repository.options(in: wide, plan: plan(.oneHour))
+
+        XCTAssertEqual(options.count, 1)
+        XCTAssertEqual(options[0].kind, .unknown)
+        XCTAssertEqual(options[0].kind.rawValue, "Parking")
+        XCTAssertEqual(options[0].kind.rawValue.uppercased(), "PARKING")
+        XCTAssertNotEqual(options[0].kind, .offStreet)
+        XCTAssertNotEqual(options[0].kind, .onStreet)
+        XCTAssertEqual(options[0].clusterCount, 3)
+        XCTAssertEqual(options[0].title, "3 parking locations")
+        XCTAssertEqual(options[0].locationLabel, "Glen Waverley, Monash")
+        XCTAssertEqual(options[0].pinLabel, "3")
+        XCTAssertEqual(options[0].clusterViewport?.zoomLevel, 11)
+    }
+
     func testWideViewportClustersEveryVisibleRecordInsteadOfTruncatingAroundTheCentre() async {
         let locations = (0..<900).map { index in
             let row = index / 30
@@ -430,18 +555,128 @@ final class StaticParkingRepositoryTests: XCTestCase {
         XCTAssertEqual(padded.east, 145.2, accuracy: 0.0001)
     }
 
+    func testSearchMatchesGlenWaverleyLocalitySpelling() async {
+        let glenWaverley = fixture(
+            id: "glen-waverley",
+            name: "Kingsway car park",
+            coordinate: .init(latitude: -37.880, longitude: 145.162),
+            municipality: "Monash",
+            locality: "Glen Waverley"
+        )
+        let elsewhere = fixture(
+            id: "elsewhere",
+            name: "Unrelated car park",
+            coordinate: .melbourneCBD,
+            municipality: "Melbourne",
+            locality: "Carlton"
+        )
+        let repository = StaticParkingRepository(locations: [glenWaverley, elsewhere])
+
+        let matches = await repository.search(
+            "Glen Waverley",
+            near: viewport(center: glenWaverley.coordinate),
+            plan: plan(.oneHour)
+        )
+
+        XCTAssertEqual(matches.map(\.id), ["static-glen-waverley"])
+        XCTAssertEqual(matches.first?.title, "Kingsway car park")
+        XCTAssertEqual(matches.first?.locationLabel, "Glen Waverley, Monash")
+        XCTAssertEqual(matches.first?.provider, "Official Council")
+        XCTAssertEqual(matches.first?.kind, .offStreet)
+        XCTAssertEqual(matches.first?.classification, .staticOnly)
+    }
+
+    func testOptionLocationLabelFallsBackAndDeduplicatesLocality() async {
+        let withLocality = fixture(
+            id: "with-locality", name: "Kingsway car park",
+            coordinate: .melbourneCBD, municipality: "Monash", locality: "Glen Waverley"
+        )
+        let missing = fixture(
+            id: "missing-locality", name: "Sturt Street",
+            coordinate: .init(latitude: Coordinate.melbourneCBD.latitude + 0.001, longitude: Coordinate.melbourneCBD.longitude),
+            municipality: "Ballarat"
+        )
+        let duplicate = fixture(
+            id: "duplicate-locality", name: "Library car park",
+            coordinate: .init(latitude: Coordinate.melbourneCBD.latitude - 0.001, longitude: Coordinate.melbourneCBD.longitude),
+            municipality: "Hamilton", locality: "Hamilton"
+        )
+        let blank = fixture(
+            id: "blank-locality", name: "Werribee bay",
+            coordinate: .init(latitude: Coordinate.melbourneCBD.latitude, longitude: Coordinate.melbourneCBD.longitude + 0.001),
+            municipality: "Wyndham", locality: "   "
+        )
+        let caseDuplicate = fixture(
+            id: "case-duplicate", name: "Casey bay",
+            coordinate: .init(latitude: Coordinate.melbourneCBD.latitude, longitude: Coordinate.melbourneCBD.longitude - 0.001),
+            municipality: "Casey", locality: "casey"
+        )
+        XCTAssertEqual(withLocality.locationLabel, "Glen Waverley, Monash")
+        XCTAssertEqual(missing.locationLabel, "Ballarat")
+        XCTAssertEqual(duplicate.locationLabel, "Hamilton")
+        XCTAssertEqual(blank.locationLabel, "Wyndham")
+        XCTAssertEqual(caseDuplicate.locationLabel, "Casey")
+
+        let repository = StaticParkingRepository(
+            locations: [withLocality, missing, duplicate, blank, caseDuplicate]
+        )
+        let options = await repository.options(in: viewport(center: .melbourneCBD), plan: plan(.oneHour))
+        let byID = Dictionary(uniqueKeysWithValues: options.map { ($0.id, $0) })
+
+        XCTAssertEqual(byID["static-with-locality"]?.locationLabel, "Glen Waverley, Monash")
+        XCTAssertEqual(byID["static-with-locality"]?.title, "Kingsway car park")
+        XCTAssertEqual(byID["static-with-locality"]?.provider, "Official Council")
+        XCTAssertEqual(byID["static-missing-locality"]?.locationLabel, "Ballarat")
+        XCTAssertEqual(byID["static-duplicate-locality"]?.locationLabel, "Hamilton")
+        XCTAssertEqual(byID["static-blank-locality"]?.locationLabel, "Wyndham")
+        XCTAssertEqual(byID["static-case-duplicate"]?.locationLabel, "Casey")
+        XCTAssertEqual(byID["static-with-locality"]?.kind, .offStreet)
+        XCTAssertEqual(byID["static-with-locality"]?.classification, .staticOnly)
+    }
+
+    private func staticLocationJSON(localityLine: String = "") -> Data {
+        Data("""
+        {
+          "id": "accessible-unknown",
+          "name": "Accessible parking bay",
+          "municipality": "Latrobe",
+        \(localityLine)          "coordinate": {"latitude": -38.237, "longitude": 146.414},
+          "kind": "unknown",
+          "archetype": "general",
+          "capacity": 1,
+          "accessibleSpaces": 1,
+          "schedules": [],
+          "tariffs": [],
+          "source": {
+            "id": "latrobe-accessible-parking",
+            "name": "Latrobe City accessible parking",
+            "sourceURL": "https://example.com/accessible",
+            "licenseName": "Official public page",
+            "licenseURL": null,
+            "datasetUpdatedAt": "2026-01-01T00:00:00Z",
+            "checkedAt": "2026-09-19T00:00:00Z"
+          },
+          "classification": "static_only",
+          "predictionEvidence": null
+        }
+        """.utf8)
+    }
+
     private func fixture(
         id: String,
         name: String,
         coordinate: Coordinate,
+        kind: StaticParkingKind = .offStreet,
+        municipality: String = "Fixture",
+        locality: String? = nil,
         schedules: [ParkingSchedule] = [],
         tariffs: [ParkingTariff] = [],
         sourceID: String = "official-council",
         sourceName: String = "Official Council"
     ) -> StaticParkingLocation {
         .init(
-            id: id, name: name, municipality: "Fixture", coordinate: coordinate, kind: .offStreet, archetype: .general,
-            capacity: 40, accessibleSpaces: 2, schedules: schedules, tariffs: tariffs,
+            id: id, name: name, municipality: municipality, locality: locality, coordinate: coordinate,
+            kind: kind, archetype: .general, capacity: 40, accessibleSpaces: 2, schedules: schedules, tariffs: tariffs,
             source: .init(id: sourceID, name: sourceName, sourceURL: URL(string: "https://example.com/parking")!,
                           licenseName: "Official public page", licenseURL: nil,
                           datasetUpdatedAt: now.addingTimeInterval(-3_600), checkedAt: now.addingTimeInterval(-1_800)),
